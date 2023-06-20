@@ -1,0 +1,201 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\blendmode.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\error.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\image.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\input.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\mouse.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\pixels.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\ray.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\rect.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\render.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\SDL_ttf.cpp" />
+    <ClCompile Include="D:\Programming\C++\SDL++\SDL++\src\version.cpp" />
+    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\*.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="Computer.cpp" />
+    <ClCompile Include="Core.cpp" />
+    <ClCompile Include="ROM.cpp" />
+    <ClCompile Include="RAM.cpp" />
+    <ClCompile Include="ComputerInfo.cpp" />
+    <ClCompile Include="CharDisplay.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="SDL++">
+      <UniqueIdentifier>{70021537-2e70-4762-abf5-c0bccff86c0c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Computer.h" />
+    <ClInclude Include="SR_Definitions.h" />
+    <ClInclude Include="Core.h" />
+    <ClInclude Include="Device.h" />
+    <ClInclude Include="MemoryMapped.h" />
+    <ClInclude Include="MappedDevice.h" />
+    <ClInclude Include="ROM.h" />
+    <ClInclude Include="RAM.h" />
+    <ClInclude Include="ComputerInfo.h" />
+    <ClInclude Include="CharDisplay.h" />
+    <ClInclude Include="NullDevice.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="Char set.png" />
+  </ItemGroup>
+</Project>
