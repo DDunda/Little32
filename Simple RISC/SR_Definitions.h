@@ -4,22 +4,10 @@
 typedef uint32_t word;
 typedef uint8_t byte;
 
-#define R0 registers[0]
-#define R1 registers[1]
-#define R2 registers[2]
-#define R3 registers[3]
-#define R4 registers[4]
-#define R5 registers[5]
-#define R6 registers[6]
-#define R7 registers[7]
-#define R8 registers[8]
-#define R9 registers[9]
-#define R10 registers[10]
-#define R11 registers[11]
-#define R12 registers[12]
-#define SP registers[13]
-#define LR registers[14]
-#define PC registers[15]
+#define N_flag 0b1000
+#define Z_flag 0b0100
+#define C_flag 0b0010
+#define V_flag 0b0001
 
 enum class Device_ID {
 	Null = 0,

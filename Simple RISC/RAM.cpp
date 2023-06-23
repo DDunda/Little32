@@ -18,7 +18,7 @@ RAM::RAM(word address, word size, std::shared_ptr<word[]>& memory) :
 	address_start(address),
 	address_size(size * sizeof(word)),
 	defaultMemory(memory),
-	memory(new word[size]{ 0 }) {
+	memory(new word[size](0)) {
 	if (!defaultMemory) return;
 	memcpy(this->memory.get(), defaultMemory.get(), address_size);
 }
@@ -26,7 +26,7 @@ RAM::RAM(word address, word size, std::shared_ptr<word[]>& memory) :
 RAM::RAM(word address, word size) :
 	address_start(address),
 	address_size(size * sizeof(word)),
-	memory(new word[size]{ 0 }) {}
+	memory(new word[size](0)) {}
 
 void RAM::Write(word address, word value) {
 	if (address >= address_size) return;

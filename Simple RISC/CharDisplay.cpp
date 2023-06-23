@@ -31,7 +31,7 @@ CharDisplay::CharDisplay(SDL::Renderer& r, SDL::Texture& txt, const SDL::Point& 
 	address_start(address),
 	address_size(textSize.w* textSize.h),
 	defaultMemory(memory),
-	memory(new byte[address_size]{0}) {
+	memory(new byte[address_size](0)) {
 	if (!defaultMemory) return;
 	memcpy(this->memory.get(), defaultMemory.get(), address_size);
 }
@@ -45,7 +45,7 @@ CharDisplay::CharDisplay(SDL::Renderer& r, SDL::Texture& txt, const SDL::Point& 
 	textSize(textSize),
 	address_start(address),
 	address_size(textSize.w* textSize.h),
-	memory(new byte[address_size]{0}) {}
+	memory(new byte[address_size](0)) {}
 
 void CharDisplay::Write(word address, word value) {
 	if (address >= address_size) return;

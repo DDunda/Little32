@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
     </ClCompile>
     <Link>
@@ -127,7 +127,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,7 +149,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
     </ClCompile>
     <Link>
@@ -172,7 +172,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -207,6 +207,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="MappedDevice.h" />
     <ClInclude Include="MemoryMapped.h" />
     <ClInclude Include="NullDevice.h" />
+    <ClInclude Include="PreProcAssember.h" />
     <ClInclude Include="RAM.h" />
     <ClInclude Include="ROM.h" />
     <ClInclude Include="SR_Definitions.h" />
@@ -217,6 +218,10 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

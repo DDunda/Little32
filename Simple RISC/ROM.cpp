@@ -14,7 +14,7 @@ ROM::ROM(word address, word size, std::shared_ptr<word[]>& memory) :
 ROM::ROM(word address, word size) :
 	address_start(address),
 	address_size(size * sizeof(word)),
-	memory(new word[size]{ 0 }) {}
+	memory(new word[size](0)) {}
 
 word ROM::Read(word address) {
 	if (address >= address_size) return 0;
