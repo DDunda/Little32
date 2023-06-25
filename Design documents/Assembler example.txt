@@ -1,0 +1,48 @@
+// Language preprocessor constants:
+@HALT B .+0
+@STR RWW ...
+@LDR RRW ...
+@STRB RWB ...
+@LDRB RRB ...
+@PUSH SWR SP, ...
+@POP SRR SP, ...
+@BPL BNC ...
+@BMI BNS ...
+@BNE BZC ...
+@BEQ BZS ...
+@BLO BCC ...
+@BHS BCS ...
+@OR ORR...
+@RET MOV PC, LR
+@ADD(A,B) ADD $A, $A, $B
+@SUB(A,B) SUB $A, $A, $B
+@INC(A,B) ADD $A, $B, 1
+@DEC(A,B) SUB $A, $B, 1
+@INC(A) ADD $A, $A, 1
+@DEC(A) SUB $A, $A, 1
+@NEG NMOV
+
+// Example file
+Start:
+${
+$x // $x R1
+$y R0
+MOV $x, 1
+ADD $x, $x, $y
+MVM $x, {R2-R12}
+CMP $x,$y
+
+?NE {
+NADD $y, $y, 1 // NADDNE R1, R1, 1
+B .Start // BNE .-20
+}?
+
+PUSH {R0-R12} // SWR SP, {R0-R12}
+SRR SP, {R0-R12}
+
+B .Start // B .-32
+}$
+
+RWW R0, [R1]
+RWW R0, [R1+R2]
+RWW R0, [R1+4]

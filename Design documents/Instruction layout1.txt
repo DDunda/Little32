@@ -1,0 +1,11 @@
+P - opcode
+
+PPPPPP xxxx xxaaaa xxxxbbbb xxxxcccc - a,b, dst with 3reg
+
+PPPPPP aaaa bbbbcc cccccccc cccccccc - a,b, dst with 2reg 1imm
+
+PPPPPP xxxx xxaaaa xxxxbbbb xxxxxxxx - a, dst with 2reg
+
+PPPPPP aaaa bbbbbb bbbbbbbb bbbbbbbb - a, dst with 1reg 1imm
+
+PPPPPP xxxx xxaaaa bbbbbbbb bbbbbbbb - a, list with 1reg 1list

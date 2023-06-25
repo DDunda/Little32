@@ -1,0 +1,28 @@
+C - condition
+L - link
+P - opcode
+S - set status
+B - byte
+N - negate
+W - write
+
+CCCC 0L oo oooo oooo oooo oooo oooo oooo - Branch + L + offset
+
+CCCC 10 PPPP 0S aaaa bbbb cccc xxxx xxxx - a,b, dst with 3reg
+
+CCCC 10 PPPP 1S aaaa bbbb cccc cccc cccc - a,b, dst with 2reg 1imm
+
+CCCC 10 PPPP 0S aaaa bbbb xxxx xxxx xxxx - a, dst with 2reg
+
+CCCC 10 PPPP 1S aaaa bbbb bbbb bbbb bbbb - a, dst with 1reg 1imm
+
+CCCC 11 00 0BNW aaaa bbbb cccc xxxx xxxx - Register-memory movement, 3reg
+CCCC 11 00 1BNW aaaa bbbb cccc cccc cccc - Register-memory movement, 2reg 1imm
+
+CCCC 11 01 00N0 aaaa bbbb xxxx xxxx xxxx - Register-register movement
+CCCC 11 01 00N1 aaaa bbbb xxxx xxxx xxxx - Register-register swap
+CCCC 11 01 01Nx aaaa bbbb bbbb bbbb bbbb - Register-value movement
+CCCC 11 01 10Nx aaaa bbbb bbbb bbbb bbbb - Register-register set movement, 1reg 1list
+CCCC 11 01 11NW aaaa bbbb bbbb bbbb bbbb - Register set-memory movement, 1reg 1list
+
+CCCC 11 1x xxxx xxxx xxxx xxxx xxxx xxxx - Return from exception

@@ -1,0 +1,139 @@
+#imm
+[May imply PC]
+(May imply SP)
+{May be register set}
+<Flexible operand>
+
+COND
+AL
+0000
+
+GT (N == V) && !Z (> signed)
+0001 [addr], #off
+
+GE N == V (>= signed)
+0010 [addr], #off
+
+HI C && !Z (> unsigned)
+0011 [addr], #off
+
+CS / HS (C) (>= unsigned)
+0100 [addr], #off
+
+ZS / EQ (Z) (==)
+0101 [addr], #off
+
+NS / MI (N) (<0)
+0110 [addr], #off
+
+VS (V)
+0111 [addr], #off
+
+VC (!V)
+1000 [addr], #off
+
+NC / PL (!N) (>=0)
+1001 [addr], #off
+
+ZC / NE (!Z) (!=)
+1010 [addr], #off
+
+CC / LO (!C) (< unsigned)
+1011 [addr], #off
+
+LS !C || Z (<= unsigned)
+1100 [addr], #off
+
+LT N != V (< signed)
+1101 [addr], #off
+
+LE (N != V) || Z (<= signed)
+1110 [addr], #off
+
+Never?
+1111
+
+N10-
+ADD (NZCV)
+000S reg, A, <B>
+
+SUB (NZCV)
+001S reg, A, <B>
+
+ADC (Add with carry, A+B+Carry, NZCV)
+010S reg, A, <B>
+
+SBB (Sub with borrow, A+((C<<32)-B, NZCV)
+011S reg, A, <B>
+
+ASL (<<, signed, NZCV)
+100S reg, A, <B>
+
+ASR (>>, signed, NZC)
+101S reg, A, <B>
+
+CMP (Compare with -, NZCV)
+110x A, <B>
+
+CMN (Compare with +, NZCV)
+111x A, <B>
+
+
+N11-
+ORR (A|B, NZ)
+000S reg, A, <B>
+
+AND (A&B, NZ)
+001S reg, A, <B>
+
+XOR (A^B, NZ)
+010S reg, A, <B>
+
+CMX (Compare xor A^B, NZ)
+011x A, <B>
+
+LSL (<<, unsigned, ZCV)
+100S reg, A, <B>
+
+LSR (>>, unsigned, ZCV)
+101S reg, A, <B>
+
+MOV (reg = A, NZ)
+110S reg, <A>
+
+INV (reg = -A, NZ)
+111S reg, <A>
+
+N01-
+B (PC += off) (PC is instruction + 4)
+0 #off
+BL (LR = PC, PC += off) (PC is instruction + 4)
+1 #off
+
+N0011-
+RRW (Register Read Word)
+00 reg, [addr], <off>
+RWW (Register Write Word)
+01 reg, [addr], <off>
+RRB (Register Read Byte)
+10 reg, [addr], <off>
+RWB (Register Write Byte)
+11 reg, [addr], <off>
+
+N00101-
+SWR (Stack Write Registers)
+1 (ptr), {lst}
+SRR (Stack Read Registers)
+0 (ptr), {lst}}
+
+N001001-
+MVM (move many, val -> list)
+val, {lst}
+
+N001000-
+SWP (Swap, reg1 <-> reg2)
+reg1, reg2
+
+N0001-
+RFE (Return with value from stack, replace status reg from stack)
+0000 0000 0000 0000 0000 0000 0000
