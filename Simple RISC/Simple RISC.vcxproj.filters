@@ -1,35 +1,130 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
-    <ClCompile Include="$(SDLpp)\src\*.cpp">
+    <ClCompile Include="$(SDLpp)\src\blendmode.cpp">
       <Filter>SDL++</Filter>
     </ClCompile>
-    <ClCompile Include="Computer.cpp" />
-    <ClCompile Include="Core.cpp" />
-    <ClCompile Include="ROM.cpp" />
-    <ClCompile Include="RAM.cpp" />
-    <ClCompile Include="ComputerInfo.cpp" />
-    <ClCompile Include="CharDisplay.cpp" />
+    <ClCompile Include="$(SDLpp)\src\error.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\image.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\input.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\mouse.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\pixels.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\ray.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\rect.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\render.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\SDL_ttf.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\version.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="CharDisplay.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Computer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ComputerInfo.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Core.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugCore.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RAM.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RISCCore.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ROM.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SR_String.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
       <UniqueIdentifier>{70021537-2e70-4762-abf5-c0bccff86c0c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{77daa392-d35a-44e1-b702-f86506ba7879}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{d891dfba-aa43-41c9-bab5-c9b78586e2a9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Computer.h" />
-    <ClInclude Include="SR_Definitions.h" />
-    <ClInclude Include="Core.h" />
-    <ClInclude Include="Device.h" />
-    <ClInclude Include="MemoryMapped.h" />
-    <ClInclude Include="MappedDevice.h" />
-    <ClInclude Include="ROM.h" />
-    <ClInclude Include="RAM.h" />
-    <ClInclude Include="ComputerInfo.h" />
-    <ClInclude Include="CharDisplay.h" />
-    <ClInclude Include="NullDevice.h" />
-    <ClInclude Include="PreProcAssember.h" />
+    <ClInclude Include="CharDisplay.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Computer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputerInfo.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Core.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugCore.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="MappedDevice.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryMapped.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="NullDevice.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="PreProcAssember.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="RAM.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="RISCCore.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ROM.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SR_Definitions.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SR_String.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SR_Types.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="Char set.png" />

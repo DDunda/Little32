@@ -1,12 +1,7 @@
 #pragma once
-#include "Core.h"
 #include "Computer.h"
+#include "Core.h"
 
-Core::Core(Computer& computer) : computer(computer) {}
-
-bool Core::Interrupt(word address) {
-	if (interrupt) return false;
-	interrupt_addr = address;
-	interrupt = true;
-	return true;
+namespace SimpleRISC {
+	Core::Core(Computer& computer) : computer(computer) {}
 }

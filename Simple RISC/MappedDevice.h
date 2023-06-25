@@ -2,4 +2,6 @@
 #include "Device.h"
 #include "MemoryMapped.h"
 
-class MappedDevice : public Device, public MemoryMapped {};
+namespace SimpleRISC {
+	class MappedDevice : public Device, public MemoryMapped {};
+}

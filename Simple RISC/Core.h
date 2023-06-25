@@ -1,22 +1,23 @@
 #pragma once
-#include "SR_Definitions.h"
+#include <string>
+#include "SR_Types.h"
 
-class Computer;
+namespace SimpleRISC {
+	class Computer;
 
-class Core {
-protected:
-	bool interrupt = false;
-	word interrupt_addr = 0;
+	class Core {
+	public:
+		Computer& computer;
 
-public:
-	Computer& computer;
+		Core(Computer& computer);
 
-	Core(Computer& computer);
+		virtual void Clock() = 0;
+		virtual void Reset() = 0;
+		virtual void Interrupt(word address) = 0;
 
-	virtual void Clock() = 0;
-	virtual void Reset() = 0;
-	bool Interrupt(word address);
+		virtual const std::string Disassemble(word instruction) const = 0;
 
-	virtual void SetPC(word value) = 0;
-	virtual void SetSP(word value) = 0;
-};
+		virtual void SetPC(word value) = 0;
+		virtual void SetSP(word value) = 0;
+	};
+}
