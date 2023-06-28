@@ -64,6 +64,9 @@
     <ClCompile Include="SR_String.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Assembler.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
@@ -123,6 +126,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="SR_Types.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ASM.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Assembler.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

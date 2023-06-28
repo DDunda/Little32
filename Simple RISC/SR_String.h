@@ -9,7 +9,11 @@ namespace SimpleRISC {
 	// The readable names of registers by index
 	static const std::string regNames[16] { "R0","R1","R2","R3","R4","R5","R6","R7","R8","R9","R10","R11","R12","SP","LR","PC" };
 	// The readable names of conditions by index
-	static const std::string condNames[16] { "","GT","GE","HI","HS","EQ","MI","VS","VC","PL","NE","LO","LS","LT","LE","" };
+	static const std::string condNamesRegular[16] { "","GT","GE","HI","HS","EQ","MI","VS","VC","PL","NE","LO","LS","LT","LE","NV" };
+	// The variant names of conditions by index
+	static const std::string condNamesVariants[16]{ "AL","","","","CS","ZS","NS","","","NC","ZC","CC","","","","" };
+	// All condition names
+	static const std::string condNames[24]{ "","AL","GT","GE","HI","CS","ZS","NS","VS","VC","NC","ZC","CC","LS","LT","LE","HS","EQ","MI","VS","VC","PL","NE","LO" };
 
 	// Converts a word to its binary representation to an optionally specified number of bits
 	std::string ToBinary(word value, byte pad = 32);

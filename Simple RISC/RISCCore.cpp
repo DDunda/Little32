@@ -118,7 +118,8 @@ namespace SimpleRISC {
 
 	const std::string RISCCore::Disassemble(word instruction) const {
 		using namespace std;
-		const string cond = condNames[(instruction >> 28) & 0xF];
+		const string cond = condNamesRegular[(instruction >> 28) & 0xF];
+		const string cond2 = cond == "" ? "" : (" ?" + cond);
 
 		bool i = (instruction >> 20) & 1;
 
@@ -142,7 +143,7 @@ namespace SimpleRISC {
 				sign,
 				n,
 				sh,
-				cond,
+				cond2,
 				nstr,
 				sstr,
 				shstr,
@@ -159,8 +160,8 @@ namespace SimpleRISC {
 
 		if (instruction & 0x02000000) { // B
 			string diff = to_string(im24);
-			if (instruction & 0x01000000) return "BL" + cond + " ." + sign + diff; // BL
-			else                          return "B" + cond + " ." + sign + diff;
+			if (instruction & 0x01000000) return "BL" + cond + " " + sign + diff; // BL
+			else                          return "B" + cond + " " + sign + diff;
 		}
 		else if (instruction & 0x01000000) {
 			if (instruction & 0x00800000) { // Register <-> memory
@@ -171,29 +172,29 @@ namespace SimpleRISC {
 				else {
 					diff = sign + r3 + shstr;
 				}
-				string addr = (r2 == "PC" ? "." : r2) + diff;
+				string addr = (r2 == "PC" ? "" : r2) + diff;
 
 				static const string regMoveNames[4]{ "RRW", "RWW", "RRB", "RWB" };
 
 				string name = regMoveNames[(instruction >> 21) & 0b11];
 
-				return nstr + name + cond + " " + r1 + ", [" + addr + "]";
+				return nstr + name + " " + r1 + ", [" + addr + "]" + cond2;
 			}
 			else if (instruction & 0x00400000) { // Register list <-> stack
-				return nstr + ((instruction & 0x00200000) ? "SWR " : "SRR ") + cond + r1 + ", " + RegListToString(im16) + shstr;
+				return nstr + ((instruction & 0x00200000) ? "SWR " : "SRR ") + r1 + ", " + RegListToString(im16) + shstr + cond2;
 			}
 			else if (instruction & 0x002000000) { // MVM
-				return nstr + "MVM" + cond + " " + r1 + ", " + RegListToString(im16) + shstr;
+				return nstr + "MVM" + " " + r1 + ", " + RegListToString(im16) + shstr + cond2;
 			}
 			else { // SWP	
-				return nstr + "SWP" + cond + " " + r1 + ", " + r2 + shstr;
+				return nstr + "SWP" + " " + r1 + ", " + r2 + shstr + cond2;
 			}
 		}
 		else if (instruction & 0x00800000) { // RFE
-			return "RFE" + cond;
+			return "RFE" + cond2;
 		}
 		else {
-			return "NOP" + cond;
+			return "NOP" + cond2;
 		}
 	}
 
@@ -262,10 +263,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "ADD" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "ADD" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "ADD" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "ADD" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 0000 ADD          Add
@@ -296,10 +297,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "SUB" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "SUB" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "SUB" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "SUB" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 0001 SUB          Sub
@@ -334,10 +335,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "ADC" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "ADC" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "ADC" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "ADC" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 0010 ADC          Add with carry
@@ -372,10 +373,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "SBB" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "SBB" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "SBB" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "SBB" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 0011 SBB          Sub with borrow
@@ -404,10 +405,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "ASL" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "ASL" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "ASL" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "ASL" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 0100 ASL          Arithmetic shift left
@@ -436,10 +437,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "ASR" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "ASR" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "ASR" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "ASR" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 0101 ASR          Arithmetic shift right
@@ -466,10 +467,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "CMP" + cond + " " + r1 + ", " + r2 + shstr;
+					return nstr + "CMP" + " " + r1 + ", " + r2 + shstr + cond;
 				},
 				dop {
-					return nstr + "CMP" + cond + " " + r1 + ", " + std::to_string(im12);
+					return nstr + "CMP" + " " + r1 + ", " + std::to_string(im12) + cond;
 				}
 			}
 		}, // 0110 CMP          Compare two values with -
@@ -496,10 +497,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "CMN" + cond + " " + r1 + ", " + r2 + shstr;
+					return nstr + "CMN" + " " + r1 + ", " + r2 + shstr + cond;
 				},
 				dop {
-					return nstr + "CMN" + cond + " " + r1 + ", " + std::to_string(im12);
+					return nstr + "CMN" + " " + r1 + ", " + std::to_string(im12) + cond;
 				}
 			}
 		}, // 0111 CMN          Compare two values with +
@@ -526,10 +527,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return (n ? "NOR" : "ORR") + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return (n ? "NOR" : "ORR") + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return (n ? "NOR" : "ORR") + sstr + cond + " " + r1 + ", " + r2 + ", 0b" + ToBinary(im8,0);
+					return (n ? "NOR" : "ORR") + sstr + " " + r1 + ", " + r2 + ", 0b" + ToBinary(im8,0) + cond;
 				}
 			}
 		}, // 1000 ORR          A | B
@@ -556,10 +557,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "AND" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "AND" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "AND" + sstr + cond + " " + r1 + ", " + r2 + ", 0b" + ToBinary(im8,0);
+					return nstr + "AND" + sstr + " " + r1 + ", " + r2 + ", 0b" + ToBinary(im8,0) + cond;
 				}
 			}
 		}, // 1001 AND          A & B
@@ -586,10 +587,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return "X" + nstr + "OR" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return "X" + nstr + "OR" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return "X" + nstr + "OR" + sstr + cond + " " + r1 + ", " + r2 + ", 0b" + ToBinary(im8,0);
+					return "X" + nstr + "OR" + sstr + " " + r1 + ", " + r2 + ", 0b" + ToBinary(im8,0) + cond;
 				}
 			}
 		}, // 1010 XOR          A ^ B
@@ -614,10 +615,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "TST" + cond + " " + r1 + ", " + r2 + shstr;
+					return nstr + "TST " + r1 + ", " + r2 + shstr + cond;
 				},
 				dop {
-					return "TST" + cond + " " + r1 + ", 0b" + ToBinary(im12 ^ (n ? -1 : 1),0);
+					return nstr + "TST " + r1 + ", 0b" + ToBinary(im12 ^ (n ? -1 : 1),0) + cond;
 				}
 			}
 		}, // 1011 TST          Test bits with &
@@ -646,10 +647,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "LSL" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "LSL" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "LSL" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "LSL" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 1100 LSL          Logical shift left
@@ -678,10 +679,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "LSR" + sstr + cond + " " + r1 + ", " + r2 + ", " + r3 + shstr;
+					return nstr + "LSR" + sstr + " " + r1 + ", " + r2 + ", " + r3 + shstr + cond;
 				},
 				dop {
-					return nstr + "LSR" + sstr + cond + " " + r1 + ", " + r2 + ", " + std::to_string(im8);
+					return nstr + "LSR" + sstr + " " + r1 + ", " + r2 + ", " + std::to_string(im8) + cond;
 				}
 			}
 		}, // 1101 LSR          Logical shift right
@@ -712,11 +713,11 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					if (!n && sh == 0 && r1 == "LR" && r2 == "PC") return "RET" + sstr;
-					return (n ? "MVN" : "MOV") + sstr + cond + " " + r1 + ", " + r2 + shstr;
+					if (!n && sh == 0 && r1 == "LR" && r2 == "PC") return "RET" + sstr + cond;
+					return (n ? "MVN" : "MOV") + sstr + " " + r1 + ", " + r2 + shstr + cond;
 				},
 				dop {
-					return (n ? "MVN" : "MOV") + sstr + cond + " " + r1 + ", " + std::to_string(im12);
+					return (n ? "MVN" : "MOV") + sstr + " " + r1 + ", " + std::to_string(im12) + cond;
 				}
 			}
 		}, // 1110 MOV / MVN    Copy value to register
@@ -747,10 +748,10 @@ namespace SimpleRISC {
 			},
 			{
 				dop {
-					return nstr + "INV" + sstr + cond + " " + r1 + ", " + r2 + shstr;
+					return nstr + "INV" + sstr + " " + r1 + ", " + r2 + shstr + cond;
 				},
 				dop {
-					return nstr + "INV" + sstr + cond + " " + r1 + ", " + std::to_string(im12);
+					return nstr + "INV" + sstr + " " + r1 + ", " + std::to_string(im12) + cond;
 				}
 			}
 		}, // 1111 INV          -A

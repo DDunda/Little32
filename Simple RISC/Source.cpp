@@ -1,6 +1,7 @@
 ﻿#include<SDL.hpp>
 #include<iostream>
 #include<bit>
+#include"ASM.h"
 
 #include "Computer.h"
 #include "Device.h"
@@ -17,6 +18,7 @@
 
 #include "SR_String.h"
 #include "PreProcAssember.h"
+#include "Assembler.h"
 
 using namespace SDL;
 using namespace SimpleRISC;
@@ -57,29 +59,26 @@ int main(int argc, char* argv[]) {
 	word CHAR_MEM = cram.address_start>>2;
 	word pc = 0;
 
-#ifdef PROG1a // Program 1a - Branch, MOV, ADD, status test
+#if defined PROG1a // Program 1a - Branch, MOV, ADD, status test
 	word prog_start = pc;
 	//        CCCCN1ccccSi   ,   .   ,   .   ,
 	//        CCCCN01L   .   ,   .   ,   .   ,
-	PUTWORD 0b00000011000000000000000000000011; // BL .+12
+	PUTWORD 0b00000011000000000000000000000011; // BL +12
 	PUTWORD 0b00000100001100000000000000010000; // ADDS R0, R0, 1
-	PUTWORD 0b00001010000000000000000000000010; // B .-8
+	PUTWORD 0b00001010000000000000000000000010; // B -8
 	PUTWORD 0b00000111100011111110000000000000; // MOV PC, LR
 	word prog_end = pc;
 	word mem_end = pc;
-#endif // PROG1a
 
-#ifdef PROG1b // Program 1b - Program 1a as instruction macros
+#elif defined PROG1b // Program 1b - Program 1a as instruction macros
 	word prog_start = pc;
-	BL(AL,3)            // BL .+3
+	BL(AL,3)            // BL +12
 	ADDSi(AL,R0,R0,1,0) // ADDS R0, R0, 1
-	B(AL,-2)            // B .-2
+	B(AL,-2)            // B -8
 	MOV(AL,PC,LR,0)     // RET
 	word prog_end = pc;
 	word mem_end = pc;
-#endif // PROG1b
-
-#ifdef PROG2 // Program 2 - Character display test
+#elif defined PROG2 // Program 2 - Character display test
 	word prog_start = pc;
 	word start_num = prog_start + 100;
 
@@ -87,23 +86,21 @@ int main(int argc, char* argv[]) {
 	MOVi(AL, R1, CHAR_MEM, 1)           // MOV R1, CHAR_MEM
 	ADDi(AL, R0, R0, 3, 0)              // ADD R0, R0, 3        // do { R0 += 3;
 	RWWi(AL, R0, R1, 0, 0)              // RWW R0, [R1]         //      *CHAR_MEM = R0;
-	B(AL, -2)                           // B .-8                // } while(true);
+	B(AL, -2)                           // B -8                 // } while(true);
 	word prog_end = pc;
 
 	pc = start_num;
 	PUTWORD 0x20202020;                 // start_num: 0x20202020
 	word mem_end = pc;
-#endif // PROG2
-
-#ifdef PROG3 // Program 3 - Fully functional demo
+#elif defined PROG3 // Program 3 - Fully functional demo
 	word prog_start = pc;
 	word gradient = prog_start + 100;
 	word frame_int = prog_start + 8;
 
 	word x = R0;                        // $x R0
 	word i = R1;                        // $i R1
-	word y = R2;                        // $y R3
-	word g = R3;                        // $g R4
+	word y = R2;                        // $y R2
+	word g = R3;                        // $g R3
 
 	MOVi(AL, x, 7, 0)                   // MOV $x, 7           // word  x = 7;
 	MOVi(AL, i, 0, 0)                   // MOV $i, 0           // word  i = 0;
@@ -111,7 +108,7 @@ int main(int argc, char* argv[]) {
 	MOVi(AL, g,  start+gradient, 1)     // MOV $g, gradient    
 	MOVi(AL, R4, start+frame_int, 1)    // MOV R4, frame_int
 	RWWi(AL, R4, y, 1, 4)               // RWW R4, [$y+256]    // set_frame_callback(frame_int);
-	B(AL, 0)                            // B .                 // while(true) {}
+	B(AL, 0)                            // HALT                // while(true) {}
 
 	pc = frame_int;                     // frame_int:          // void frame_int() {
 	CMPi(AL, x, 0, 0)                   // CMP $x, 0
@@ -121,7 +118,7 @@ int main(int argc, char* argv[]) {
 	ADDi(AL, i, i, 1, 0)                // ADD $i, $i, 1       //     i++;
 	SUBi(AL, x, x, 1, 0)                // SUB $x, $x, 1       //     x--;
 	ANDSi(AL, R4, i, 15, 0)             // ANDS R4, $i, 15
-	B(NE, (int)frame_int - (int)pc)     // BNE .+12            //     if((i & 15) != 0) continue;
+	B(NE, (int)frame_int - (int)pc)     // BNE .frame_int      //     if((i & 15) != 0) continue;
 	SUBi(AL, x, x, 3, 0)                // SUB $x, $x, 3       //     x -= 3;
 	CMPi(AL, i, 1, 4)                   // CMP $i, 256
 	B(LT, (int)frame_int-(int)pc)       // BLT .frame_int      //     if(i < 256) continue;
@@ -136,6 +133,25 @@ int main(int argc, char* argv[]) {
 	PUTWORD 0x20202020;                 // 0x20202020
 	PUTWORD 0x20202020;                 // 0x20202020
 	word mem_end = pc;
+#else
+	Assembler assembler;
+
+	assembler.AddLabel("CHAR_MEM", CHAR_MEM << 2);
+	assembler.SetRAM(ram);
+
+	B(AL, 0); // HALT
+
+	try {
+		assembler.Assemble(assembly_code, true);
+	}
+	catch (const Assembler::FormatException& e) {
+		printf("%s\n%s", e.message.c_str(), e.line.c_str());
+		return 1;
+	}
+
+	word prog_start = (assembler.program_start >> 2) - start;
+	word prog_end = (assembler.program_end >> 2) - start;
+	word mem_end = (assembler.data_end >> 2) - start;
 #endif
 
 	computer.core = &core;
