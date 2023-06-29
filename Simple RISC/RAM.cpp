@@ -5,7 +5,7 @@ namespace SimpleRISC {
 	void RAM::_WriteWordUnsafe(word address, word value) { memory[address / sizeof(word)] = value; }
 
 	void RAM::_WriteByteUnsafe(word address, byte value) {
-		word x = ((sizeof(word) - 1 - (address % sizeof(word))) * 8);
+		word x = (address % sizeof(word)) * 8;
 
 		value ^= memory[address / sizeof(word)] >> x;
 		memory[address / sizeof(word)] ^= value << x;
@@ -13,7 +13,7 @@ namespace SimpleRISC {
 
 	word RAM::_ReadWordUnsafe(word address) { return memory[address / sizeof(word)]; }
 
-	byte RAM::_ReadByteUnsafe(word address) { return _ReadWordUnsafe(address) >> ((sizeof(word) - 1 - (address % sizeof(word))) * 8); }
+	byte RAM::_ReadByteUnsafe(word address) { return _ReadWordUnsafe(address) >> ((address % sizeof(word)) * 8); }
 
 	RAM::RAM(word address, word size, std::shared_ptr<word[]>& memory) :
 		address_start(address),

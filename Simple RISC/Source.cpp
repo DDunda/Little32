@@ -126,12 +126,12 @@ int main(int argc, char* argv[]) {
 	ADDi(AL, x, x, 3, 0)                // ADD $x, $x, 3       //     x += 3;
 	RFE(AL)                             // RFE                 //     return;
 	word prog_end = pc;                 //                     // }
-
+	                                    // #DATA #BYTE
 	pc = gradient;                      // gradient:           // char gradient[17] " ░▒▓█▓▒░        ";
-	PUTWORD 0x20b0b1b2;                 // 0x20b0b1b2
-	PUTWORD 0xdbb2b1b0;                 // 0xdbb2b1b0
-	PUTWORD 0x20202020;                 // 0x20202020
-	PUTWORD 0x20202020;                 // 0x20202020
+	PUTBYTES(0x20,0xb0,0xb1,0xb2)       //   0x20 0xb0 0xb1 0xb2
+	PUTBYTES(0xdb,0xb2,0xb1,0xb0)       //   0xdb 0xb2 0xb1 0xb0
+	PUTBYTES(0x20,0x20,0x20,0x20)       //   0x20 0x20 0x20 0x20
+	PUTBYTES(0x20,0x20,0x20,0x20)       //   0x20 0x20 0x20 0x20
 	word mem_end = pc;
 #else
 	Assembler assembler;

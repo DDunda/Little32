@@ -2,6 +2,7 @@
 #include "SR_Definitions.h"
 
 #define PUTWORD ram.memory[pc++] =
+#define PUTBYTES(A,B,C,D) PUTWORD A | (B << 8) | (C << 16) | (D << 24);
 
 //                                              CCCCN1ccccSi   ,   .   ,   .   ,
 #define  ADD(  cond, r0, r1, r2, sh) PUTWORD  0b00000100000000000000000000000000 | ((cond) << 28) | ((r0) << 16) | ((r1) << 12) | ((r2) << 8) | sh;

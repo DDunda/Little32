@@ -292,7 +292,7 @@ namespace SimpleRISC {
 	}
 
 	void PutByte(word* memory, word address, byte value) {
-		word x = ((sizeof(word) - 1 - (address % sizeof(word))) * 8);
+		word x = (address % sizeof(word)) * 8;
 
 		value ^= memory[address / sizeof(word)] >> x;
 		memory[address / sizeof(word)] ^= value << x;

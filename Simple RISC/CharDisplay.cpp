@@ -5,11 +5,9 @@
 
 namespace SimpleRISC {
 	void CharDisplay::_WriteWordUnsafe(word address, word value) {
-		address += sizeof(word) - 1;
-		memory[address--] = value;
-		for (word i = 0; i < sizeof(word) - 1; i++) {
+		for (word i = 0; i < sizeof(word); i++) {
+			memory[address++] = value;
 			value >>= 8;
-			memory[address--] = value;
 		}
 	}
 	void CharDisplay::_WriteByteUnsafe(word address, byte value) { memory[address] = value; }
@@ -66,7 +64,7 @@ namespace SimpleRISC {
 	void CharDisplay::WriteByte(word address, byte value) {
 		if (address >= address_size + 4) return;
 		if (address >= address_size) {
-			word x = ((sizeof(word) - 1 - (address - address_size)) * 8);
+			word x = (address - address_size) * 8;
 
 			value ^= interrupt_address >> x;
 			interrupt_address ^= value << x;
