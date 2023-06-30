@@ -46,9 +46,24 @@ namespace SimpleRISC {
 			opcodes[opcode].func[immediate](*this, instruction);
 		}
 		else if (instruction & 0x02000000) { // B
-			if (instruction & 0x01000000) registers[LR] = registers[PC] + sizeof(word); // BL
 			word diff = (instruction & 0x00FFFFFF) * sizeof(word);
-			registers[PC] += diff * inv;
+			if (diff == 0 && neg) {
+				if (instruction & 0x01000000) { // RET
+					registers[PC] = registers[LR];
+				}
+				else { // RFE
+					registers[PC] = Pop(registers[SP]);
+					word status = Pop(registers[SP]);
+					N = (status & N_flag) == N_flag;
+					Z = (status & Z_flag) == Z_flag;
+					C = (status & C_flag) == C_flag;
+					V = (status & V_flag) == V_flag;
+				}
+			}
+			else {
+				if (instruction & 0x01000000) registers[LR] = registers[PC] + sizeof(word); // BL
+				registers[PC] += diff * inv;
+			}
 			return; // Don't change the PC again
 		}
 		else if (instruction & 0x01000000) {
@@ -102,15 +117,6 @@ namespace SimpleRISC {
 				registers[reg2] = tmp * inv;
 			}
 		}
-		else if (instruction & 0x00800000) { // RFE
-			registers[PC] = Pop(registers[SP]);
-			word status = Pop(registers[SP]);
-			N = (status & N_flag) == N_flag;
-			Z = (status & Z_flag) == Z_flag;
-			C = (status & C_flag) == C_flag;
-			V = (status & V_flag) == V_flag;
-			return;
-		}
 		// Else NOP
 
 		registers[PC] += sizeof(word); // Moves to the next word
@@ -158,10 +164,16 @@ namespace SimpleRISC {
 		word im16 = instruction & 0xFFFF;
 		word im24 = (instruction & 0xFFFFFF) * sizeof(word);
 
-		if (instruction & 0x02000000) { // B
-			string diff = to_string(im24);
-			if (instruction & 0x01000000) return "BL" + cond + " " + sign + diff; // BL
-			else                          return "B" + cond + " " + sign + diff;
+		if (instruction & 0x02000000) {
+			if (n && (im24 == 0)) {
+				if (instruction & 0x01000000) return "RET" + cond2; // RET
+				else                          return "RFE" + cond2; // RFE
+			}
+			else {
+				string diff = to_string(im24);
+				if (instruction & 0x01000000) return "BL" + cond + " " + sign + diff; // BL
+				else                          return "B" + cond + " " + sign + diff; // B
+			}
 		}
 		else if (instruction & 0x01000000) {
 			if (instruction & 0x00800000) { // Register <-> memory

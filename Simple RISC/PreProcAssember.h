@@ -104,5 +104,6 @@
 #define NANDi( cond, r0, r1, im, sh) PUTWORD  0b00001110010100000000000000000000 | ((cond) << 28) | ((r0) << 16) | ((r1) << 12) | ((im) << 4) | sh;
 #define NANDSi(cond, r0, r1, im, sh) PUTWORD  0b00001110011100000000000000000000 | ((cond) << 28) | ((r0) << 16) | ((r1) << 12) | ((im) << 4) | sh;
 
-//                          CCCCx0001  .   ,   .   ,   .   ,
-#define RFE(cond) PUTWORD 0b00000000100000000000000000000000 | ((cond) << 28);
+//                          CCCC101L000000000000000000000000
+#define RFE(cond) PUTWORD 0b00001010000000000000000000000000 | ((cond) << 28);
+#define RET(cond) PUTWORD 0b00001011000000000000000000000000 | ((cond) << 28);

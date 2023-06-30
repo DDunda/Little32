@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 	BL(AL,3)            // BL +12
 	ADDSi(AL,R0,R0,1,0) // ADDS R0, R0, 1
 	B(AL,-2)            // B -8
-	MOV(AL,PC,LR,0)     // RET
+	RET(AL)             // RET
 	word prog_end = pc;
 	word mem_end = pc;
 #elif defined PROG2 // Program 2 - Character display test
