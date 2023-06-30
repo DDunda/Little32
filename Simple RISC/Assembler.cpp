@@ -648,7 +648,7 @@ namespace SimpleRISC {
 		label_scopes = { constant_addresses };
 	}
 
-	void Assembler::Assemble(const char* code, bool print_intermediate) {
+	void Assembler::Assemble(std::istream& code, bool print_intermediate) {
 		using namespace std;
 
 		word* memory = nullptr;
@@ -674,8 +674,6 @@ namespace SimpleRISC {
 		data_start = program_start;
 		data_end = program_start;
 
-		if (code == nullptr) return;
-
 		list<string> raw_lines;
 		list<AssemblyLine> assemblyLines;
 
@@ -688,20 +686,19 @@ namespace SimpleRISC {
 		label_scopes.push_back(constant_addresses);
 		size_t label_depth = 0;
 
-		stringstream ss(code);
 		string line;
 		string token;
 		bool byte_mode = false;
 
 		_current_line = { 0, nullptr };
 
-		while (getline(ss, line)) {
+		while (getline(code, line)) {
 			raw_lines.push_back(line);
 			RemoveComments(line);
 			_current_line.line = &line;
 			string line_part;
-			stringstream ss2(line);
-			while (getline(ss2, line_part, ';')) {
+			stringstream ss(line);
+			while (getline(ss, line_part, ';')) {
 				token_list line_tokens = {};
 				GetTokens(line_part, line_tokens);
 				if (line_tokens.empty()) continue;

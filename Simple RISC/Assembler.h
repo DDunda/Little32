@@ -2,6 +2,7 @@
 #include <string>
 #include <list>
 #include <unordered_map>
+#include <istream>
 #include "RAM.h"
 #include "ROM.h"
 #include "SR_Types.h"
@@ -71,7 +72,7 @@ namespace SimpleRISC {
 
 		void FlushScopes() noexcept;
 
-		void Assemble(const char* code, bool print_intermediate = false);
+		void Assemble(std::istream& code, bool print_intermediate = false);
 
 	protected:
 		struct OpReplace {

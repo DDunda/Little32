@@ -138,4 +138,7 @@
   <ItemGroup>
     <CopyFileToFolders Include="Char set.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="program.asm" />
+  </ItemGroup>
 </Project>

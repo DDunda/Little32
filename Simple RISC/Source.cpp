@@ -1,7 +1,7 @@
 ﻿#include<SDL.hpp>
 #include<iostream>
+#include <fstream>
 #include<bit>
-#include"ASM.h"
 
 #include "Computer.h"
 #include "Device.h"
@@ -23,7 +23,7 @@
 using namespace SDL;
 using namespace SimpleRISC;
 
-#define PROG3
+//#define PROG3
 
 int main(int argc, char* argv[]) {
 	Init();
@@ -141,10 +141,16 @@ int main(int argc, char* argv[]) {
 
 	B(AL, 0); // HALT
 
+	std::ifstream program;
+	program.open("program.asm");
+	if (!program.is_open()) throw std::exception("Could not open assembly file");
+
 	try {
-		assembler.Assemble(assembly_code, true);
+		assembler.Assemble(program, true);
+		program.close();
 	}
 	catch (const Assembler::FormatException& e) {
+		program.close();
 		printf("%s\n%s", e.message.c_str(), e.line.c_str());
 		return 1;
 	}

@@ -205,6 +205,9 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
       <DeploymentContent>true</DeploymentContent>
     </CopyFileToFolders>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="program.asm" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
