@@ -78,6 +78,9 @@
     <Filter Include="Source">
       <UniqueIdentifier>{d891dfba-aa43-41c9-bab5-c9b78586e2a9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Assembly">
+      <UniqueIdentifier>{0bede24c-eafb-4b55-9d75-09142f9467f4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CharDisplay.h">
@@ -139,6 +142,8 @@
     <CopyFileToFolders Include="Char set.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="program.asm" />
+    <None Include="program.asm">
+      <Filter>Assembly</Filter>
+    </None>
   </ItemGroup>
 </Project>

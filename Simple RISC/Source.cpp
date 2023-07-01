@@ -141,9 +141,47 @@ int main(int argc, char* argv[]) {
 
 	B(AL, 0); // HALT
 
-	std::ifstream program;
-	program.open("program.asm");
-	if (!program.is_open()) throw std::exception("Could not open assembly file");
+	std::string file_name;
+
+	printf("Please enter the program to assemble: (defaults to program.asm)\n");
+	std::getline(std::cin, file_name);
+	printf("\n");
+
+	std::fstream program;
+	if (file_name == "") file_name = "program.asm";
+	else if (file_name.find('.') == std::string::npos) file_name += ".asm";
+
+	program.open(file_name);
+
+	if (!program.is_open()) {
+		printf("Could not open assembly file '%s'\n", file_name.c_str());
+		return 1;
+	}
+
+	// Strip byte order mark
+	char a, b, c, d;
+	a = program.get();
+	b = program.get();
+	c = program.get();
+	d = program.get();
+
+	if (
+		(a == (char)0x00 && b == (char)0x00 && c == (char)0xfe && d == (char)0xff) ||
+		(a == (char)0xff && b == (char)0xfe && c == (char)0x00 && d == (char)0x00)) {
+
+	}
+	else if
+		(a == (char)0xef && b == (char)0xbb && c == (char)0xbf) {
+		program.seekg(3);
+	}
+	else if (
+		(a == (char)0xfe && b == (char)0xff) ||
+		(a == (char)0xff && b == (char)0xfe)) {
+		program.seekg(2);
+	}
+	else {
+		program.seekg(0);
+	}
 
 	try {
 		assembler.Assemble(program, true);
@@ -165,6 +203,7 @@ int main(int argc, char* argv[]) {
 	computer.start_SP = computer.start_PC + ram.GetRange();
 	computer.SoftReset();
 
+	printf("Program memory:\n");
 	// Disassemble program
 	DisassembleMemory(computer, prog_start << 2, prog_end << 2, start << 2);
 

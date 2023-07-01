@@ -1,4 +1,4 @@
-$x R0
+﻿$x R0
 $i R1
 $y R2
 $g R3
@@ -30,7 +30,7 @@ frame_int:              // void frame_int() {
 
 #DATA
 #BYTE
-gradient:               // char gradient[17] " ��۱�        ";
+gradient:               // char gradient[17] " ░▒▓█▓▒░        ";
   0x20 0xb0 0xb1 0xb2
   0xdb 0xb2 0xb1 0xb0
   0x20 0x20 0x20 0x20

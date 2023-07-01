@@ -124,7 +124,7 @@ namespace SimpleRISC {
 
 	const std::string RISCCore::Disassemble(word instruction) const {
 		using namespace std;
-		const string cond = condNamesRegular[(instruction >> 28) & 0xF];
+		const string cond = condNamesRegular[(instruction >> 28) & 0xF] == "AL" ? "" : condNamesRegular[(instruction >> 28) & 0xF];
 		const string cond2 = cond == "" ? "" : (" ?" + cond);
 
 		bool i = (instruction >> 20) & 1;

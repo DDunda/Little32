@@ -22,10 +22,11 @@ namespace SimpleRISC {
 		class FormatException : public std::exception {
 		public:
 			const size_t line_no;
-			std::string message;
+			const std::string message;
 			const std::string line;
-			const char* const inner_message;
-			FormatException(size_t line_no, std::string line, const char* const message);
+			const std::string inner_message;
+			FormatException(size_t line_no, const std::string& line, const char* const message);
+			FormatException(size_t line_no, const std::string& line, const std::string& message);
 		};
 
 		struct RawLine {
@@ -36,9 +37,15 @@ namespace SimpleRISC {
 		struct AssemblyLine {
 			const RawLine rline;
 			word addr;
+			word* mem;
 			std::string code;
-			std::string cond = "";
 			std::list<token_list> args;
+
+			bool has_cond = false;
+			byte cond = 0;
+			bool has_shift = false;
+			byte shift = 0;
+
 			bool N = false;
 			bool S = false;
 		};
@@ -80,7 +87,12 @@ namespace SimpleRISC {
 			std::string newop = "";
 			int requiredArgs = -1;
 			std::list<std::string> tokens{};
-			std::string newcond = "";
+
+			bool has_cond = false;
+			byte new_cond = 0;
+			bool has_shift = false;
+			byte new_shift = 0;
+
 			bool newN = false;
 			bool newS = false;
 		};
@@ -104,51 +116,56 @@ namespace SimpleRISC {
 		std::unordered_map<std::string, word> constant_addresses = {};
 
 		const std::list<OpReplace> const_replace = {
-			{"HALT","B",   0,{"0"                            }     },
-			{"STR", "RWW",-1,{"..."                          }     },
-			{"LDR", "RRW",-1,{"..."                          }     },
-			{"STRB","RWB",-1,{"..."                          }     },
-			{"LDRB","RRB",-1,{"..."                          }     },
-			{"PUSH","SWR",-1,{"SP",   ",","..."              }     },
-			{"POP", "SRR",-1,{"SP",   ",","..."              }     },
-			{"OR",  "ORR",-1,{"..."                          }     },
-			{"RET", "MOV",-1,{"PC",   ",","LR"               }     },
-			{"ADD", "ADD", 2,{"@","0",",","@","0",",","@","1"}     },
-			{"SUB", "SUB", 2,{"@","0",",","@","0",",","@","1"}     },
-			{"INC", "ADD", 2,{"@","0",",","@","1",",","#","1"}     },
-			{"DEC", "SUB", 2,{"@","0",",","@","1",",","#","1"}     },
-			{"INC", "ADD", 1,{"@","0",",","@","0",",","#","1"}     },
-			{"DEC", "SUB", 1,{"@","0",",","@","0",",","#","1"}     },
-			{"BGT", "B",  -1,{"..."                          },"GT"},
-			{"BGE", "B",  -1,{"..."                          },"GE"},
-			{"BHI", "B",  -1,{"..."                          },"HI"},
-			{"BCS", "B",  -1,{"..."                          },"CS"},
-			{"BZS", "B",  -1,{"..."                          },"ZS"},
-			{"BNS", "B",  -1,{"..."                          },"NS"},
-			{"BVS", "B",  -1,{"..."                          },"VS"},
-			{"BVC", "B",  -1,{"..."                          },"VC"},
-			{"BNC", "B",  -1,{"..."                          },"NC"},
-			{"BZC", "B",  -1,{"..."                          },"ZC"},
-			{"BCC", "B",  -1,{"..."                          },"CC"},
-			{"BLS", "B",  -1,{"..."                          },"LS"},
-			{"BLT", "B",  -1,{"..."                          },"LT"},
-			{"BLE", "B",  -1,{"..."                          },"LE"},
-			{"BHS", "B",  -1,{"..."                          },"HS"},
-			{"BEQ", "B",  -1,{"..."                          },"EQ"},
-			{"BMI", "B",  -1,{"..."                          },"MI"},
-			{"BPL", "B",  -1,{"..."                          },"PL"},
-			{"BNE", "B",  -1,{"..."                          },"NE"},
-			{"BLO", "B",  -1,{"..."                          },"LO"}
+			{"HALT","B",   0,{"0"                            }            },
+			{"STR", "RWW",-1,{"..."                          }            },
+			{"LDR", "RRW",-1,{"..."                          }            },
+			{"STRB","RWB",-1,{"..."                          }            },
+			{"LDRB","RRB",-1,{"..."                          }            },
+			{"PUSH","SWR",-1,{"SP",   ",","..."              }            },
+			{"POP", "SRR",-1,{"SP",   ",","..."              }            },
+			{"OR",  "ORR",-1,{"..."                          }            },
+			{"ADD", "ADD", 2,{"@","0",",","@","0",",","@","1"}            },
+			{"SUB", "SUB", 2,{"@","0",",","@","0",",","@","1"}            },
+			{"INC", "ADD", 2,{"@","0",",","@","1",",","@","1"}            },
+			{"DEC", "SUB", 2,{"@","0",",","@","1",",","@","1"}            },
+			{"INC", "ADD", 1,{"@","0",",","@","0",",","@","1"}            },
+			{"DEC", "SUB", 1,{"@","0",",","@","0",",","@","1"}            },
+			{"BAL", "B",  -1,{"..."                          },true,0b0000},
+			{"BGT", "B",  -1,{"..."                          },true,0b0001},
+			{"BGE", "B",  -1,{"..."                          },true,0b0010},
+			{"BHI", "B",  -1,{"..."                          },true,0b0011},
+			{"BCS", "B",  -1,{"..."                          },true,0b0100},
+			{"BHS", "B",  -1,{"..."                          },true,0b0100},
+			{"BZS", "B",  -1,{"..."                          },true,0b0101},
+			{"BEQ", "B",  -1,{"..."                          },true,0b0101},
+			{"BNS", "B",  -1,{"..."                          },true,0b0110},
+			{"BMI", "B",  -1,{"..."                          },true,0b0110},
+			{"BVS", "B",  -1,{"..."                          },true,0b0111},
+			{"BVC", "B",  -1,{"..."                          },true,0b1000},
+			{"BNC", "B",  -1,{"..."                          },true,0b1001},
+			{"BPL", "B",  -1,{"..."                          },true,0b1001},
+			{"BZC", "B",  -1,{"..."                          },true,0b1010},
+			{"BNE", "B",  -1,{"..."                          },true,0b1010},
+			{"BCC", "B",  -1,{"..."                          },true,0b1011},
+			{"BLO", "B",  -1,{"..."                          },true,0b1011},
+			{"BLS", "B",  -1,{"..."                          },true,0b1100},
+			{"BLT", "B",  -1,{"..."                          },true,0b1101},
+			{"BLE", "B",  -1,{"..."                          },true,0b1110}
 		};
 
 		void ThrowException(const char* const msg) const;
-		std::string GetCond(token_list& l) const;
+		void ThrowException(const std::string& msg) const;
+		bool GetCond(token_list& l, byte& cond) const;
+		bool GetShift(token_list& l, byte& shift) const;
+		word GetBranchOffset(token_list& l, byte shift, bool& isNegative) const;
 
 		size_t ConvertNumbers(token_list& tokens) const;
 		size_t SplitSquareBrackets(token_list& l) const;
 		size_t ResolveVariables(token_list& l) const;
 		size_t ResolveRegLists(token_list& l) const;
+		size_t ResolveRelatives(AssemblyLine& l) const;
 
-		uint64_t xToI(const RawLine& rline, std::string str, word base, uint64_t max);
+		uint64_t xToI(std::string str, word base, uint64_t max);
+		word ToReg(const std::string& str) const;
 	};
 }
