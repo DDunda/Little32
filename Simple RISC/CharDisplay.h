@@ -54,7 +54,7 @@ namespace SimpleRISC {
 		word GetRange() const;
 		const Device_ID GetID() const;
 
-		void Render();
+		void Render(bool doInterrupt = true);
 
 		void Reset();
 	};

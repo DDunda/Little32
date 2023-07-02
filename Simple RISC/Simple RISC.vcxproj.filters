@@ -145,5 +145,8 @@
     <None Include="program.asm">
       <Filter>Assembly</Filter>
     </None>
+    <None Include="bounce.asm">
+      <Filter>Assembly</Filter>
+    </None>
   </ItemGroup>
 </Project>

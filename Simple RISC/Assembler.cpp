@@ -515,6 +515,7 @@ namespace SimpleRISC {
 				l.insert(it, "PC");
 			}
 			else {
+				string first_token = token;
 				it++;
 				while (TryGet(l, it, token) && token != "]") {
 					if (token == "[") ThrowException("Square brackets cannot be nested");
@@ -526,8 +527,14 @@ namespace SimpleRISC {
 				if (it == l.end()) ThrowException("Square brackets must be closed");
 
 				if (token == "]") { // Occurs when no signs were encountered - Interpreted as single value relative to PC
-					l.insert(start, "PC");
-					l.insert(start, ",");
+					if (IsReg(first_token)) { // User entered a register; consider contents as relative to it
+						l.insert(it, ",");
+						l.insert(it, "0");
+					}
+					else {  // User entered a value; consider contents as relative to PC
+						l.insert(start, "PC");
+						l.insert(start, ",");
+					}
 					it = l.erase(it); // Erase ']'
 					continue;
 				}
@@ -732,6 +739,31 @@ namespace SimpleRISC {
 
 	void Assembler::Assemble(std::istream& code, bool print_intermediate) {
 		using namespace std;
+
+		// Strip byte order mark
+		char a, b, c, d;
+		a = code.get();
+		b = code.get();
+		c = code.get();
+		d = code.get();
+
+		if (
+			(a == (char)0x00 && b == (char)0x00 && c == (char)0xfe && d == (char)0xff) ||
+			(a == (char)0xff && b == (char)0xfe && c == (char)0x00 && d == (char)0x00)) {
+
+		}
+		else if
+			(a == (char)0xef && b == (char)0xbb && c == (char)0xbf) {
+			code.seekg(3);
+		}
+		else if (
+			(a == (char)0xfe && b == (char)0xff) ||
+			(a == (char)0xff && b == (char)0xfe)) {
+			code.seekg(2);
+		}
+		else {
+			code.seekg(0);
+		}
 
 		word* memory = nullptr;
 		word memory_start = 0;
@@ -1001,6 +1033,7 @@ namespace SimpleRISC {
 				else if (token == ":{") {
 					label_depth++;
 					label_scopes.push_back({});
+					pendingLabels.push_back({});
 				}
 				else if (token == "}:") {
 					if (label_depth == 0) ThrowException("Too many closing label scopes");
@@ -1262,7 +1295,21 @@ namespace SimpleRISC {
 			ThrowException("Did not close every function scope");
 		}
 
-		if (!pendingLabels.front().empty()) ThrowException("Could not resolve all labels");
+		if (!pendingLabels.front().empty()) {
+			string err = "Could not resolve all labels (";
+			unordered_set<string> labels;
+			for (auto& label : pendingLabels.front()) {
+				labels.insert(*label);
+			}
+			auto it = labels.begin();
+			while (true) {
+				err += *(it++);
+				if (it == labels.end()) break;
+				err += ", ";
+			}
+			err += ")";
+			ThrowException(err);
+		}
 
 		if (print_intermediate) {
 			printf("Intermediate output:\n");

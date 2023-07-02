@@ -637,7 +637,7 @@ namespace SimpleRISC {
 		{ // LSL
 			{
 				op { op3r;
-					reg1 = (reg2 << doshift(reg3)) ^ core.inv;
+					reg1 = (reg2 << doshift(reg3)) ^ core.neg;
 
 					if (!core.set_status) return;
 
@@ -647,7 +647,7 @@ namespace SimpleRISC {
 					core.V = (reg1 ^ reg2) >> 31;
 				},
 				op { op3i;
-					reg1 = (reg2 << imm) ^ core.inv;
+					reg1 = (reg2 << imm) ^ core.neg;
 
 					if (!core.set_status) return;
 
@@ -669,7 +669,7 @@ namespace SimpleRISC {
 		{ // LSR
 			{
 				op { op3r;
-					reg1 = (reg2 >> doshift(reg3)) ^ core.inv;
+					reg1 = (reg2 >> doshift(reg3)) ^ core.neg;
 
 					if (!core.set_status) return;
 
@@ -679,7 +679,7 @@ namespace SimpleRISC {
 					core.V = (reg1 ^ reg2) >> 31;
 				},
 				op { op3i;
-					reg1 = (reg2 >> imm) ^ core.inv;
+					reg1 = (reg2 >> imm) ^ core.neg;
 
 					if (!core.set_status) return;
 

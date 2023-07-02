@@ -34,7 +34,8 @@ int main(int argc, char* argv[]) {
 	Point scale { 4,4 };
 	Point textSize { 16,16 };
 	Point charSize { 8,8 };
-	int frameDelay = 50;
+	int frameDelay = 16;
+	int clock_count = 1000;
 
 	Window w;
 	Renderer r;
@@ -141,15 +142,28 @@ int main(int argc, char* argv[]) {
 
 	B(AL, 0); // HALT
 
-	std::string file_name;
+	std::string file_name = "";
 
-	printf("Please enter the program to assemble: (defaults to program.asm)\n");
-	std::getline(std::cin, file_name);
-	printf("\n");
+	if (file_name == "") {
+		printf("Please enter the program to assemble: (defaults to program.asm)\n");
+		std::getline(std::cin, file_name);
+		printf("\n");
+
+		if (file_name == "") file_name = "program.asm";
+	}
+
+	if (file_name.find('.') == std::string::npos) file_name += ".asm";
+
+	if (file_name == "program.asm") {
+		clock_count = 2099;
+		frameDelay = 50;
+	}
+	else if (file_name == "bounce.asm") {
+		clock_count = 22;
+		frameDelay = 16;
+	}
 
 	std::fstream program;
-	if (file_name == "") file_name = "program.asm";
-	else if (file_name.find('.') == std::string::npos) file_name += ".asm";
 
 	program.open(file_name);
 
@@ -158,33 +172,8 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	// Strip byte order mark
-	char a, b, c, d;
-	a = program.get();
-	b = program.get();
-	c = program.get();
-	d = program.get();
-
-	if (
-		(a == (char)0x00 && b == (char)0x00 && c == (char)0xfe && d == (char)0xff) ||
-		(a == (char)0xff && b == (char)0xfe && c == (char)0x00 && d == (char)0x00)) {
-
-	}
-	else if
-		(a == (char)0xef && b == (char)0xbb && c == (char)0xbf) {
-		program.seekg(3);
-	}
-	else if (
-		(a == (char)0xfe && b == (char)0xff) ||
-		(a == (char)0xff && b == (char)0xfe)) {
-		program.seekg(2);
-	}
-	else {
-		program.seekg(0);
-	}
-
 	try {
-		assembler.Assemble(program, true);
+		assembler.Assemble(program);
 		program.close();
 	}
 	catch (const Assembler::FormatException& e) {
@@ -209,23 +198,77 @@ int main(int argc, char* argv[]) {
 
 	// Print values in memory
 	PrintMemory(computer, prog_end << 2, mem_end << 2, start << 2);
+	printf("\n");
+
+	bool manuallyClocked = false;
+	int clocks = 0;
 
 	for (int frame = 0; input.running; frame++) {
 		input.Update();
+		if (input.scancodeDown(Scancode::ESCAPE)) break;
+
+		if (input.scancodeDown(Scancode::BACKSPACE))
+		{
+			manuallyClocked = !manuallyClocked;
+			clocks = 0;
+		}
+
+		if (input.scancodeDown(Scancode::R)) {
+			computer.HardReset();
+			assembler.SetRAM(ram);
+
+			program.open(file_name);
+
+			if (!program.is_open()) {
+				printf("Could not open assembly file '%s'\n", file_name.c_str());
+				return 1;
+			}
+
+			try {
+				assembler.Assemble(program);
+				program.close();
+			}
+			catch (const Assembler::FormatException& e) {
+				program.close();
+				printf("%s\n%s", e.message.c_str(), e.line.c_str());
+				return 1;
+			}
+
+			printf("Program memory:\n");
+			DisassembleMemory(computer, prog_start << 2, prog_end << 2, start << 2);
+			PrintMemory(computer, prog_end << 2, mem_end << 2, start << 2);
+			printf("\n");
+		}
 		
-		//printf("PC: 0x%08X  SP: 0x%08X  LR: 0x%08X\n", core.registers[PC], core.registers[SP], core.registers[LR]);
-		//printf("\n\nR0: % 10i R1: % 10i R2: % 10i R3: % 10i", core.registers[R0], core.registers[R1], core.registers[R2], core.registers[R3]);
-		//printf("\n(%i%i%i%i) 0x%08X: %s", core.N, core.Z, core.C, core.V, core.registers[PC], core.Disassemble(computer.Read(core.registers[PC])).c_str());
-		//printf("frame\n");
+		if (!manuallyClocked)
+		{
+			computer.Clock(clock_count);
+			cram.Render();
 
-		computer.Clock(3000);
-		cram.Render();
+			r.Present();
 
-		r.Present();
+			Delay(frameDelay);
+		}
+		else {
+			if (input.scancodeDown(Scancode::SPACE)) {
+				printf("PC: 0x%08X  SP: 0x%08X  LR: 0x%08X\n", core.registers[PC], core.registers[SP], core.registers[LR]);
+				printf(" R0: % 10i  R1: % 10i  R2: % 10i  R3: % 10i\n", core.registers[R0], core.registers[R1], core.registers[R2], core.registers[R3]);
+				printf(" R4: % 10i  R5: % 10i  R6: % 10i  R7: % 10i\n", core.registers[R4], core.registers[R5], core.registers[R6], core.registers[R7]);
+				printf(" R8: % 10i  R9: % 10i R10: % 10i R11: % 10i\n", core.registers[R8], core.registers[R9], core.registers[R10], core.registers[R11]);
+				printf("R12: % 10i NZCV: %i%i%i%i \n", core.registers[R12], core.N, core.Z, core.C, core.V);
+				printf("0x%08X: %s\n\n", core.registers[PC], core.Disassemble(computer.Read(core.registers[PC])).c_str());
 
-		Delay(frameDelay);
+				clocks++;
+				clocks %= clock_count;
+				computer.Clock(1);
+				cram.Render(clocks == 0);
+				r.Present();
+			}
+			Delay(10);
+		}
 	}
 
+	IMG::Quit();
 	Quit();
 
 	return 0;
