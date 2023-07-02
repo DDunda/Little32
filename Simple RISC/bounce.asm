@@ -21,11 +21,11 @@ HALT                    // while(true) {}
 
 frame_int:              // void frame_int() {
 :{
-	LSR R8, $y, 4
-	LSL R8, R8, 4
-	LSR R7, $x, 4
-	ADD R8, R7
-	RWB $empty,[$out+R8]//     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = box;
+	LSR R7, $y, 4
+	LSL R7, R7, 8
+	ADD R7, $x
+	LSR R7, R7, 4
+	RWB $empty,[$out+R7]//     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = box;
 
 	ADD $x, $vx         //     x += vx;
 	ADD $y, $vy         //     y += vy;
@@ -57,12 +57,12 @@ frame_int:              // void frame_int() {
 	INV $vy, $vy        //         vy = -vy;
 	INV $y, $y          //         y = -y;
   y_check_end:          //     }
-
-	LSR R8, $y, 4
-	LSL R8, R8, 4
-	LSR R7, $x, 4
-	ADD R8, R7
-	RWB $box, [$out+R8] //     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = box;
+  
+	LSR R7, $y, 4
+	LSL R7, R7, 8
+	ADD R7, $x
+	LSR R7, R7, 4
+	RWB $box, [$out+R7] //     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = box;
    RFE                  //     return;
                         // }
 }:
