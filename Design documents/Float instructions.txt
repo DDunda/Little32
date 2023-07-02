@@ -1,0 +1,8 @@
+ADDF N dst reg1 reg2
+SUBF N dst reg1 reg2
+MULF N dst reg1 reg2
+DIVF N dst reg1 reg2
+ITOF N dst reg
+FTOI N dst reg
+CMPF N reg1 reg2
+CMPFI N reg1 reg2

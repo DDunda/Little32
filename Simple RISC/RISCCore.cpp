@@ -117,6 +117,55 @@ namespace SimpleRISC {
 				registers[reg2] = tmp * inv;
 			}
 		}
+		else if (instruction & 0x00800000) { // FPU
+			word& rdn = registers[reg1];
+			word& reg2 = registers[(instruction >> 12) & 0xF];
+			word& reg3 = registers[(instruction >>  8) & 0xF];
+			float f;
+			switch ((instruction) >> 20 & 0x7) {
+			case 0: // ADDF
+				f = (*(float*)(&reg2) + *(float*)(&reg3)) * inv;
+				rdn = *(word*)(&f);
+				break;
+			case 1: // SUBF
+				f = (*(float*)(&reg2) - *(float*)(&reg3)) * inv;
+				rdn = *(word*)(&f);
+				break;
+			case 2: // MULF
+				f = (*(float*)(&reg2) * *(float*)(&reg3)) * inv;
+				rdn = *(word*)(&f);
+				break;
+			case 3: // DIVF
+				f = (*(float*)(&reg2) / *(float*)(&reg3)) * inv;
+				rdn = *(word*)(&f);
+				break;
+			case 4: // ITOF
+			{
+				float f = (float)reg2 * inv;
+				rdn = *(word*)(&f);
+			}
+				break;
+			case 5: // FTOI
+				rdn = (word)(*(float*)(&reg2) * inv);
+				break;
+			case 6: // CMPF
+			{
+				float cmp = (*(float*)(&rdn) - *(float*)(&reg2)) * inv;
+				N = cmp < 0;
+				Z = cmp == 0;
+				C = Z = false;
+			}
+				break;
+			case 7: // CMPFI
+			{
+				float cmp = (*(float*)(&rdn) - reg2) * inv;
+				N = cmp < 0;
+				Z = cmp == 0;
+				C = Z = false;
+			}
+				break;
+			}
+		}
 		// Else NOP
 
 		registers[PC] += sizeof(word); // Moves to the next word
@@ -202,11 +251,17 @@ namespace SimpleRISC {
 				return nstr + "SWP" + " " + r1 + ", " + r2 + shstr + cond2;
 			}
 		}
-		else if (instruction & 0x00800000) { // RFE
-			return "RFE" + cond2;
-		}
-		else {
-			return "NOP" + cond2;
+		else if (instruction & 0x00800000) { // FPU
+			switch ((instruction) >> 20 & 0x7) {
+			case 0: return nstr + "ADDF " + r1 + ", " + r2 + ", " + r3 + cond2;
+			case 1: return nstr + "SUBF " + r1 + ", " + r2 + ", " + r3 + cond2;
+			case 2: return nstr + "MULF " + r1 + ", " + r2 + ", " + r3 + cond2;
+			case 3: return nstr + "DIVF " + r1 + ", " + r2 + ", " + r3 + cond2;
+			case 4: return nstr + "ITOF " + r1 + ", " + r2 + cond2;
+			case 5: return nstr + "FTOI " + r1 + ", " + r2 + cond2;
+			case 6: return nstr + "CMPF " + r1 + ", " + r2 + cond2;
+			case 7: return nstr + "CMPFI " + r1 + ", " + r2 + cond2;
+			}
 		}
 	}
 

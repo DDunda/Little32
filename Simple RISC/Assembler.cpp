@@ -370,11 +370,47 @@ namespace SimpleRISC {
 		_GetTokens("]",1);
 		_GetTokens("{",1);
 		_GetTokens("}",1);
-		_GetTokens(".",1);
 		_GetTokens("+",1);
 		_GetTokens("-",1);
 		_GetTokens("#",1);
 		//_GetTokens("="  );
+
+		while (len >= 1 && Contains(line, ".", i)) {
+			if (i == 0 || i == len - 1 || line[i - 1] < '0' || line[i - 1] > '9' || line[i + 1] < '0' || line[i + 1] > '9') {
+				token_count += GetTokens(line.substr(0, i), tokens) + 1;
+				tokens.push_back(".");
+				len -= i + 1;
+				line = line.substr(i + 1);
+				if (len == 0) return token_count;
+			}
+			else {
+				size_t start = line.find_last_not_of("0123456789.", i) + 1;
+				size_t end  = line.find_first_not_of("0123456789.", i);
+				if (start == string::npos) {
+					token_count++;
+
+					if (end == string::npos) {
+						tokens.push_back(line);
+						return token_count;
+					}
+
+					tokens.push_back(line.substr(0,end));
+				}
+				else {
+					token_count += GetTokens(line.substr(0, start), tokens) + 1;
+
+					if (end == string::npos) {
+						tokens.push_back(line.substr(start));
+						return token_count;
+					}
+
+					tokens.push_back(line.substr(start,end-start));
+				}
+
+				line = line.substr(end);
+				len -= end;
+			}
+		}
 
 #undef _GetTokens
 
@@ -451,12 +487,29 @@ namespace SimpleRISC {
 		return offset >> 2;
 	}
 
+	bool IsFloat(std::string str) {
+		if (str.size() < 3) return false;
+		if (std::count(str.begin(), str.end(), '.') != 1) return false;
+
+		auto i = std::find(str.begin(), str.end(), '.');
+		if (i == str.begin() || i == str.end()) return false;
+
+		return IsChars(str, "0123456789.");
+	}
+
 	size_t Assembler::ConvertNumbers(token_list& tokens) const {
 		size_t numbers_replaced = 0;
 
 		for (auto& t : tokens) {
 			int numBase = IsNumber(t);
-			if (!numBase) continue;
+			if (!numBase) {
+				if (IsFloat(t)) {
+					float f = std::stof(t);
+					word val = *(word*)&f;
+					t = std::to_string(val);
+				}
+				continue;
+			}
 			if (numBase == 10) {
 				uint64_t long_val = stoul(t);
 				word word_Val = long_val;
@@ -1330,11 +1383,13 @@ namespace SimpleRISC {
 		enum pack {
 			None,
 			BranchOffset,
+			Reg3,
 			Flex3,
 			Flex3i,
 			Flex2,
 			Flex2i,
 			Reg2,
+			Reg2ns,
 			RegList
 		};
 
@@ -1343,6 +1398,7 @@ namespace SimpleRISC {
 			pack packing = None;
 			bool allow_N = false;
 			bool allow_S = false;
+			bool allow_shift = true;
 		};
 
 		static const unordered_map<pack, size_t> pack_args = {
@@ -1353,7 +1409,8 @@ namespace SimpleRISC {
 			{Flex2, 2},
 			{Flex2i, 2},
 			{Flex3, 3},
-			{Flex3i, 3}
+			{Flex3i, 3},
+			{Reg3, 3},
 		};
 
 		static const unordered_map<string, InstructionDefinition> definitions
@@ -1371,7 +1428,7 @@ namespace SimpleRISC {
 			{"ORR",{0b0110000000000000000000000000, Flex3,   true,  true  }},
 			{"AND",{0b0110010000000000000000000000, Flex3,   true,  true  }},
 			{"XOR",{0b0110100000000000000000000000, Flex3,   true,  true  }},
-			{"CMX",{0b0110110000000000000000000000, Flex2,   true         }},
+			{"TST",{0b0110110000000000000000000000, Flex2,   true         }},
 			{"LSL",{0b0111000000000000000000000000, Flex3,   true,  true  }},
 			{"LSR",{0b0111010000000000000000000000, Flex3,   true,  true  }},
 			{"MOV",{0b0111100000000000000000000000, Flex2i,  true,  true  }},
@@ -1392,6 +1449,15 @@ namespace SimpleRISC {
 			//        N00100px   ,   .   ,   .   ,
 			{"MVM",{0b0001000000000000000000000000, RegList, true         }},
 			{"SWP",{0b0001001000000000000000000000, Reg2,    true         }},
+			//         N0001ppp   ,   .   ,   .   ,
+			{"ADDF",{0b0000100000000000000000000000, Reg3,   true,  false, false  }},
+			{"SUBF",{0b0000100100000000000000000000, Reg3,   true,  false, false  }},
+			{"MULF",{0b0000101000000000000000000000, Reg3,   true,  false, false  }},
+			{"DIVF",{0b0000101100000000000000000000, Reg3,   true,  false, false  }},
+			{"ITOF",{0b0000110000000000000000000000, Reg2,   true,  false, false  }},
+			{"FTOI",{0b0000110100000000000000000000, Reg2,   true,  false, false  }},
+			{"CMPF",{0b0000111000000000000000000000, Reg2,   true,  false, false  }},
+			{"CMPFI",{0b0000111100000000000000000000,Reg2,   true,  false, false  }},
 		};
 
 		for (auto& l : assemblyLines) {
@@ -1401,6 +1467,7 @@ namespace SimpleRISC {
 
 			InstructionDefinition def = definitions.at(l.code);
 
+			if (!def.allow_shift && l.has_shift) ThrowException("Cannot set shift for " + l.code);
 			if (!def.allow_N && l.N) ThrowException("Cannot set N flag for " + l.code);
 			if (!def.allow_S && l.S) ThrowException("Cannot set S flag for " + l.code);
 			if (l.args.size() != pack_args.at(def.packing)) ThrowException("Expected " + to_string(pack_args.at(def.packing)) + " argument/s for " + l.code);
@@ -1412,6 +1479,19 @@ namespace SimpleRISC {
 			switch (def.packing) {
 			case None:
 				if (l.has_shift) ThrowException("Cannot use shift for " + l.code);
+				break;
+
+			case Reg3:
+				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument");
+				*(l.mem) |= ToReg(arg->front()) << 16;
+				arg++;
+
+				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument");
+				*(l.mem) |= ToReg(arg->front()) << 12;
+				arg++;
+
+				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument");
+				*(l.mem) |= ToReg(arg->front()) << 8;
 				break;
 
 			case Flex3i:
