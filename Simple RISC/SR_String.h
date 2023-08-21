@@ -39,7 +39,7 @@ namespace SimpleRISC {
 	// Converts a list of registers encoded in bits into a human readable format (e.g. {R0-R7,R9,LR})
 	std::string RegListToString(word list);
 
-	void DisassembleMemory(Computer& computer, word start, word end, word offset = 0, bool tolerateNOP = false);
+	void DisassembleMemory(Computer& computer, word start, word end, word offset = 0, bool print_NOP = false);
 
-	void PrintMemory(Computer& computer, word start, word end, word offset = 0);
+	void PrintMemory(Computer& computer, word start, word end, word offset = 0, bool print_null = false);
 }

@@ -10,6 +10,7 @@ namespace SimpleRISC {
 		ComputerInfo = 1,
 		ROM = 2,
 		RAM = 3,
-		CharDisplay = 4
+		CharDisplay = 4,
+		ColourCharDisplay = 5
 	};
 }

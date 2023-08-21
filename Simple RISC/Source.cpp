@@ -1,7 +1,7 @@
-﻿#include<SDL.hpp>
-#include<iostream>
+﻿#include <SDL.hpp>
+#include <iostream>
 #include <fstream>
-#include<bit>
+#include <bit>
 
 #include "Computer.h"
 #include "Device.h"
@@ -12,6 +12,7 @@
 #include "ROM.h"
 #include "ComputerInfo.h"
 #include "CharDisplay.h"
+#include "ColourCharDisplay.h"
 
 #include "DebugCore.h"
 #include "RISCCore.h"
@@ -23,128 +24,80 @@
 using namespace SDL;
 using namespace SimpleRISC;
 
-//#define PROG3
+const int palette_count = 2;
+
+const SDL::Colour palettes[palette_count][16] =
+{
+	{
+		{0, 0, 0 }, {127,0,0}, {127,51, 0}, {127,106,0}, {0,127,0}, {0,0,127}, {87, 0,127}, {127,127,127},
+		{64,64,64}, {255,0,0}, {255,106,0}, {255,216,0}, {0,255,0}, {0,0,255}, {178,0,255}, {255,255,255}
+	},
+	{
+		{12,18, 6 }, {15,22, 7 }, {18, 27, 9 }, {23, 34, 11}, {29, 43, 14}, {36, 53, 17 }, {45, 67, 21 }, {56, 84, 27 },
+		{70,104,33}, {88,131,41}, {109,163,52}, {137,204,65}, {171,255,81}, {195,255,119}, {223,255,174}, {255,255,255}
+	}
+};
 
 int main(int argc, char* argv[]) {
 	Init();
 	IMG::Init(IMG_INIT_PNG);
 
+	bool manually_clocked = false;
+	int selected_palette = 0;
+	int clocks = 0;
+
 	Input input;
 
-	Point scale { 4,4 };
-	Point textSize { 16,16 };
-	Point charSize { 8,8 };
-	int frameDelay = 16;
+	const Point scale { 4,4 };
+	const Point text_size { 16,16 };
+	const Point char_size { 8,8 };
+	int frame_delay = 16;
 	int clock_count = 1000;
 
 	Window w;
 	Renderer r;
-	Point& windowSize = input.windowSize = textSize * charSize * scale;
+	Point& window_size = input.windowSize = text_size * char_size * scale;
 
-	CreateWindowAndRenderer(windowSize, w, r);
+	CreateWindowAndRenderer(window_size, w, r);
 
-	Texture charset = IMG::LoadTexture(r, "Char set.png");
+	Texture char_set = IMG::LoadTexture(r, "Char set.png");
 
 	Computer computer;
 	RISCCore core(computer);
 	ComputerInfo info(computer);
 
 	RAM ram(512, 256);
-	CharDisplay cram(computer, r, charset, charSize, 16, textSize, scale, ram.address_start + ram.address_size);
+
+	ColourCharDisplay cram(
+		computer,
+		r,
+		char_set,
+		palettes[selected_palette],
+		char_size,
+		16,       // Characters per row of source texture
+		text_size,
+		scale,
+		ram.address_start + ram.address_size,
+		' ',
+		0x0F  // White on black
+	);
 
 	computer.AddMapping(info);
 	computer.AddMappedDevice(ram);
 	computer.AddMappedDevice(cram);
 
 	word start = ram.address_start>>2;
-	word CHAR_MEM = cram.address_start>>2;
-	word pc = 0;
 
-#if defined PROG1a // Program 1a - Branch, MOV, ADD, status test
-	word prog_start = pc;
-	//        CCCCN1ccccSi   ,   .   ,   .   ,
-	//        CCCCN01L   .   ,   .   ,   .   ,
-	PUTWORD 0b00000011000000000000000000000011; // BL +12
-	PUTWORD 0b00000100001100000000000000010000; // ADDS R0, R0, 1
-	PUTWORD 0b00001010000000000000000000000010; // B -8
-	PUTWORD 0b00000111100011111110000000000000; // MOV PC, LR
-	word prog_end = pc;
-	word mem_end = pc;
-
-#elif defined PROG1b // Program 1b - Program 1a as instruction macros
-	word prog_start = pc;
-	BL(AL,3)            // BL +12
-	ADDSi(AL,R0,R0,1,0) // ADDS R0, R0, 1
-	B(AL,-2)            // B -8
-	RET(AL)             // RET
-	word prog_end = pc;
-	word mem_end = pc;
-#elif defined PROG2 // Program 2 - Character display test
-	word prog_start = pc;
-	word start_num = prog_start + 100;
-
-	RRWi(AL, R0, PC, start_num - pc, 1) // RRW R0, [.start_num]
-	MOVi(AL, R1, CHAR_MEM, 1)           // MOV R1, CHAR_MEM
-	ADDi(AL, R0, R0, 3, 0)              // ADD R0, R0, 3        // do { R0 += 3;
-	RWWi(AL, R0, R1, 0, 0)              // RWW R0, [R1]         //      *CHAR_MEM = R0;
-	B(AL, -2)                           // B -8                 // } while(true);
-	word prog_end = pc;
-
-	pc = start_num;
-	PUTWORD 0x20202020;                 // start_num: 0x20202020
-	word mem_end = pc;
-#elif defined PROG3 // Program 3 - Fully functional demo
-	word prog_start = pc;
-	word gradient = prog_start + 100;
-	word frame_int = prog_start + 8;
-
-	word x = R0;                        // $x R0
-	word i = R1;                        // $i R1
-	word y = R2;                        // $y R2
-	word g = R3;                        // $g R3
-
-	MOVi(AL, x, 7, 0)                   // MOV $x, 7           // word  x = 7;
-	MOVi(AL, i, 0, 0)                   // MOV $i, 0           // word  i = 0;
-	MOVi(AL, y, CHAR_MEM, 1)            // MOV $y, CHAR_MEM
-	MOVi(AL, g,  start+gradient, 1)     // MOV $g, gradient    
-	MOVi(AL, R4, start+frame_int, 1)    // MOV R4, frame_int
-	RWWi(AL, R4, y, 1, 4)               // RWW R4, [$y+256]    // set_frame_callback(frame_int);
-	B(AL, 0)                            // HALT                // while(true) {}
-
-	pc = frame_int;                     // frame_int:          // void frame_int() {
-	CMPi(AL, x, 0, 0)                   // CMP $x, 0
-	ADDi(LT, x, x, 10, 0)               // ADDLT $x, $x, 10    //     if(x < 0) x += 10;
-	RRB(AL, R4, g, x, 0)                // RRB R4, [$g+$x]     //     char c = gradient[x];
-	RWB(AL, R4, y, i, 0)                // RWB R4, [$y+$i]     //     CHAR_MEM[i] = c;
-	ADDi(AL, i, i, 1, 0)                // ADD $i, $i, 1       //     i++;
-	SUBi(AL, x, x, 1, 0)                // SUB $x, $x, 1       //     x--;
-	ANDSi(AL, R4, i, 15, 0)             // ANDS R4, $i, 15
-	B(NE, (int)frame_int - (int)pc)     // BNE .frame_int      //     if((i & 15) != 0) continue;
-	SUBi(AL, x, x, 3, 0)                // SUB $x, $x, 3       //     x -= 3;
-	CMPi(AL, i, 1, 4)                   // CMP $i, 256
-	B(LT, (int)frame_int-(int)pc)       // BLT .frame_int      //     if(i < 256) continue;
-	MOVi(AL, i, 0, 0)                   // MOV $i, 0           //     i = 0;
-	ADDi(AL, x, x, 3, 0)                // ADD $x, $x, 3       //     x += 3;
-	RFE(AL)                             // RFE                 //     return;
-	word prog_end = pc;                 //                     // }
-	                                    // #DATA #BYTE
-	pc = gradient;                      // gradient:           // char gradient[17] " ░▒▓█▓▒░        ";
-	PUTBYTES(0x20,0xb0,0xb1,0xb2)       //   0x20 0xb0 0xb1 0xb2
-	PUTBYTES(0xdb,0xb2,0xb1,0xb0)       //   0xdb 0xb2 0xb1 0xb0
-	PUTBYTES(0x20,0x20,0x20,0x20)       //   0x20 0x20 0x20 0x20
-	PUTBYTES(0x20,0x20,0x20,0x20)       //   0x20 0x20 0x20 0x20
-	word mem_end = pc;
-#else
 	Assembler assembler;
 
-	assembler.AddLabel("CHAR_MEM", CHAR_MEM << 2);
+	assembler.AddLabel("CHAR_MEM", cram.address_start);
+	assembler.AddLabel("COLOUR_MEM", cram.address_start + cram.address_size);
 	assembler.SetRAM(ram);
-
-	B(AL, 0); // HALT
 
 	std::string file_name = "";
 
-	if (file_name == "") {
+	if (file_name == "")
+	{
 		printf("Please enter the program to assemble: (defaults to program.asm)\n");
 		std::getline(std::cin, file_name);
 		printf("\n");
@@ -154,13 +107,14 @@ int main(int argc, char* argv[]) {
 
 	if (file_name.find('.') == std::string::npos) file_name += ".asm";
 
-	if (file_name == "program.asm") {
-		clock_count = 2099;
-		frameDelay = 50;
+	if (file_name == "program.asm" || file_name == "blue_wave.asm")
+	{
+		clock_count = 2611; //2099;
+		frame_delay = 50;
 	}
 	else if (file_name == "bounce.asm") {
-		clock_count = 22;
-		frameDelay = 16;
+		clock_count = 26;
+		frame_delay = 16;
 	}
 
 	std::fstream program;
@@ -176,86 +130,94 @@ int main(int argc, char* argv[]) {
 		assembler.Assemble(program);
 		program.close();
 	}
-	catch (const Assembler::FormatException& e) {
+	catch (const Assembler::FormatException& e)
+	{
 		program.close();
 		printf("%s\n%s", e.message.c_str(), e.line.c_str());
 		return 1;
 	}
 
-	word prog_start = (assembler.program_start >> 2) - start;
-	word prog_end = (assembler.program_end >> 2) - start;
-	word mem_end = (assembler.data_end >> 2) - start;
-#endif
-
 	computer.core = &core;
-	computer.start_PC = (prog_start + start) << 2;
-	computer.start_SP = computer.start_PC + ram.GetRange();
+	computer.start_PC = assembler.program_start;
+	computer.start_SP = ram.address_start + ram.address_size;
 	computer.SoftReset();
 
 	printf("Program memory:\n");
 	// Disassemble program
-	DisassembleMemory(computer, prog_start << 2, prog_end << 2, start << 2);
+	DisassembleMemory(computer, assembler.program_start, assembler.program_end);
 
 	// Print values in memory
-	PrintMemory(computer, prog_end << 2, mem_end << 2, start << 2);
+	PrintMemory(computer, assembler.data_start, assembler.data_end, 0, true);
 	printf("\n");
 
-	bool manuallyClocked = false;
-	int clocks = 0;
-
-	for (int frame = 0; input.running; frame++) {
+	for (int frame = 0; input.running; frame++)
+	{
 		input.Update();
+
 		if (input.scancodeDown(Scancode::ESCAPE)) break;
 
 		if (input.scancodeDown(Scancode::BACKSPACE))
 		{
-			manuallyClocked = !manuallyClocked;
+			manually_clocked = !manually_clocked;
 			clocks = 0;
 		}
 
-		if (input.scancodeDown(Scancode::R)) {
+		if (input.scancodeDown(Scancode::P))
+		{
+			selected_palette = (selected_palette + 1) % palette_count;
+			memcpy(cram.colours, palettes[selected_palette], sizeof(SDL::Colour) * 16);
+		}
+
+		if (input.scancodeDown(Scancode::R))
+		{
 			computer.HardReset();
 			assembler.SetRAM(ram);
 
 			program.open(file_name);
 
-			if (!program.is_open()) {
+			if (!program.is_open())
+			{
 				printf("Could not open assembly file '%s'\n", file_name.c_str());
 				return 1;
 			}
 
-			try {
+			try
+			{
 				assembler.Assemble(program);
 				program.close();
 			}
-			catch (const Assembler::FormatException& e) {
+			catch (const Assembler::FormatException& e)
+			{
 				program.close();
 				printf("%s\n%s", e.message.c_str(), e.line.c_str());
 				return 1;
 			}
 
 			printf("Program memory:\n");
-			DisassembleMemory(computer, prog_start << 2, prog_end << 2, start << 2);
-			PrintMemory(computer, prog_end << 2, mem_end << 2, start << 2);
+			DisassembleMemory(computer, assembler.program_start, assembler.program_end);
+			PrintMemory(computer, assembler.data_start, assembler.data_end, 0, true);
 			printf("\n");
 		}
 		
-		if (!manuallyClocked)
+		if (!manually_clocked)
 		{
 			computer.Clock(clock_count);
 			cram.Render();
 
 			r.Present();
 
-			Delay(frameDelay);
+			Delay(frame_delay);
 		}
-		else {
-			if (input.scancodeDown(Scancode::SPACE)) {
+		else
+		{
+			if (input.scancodeDown(Scancode::SPACE))
+			{
 				printf("PC: 0x%08X  SP: 0x%08X  LR: 0x%08X\n", core.registers[PC], core.registers[SP], core.registers[LR]);
 				printf(" R0: % 10i  R1: % 10i  R2: % 10i  R3: % 10i\n", core.registers[R0], core.registers[R1], core.registers[R2], core.registers[R3]);
 				printf(" R4: % 10i  R5: % 10i  R6: % 10i  R7: % 10i\n", core.registers[R4], core.registers[R5], core.registers[R6], core.registers[R7]);
 				printf(" R8: % 10i  R9: % 10i R10: % 10i R11: % 10i\n", core.registers[R8], core.registers[R9], core.registers[R10], core.registers[R11]);
 				printf("R12: % 10i NZCV: %i%i%i%i \n", core.registers[R12], core.N, core.Z, core.C, core.V);
+
 				printf("0x%08X: %s\n\n", core.registers[PC], core.Disassemble(computer.Read(core.registers[PC])).c_str());
 
 				clocks++;

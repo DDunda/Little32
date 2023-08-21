@@ -1,6 +1,7 @@
 #include <unordered_set>
 #include <sstream>
 #include <cstdint>
+#include <bit>
 
 #include "Assembler.h"
 #include "SR_String.h"
@@ -479,7 +480,7 @@ namespace SimpleRISC {
 		if (!IsNumeric(l.front())) ThrowException("Expected offset to be a number");
 
 		word offset = stoul(l.front());
-		offset = rotl(offset, shift);
+		offset = std::rotl(offset, shift);
 
 		if (offset & 3) ThrowException("Expected offset to be word aligned");
 		if (offset > 0x03FFFFFC) ThrowException("Offset is too large");

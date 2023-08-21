@@ -1,3 +1,5 @@
+#include <bit>
+
 #include "Computer.h"
 #include "RISCCore.h"
 #include "SR_String.h"

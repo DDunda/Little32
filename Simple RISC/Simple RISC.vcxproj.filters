@@ -67,6 +67,9 @@
     <ClCompile Include="Assembler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="ColourCharDisplay.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
@@ -137,6 +140,9 @@
     <ClInclude Include="Assembler.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="ColourCharDisplay.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="Char set.png" />
@@ -149,6 +155,9 @@
       <Filter>Assembly</Filter>
     </None>
     <None Include="float.asm">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="blue_wave.asm">
       <Filter>Assembly</Filter>
     </None>
   </ItemGroup>

@@ -1,31 +1,41 @@
-﻿$x R0
+﻿${
+$x R0
 $y R1
 $vx R2
 $vy R3
 $out R4
-$box R5
-$empty R6
+$cout R5
+$box R6
+$empty R7
+$col1 R8
+$col2 R9
+$tmp R10
 
 MOV $x, 16
 MOV $y, 70
 MOV $vx, 7
 MOV $vy, 5
 MOV $out, CHAR_MEM
+MOV $cout, COLOUR_MEM
 MOV $box, 0xFE          // char box = '■';
-MOV $empty, 0x20        // char empty = ' ';
+MOV $empty, 0xfa        // char empty = '·';
 
-MOV R7, frame_int
-RWW R7, [$out+256]      // set_frame_callback(frame_int);
+MOV $col1, 0x0F
+MOV $col2, 0x07
+
+MOV $tmp, frame_int
+RWW $tmp, [$out+512]      // set_frame_callback(frame_int);
 
 HALT                    // while(true) {}
 
 frame_int:              // void frame_int() {
 :{
-	LSR R7, $y, 4
-	LSL R7, R7, 8
-	ADD R7, $x
-	LSR R7, R7, 4
-	RWB $empty,[$out+R7]//     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = box;
+	LSR $tmp, $y, 4
+	LSL $tmp, $tmp, 8
+	ADD $tmp, $x
+	LSR $tmp, $tmp, 4
+	RWB $empty,[$out+$tmp]//     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = empty;
+	RWB $col2,[$cout+$tmp]
 
 	ADD $x, $vx         //     x += vx;
 	ADD $y, $vy         //     y += vy;
@@ -58,11 +68,13 @@ frame_int:              // void frame_int() {
 	INV $y, $y          //         y = -y;
   y_check_end:          //     }
   
-	LSR R7, $y, 4
-	LSL R7, R7, 8
-	ADD R7, $x
-	LSR R7, R7, 4
-	RWB $box, [$out+R7] //     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = box;
+	LSR $tmp, $y, 4
+	LSL $tmp, $tmp, 8
+	ADD $tmp, $x
+	LSR $tmp, $tmp, 4
+	RWB $box, [$out+$tmp] //     CHAR_MEM[(y >> 4) * 16 + (x >> 4)] = box;
+	RWB $col1,[$cout+$tmp]
    RFE                  //     return;
                         // }
 }:
+}$
