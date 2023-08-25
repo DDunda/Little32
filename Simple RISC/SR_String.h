@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_String_h_
+#define SR_String_h_
+
 #include <string>
 #include <unordered_map>
 #include "SR_Types.h"
@@ -43,3 +46,5 @@ namespace SimpleRISC {
 
 	void PrintMemory(Computer& computer, word start, word end, word offset = 0, bool print_null = false);
 }
+
+#endif

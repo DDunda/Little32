@@ -13,8 +13,8 @@
 #include "ComputerInfo.h"
 #include "CharDisplay.h"
 #include "ColourCharDisplay.h"
+#include "KeyboardDevice.h"
 
-#include "DebugCore.h"
 #include "RISCCore.h"
 
 #include "SR_String.h"
@@ -66,7 +66,11 @@ int main(int argc, char* argv[]) {
 	RISCCore core(computer);
 	ComputerInfo info(computer);
 
-	RAM ram(512, 256);
+	word address = 256;
+
+	RAM ram(address, 512);
+
+	address += ram.GetRange();
 
 	ColourCharDisplay cram(
 		computer,
@@ -77,21 +81,32 @@ int main(int argc, char* argv[]) {
 		16,       // Characters per row of source texture
 		text_size,
 		scale,
-		ram.address_start + ram.address_size,
+		address,
 		' ',
 		0x0F  // White on black
 	);
 
+	address += cram.GetRange();
+
+	KeyboardDevice keyboard(
+		computer,
+		address
+	);
+
+	input.Register(keyboard);
+
+	address += cram.GetRange();
+
 	computer.AddMapping(info);
 	computer.AddMappedDevice(ram);
 	computer.AddMappedDevice(cram);
-
-	word start = ram.address_start>>2;
+	computer.AddMappedDevice(keyboard);
 
 	Assembler assembler;
 
 	assembler.AddLabel("CHAR_MEM", cram.address_start);
 	assembler.AddLabel("COLOUR_MEM", cram.address_start + cram.address_size);
+	assembler.AddLabel("KEYBOARD", keyboard.address_start);
 	assembler.SetRAM(ram);
 
 	std::string file_name = "";
@@ -210,7 +225,7 @@ int main(int argc, char* argv[]) {
 		}
 		else
 		{
-			if (input.scancodeDown(Scancode::SPACE))
+			if (input.scancodeDown(Scancode::SPACE) || input.buttonDown(Button::LEFT))
 			{
 				printf("PC: 0x%08X  SP: 0x%08X  LR: 0x%08X\n", core.registers[PC], core.registers[SP], core.registers[LR]);
 				printf(" R0: % 10i  R1: % 10i  R2: % 10i  R3: % 10i\n", core.registers[R0], core.registers[R1], core.registers[R2], core.registers[R3]);
@@ -219,6 +234,11 @@ int main(int argc, char* argv[]) {
 				printf("R12: % 10i NZCV: %i%i%i%i \n", core.registers[R12], core.N, core.Z, core.C, core.V);
 
 				printf("0x%08X: %s\n\n", core.registers[PC], core.Disassemble(computer.Read(core.registers[PC])).c_str());
+
+				//printf("0x%08X: ", core.registers[PC]);
+				//word op = computer.Read(core.registers[PC]);
+				//std::string diss = core.Disassemble(op);
+				//printf("%s\n\n", diss.c_str());
 
 				clocks++;
 				clocks %= clock_count;

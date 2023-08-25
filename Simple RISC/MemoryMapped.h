@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_MemoryMapped_h_
+#define SR_MemoryMapped_h_
+
 #include "SR_Types.h"
 
 namespace SimpleRISC {
@@ -33,3 +36,5 @@ namespace SimpleRISC {
 		virtual const Device_ID GetID() const = 0;
 	};
 }
+
+#endif

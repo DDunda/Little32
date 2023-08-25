@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_ROM_h_
+#define SR_ROM_h_
+
 #include <memory>
 #include "MemoryMapped.h"
 
@@ -27,3 +30,5 @@ namespace SimpleRISC {
 		const Device_ID GetID() const;
 	};
 }
+
+#endif

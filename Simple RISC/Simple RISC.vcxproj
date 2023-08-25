@@ -174,6 +174,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="ComputerInfo.cpp" />
     <ClCompile Include="Core.cpp" />
     <ClCompile Include="DebugCore.cpp" />
+    <ClCompile Include="KeyboardDevice.cpp" />
     <ClCompile Include="RAM.cpp" />
     <ClCompile Include="RISCCore.cpp" />
     <ClCompile Include="ROM.cpp" />
@@ -181,7 +182,6 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="SR_String.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ASM.h" />
     <ClInclude Include="Assembler.h" />
     <ClInclude Include="CharDisplay.h" />
     <ClInclude Include="ColourCharDisplay.h" />
@@ -190,6 +190,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="Core.h" />
     <ClInclude Include="DebugCore.h" />
     <ClInclude Include="Device.h" />
+    <ClInclude Include="KeyboardDevice.h" />
     <ClInclude Include="MappedDevice.h" />
     <ClInclude Include="MemoryMapped.h" />
     <ClInclude Include="NullDevice.h" />
@@ -197,7 +198,6 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="RAM.h" />
     <ClInclude Include="RISCCore.h" />
     <ClInclude Include="ROM.h" />
-    <ClInclude Include="SR_Definitions.h" />
     <ClInclude Include="SR_String.h" />
     <ClInclude Include="SR_Types.h" />
   </ItemGroup>
@@ -211,6 +211,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <None Include="blue_wave.asm" />
     <None Include="bounce.asm" />
     <None Include="float.asm" />
+    <None Include="keyboard.asm" />
     <None Include="program.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

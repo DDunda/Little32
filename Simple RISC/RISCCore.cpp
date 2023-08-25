@@ -3,7 +3,6 @@
 #include "Computer.h"
 #include "RISCCore.h"
 #include "SR_String.h"
-#include "SR_Definitions.h"
 
 namespace SimpleRISC {
 	RISCCore::RISCCore(Computer& computer) : Core(computer) {}
@@ -96,7 +95,7 @@ namespace SimpleRISC {
 				word list = instruction & 0x0000FFFF;
 				if (instruction & 0x00200000) { // SWR
 					for (word i = 15; list & 0xFFFF; i--, list <<= 1) {
-						if (list & 0x80) Push(registers[reg1], registers[i] * inv);
+						if (list & 0x8000) Push(registers[reg1], registers[i] * inv);
 					}
 				}
 				else { // SRR
@@ -265,6 +264,8 @@ namespace SimpleRISC {
 			case 7: return nstr + "CMPFI " + r1 + ", " + r2 + cond2;
 			}
 		}
+
+		return "";
 	}
 
 	void RISCCore::Reset() {

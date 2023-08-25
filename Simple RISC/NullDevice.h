@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_NullDevice_h_
+#define SR_NullDevice_h_
+
 #include "MemoryMapped.h"
 
 namespace SimpleRISC {
@@ -9,3 +12,5 @@ namespace SimpleRISC {
 		const Device_ID GetID() const { return Device_ID::Null; }
 	};
 }
+
+#endif

@@ -1,5 +1,9 @@
 #pragma once
-#include "SR_Definitions.h"
+
+#ifndef SR_PreProcAssembler_h_
+#define SR_PreProcAssembler_h_
+
+#include "RISCCore.h"
 
 #define PUTWORD ram.memory[pc++] =
 #define PUTBYTES(A,B,C,D) PUTWORD A | (B << 8) | (C << 16) | (D << 24);
@@ -107,3 +111,5 @@
 //                          CCCC101L000000000000000000000000
 #define RFE(cond) PUTWORD 0b00001010000000000000000000000000 | ((cond) << 28);
 #define RET(cond) PUTWORD 0b00001011000000000000000000000000 | ((cond) << 28);
+
+#endif

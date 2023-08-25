@@ -1,6 +1,9 @@
 #pragma once
 
-#include<memory>
+#ifndef SR_RAM_h_
+#define SR_RAM_h_
+
+#include <memory>
 #include "MappedDevice.h"
 
 namespace SimpleRISC {
@@ -37,3 +40,5 @@ namespace SimpleRISC {
 		void Reset();
 	};
 }
+
+#endif

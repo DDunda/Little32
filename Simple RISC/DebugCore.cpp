@@ -1,6 +1,5 @@
 #include "DebugCore.h"
 #include "Computer.h"
-#include "SR_Definitions.h"
 
 namespace SimpleRISC {
 	DebugCore::DebugCore(Computer& computer) : Core(computer) {}

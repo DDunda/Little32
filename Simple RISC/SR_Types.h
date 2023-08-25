@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef SR_Types_h_
+#define SR_Types_h_
+
 #include<cstdint>
 
 namespace SimpleRISC {
@@ -11,6 +15,9 @@ namespace SimpleRISC {
 		ROM = 2,
 		RAM = 3,
 		CharDisplay = 4,
-		ColourCharDisplay = 5
+		ColourCharDisplay = 5,
+		Keyboard = 6
 	};
 }
+
+#endif

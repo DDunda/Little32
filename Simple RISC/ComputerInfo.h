@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_ComputerInfo_h_
+#define SR_ComputerInfo_h_
+
 #include "MemoryMapped.h"
 
 namespace SimpleRISC {
@@ -23,3 +26,5 @@ namespace SimpleRISC {
 		const Device_ID GetID() const;
 	};
 }
+
+#endif

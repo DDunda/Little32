@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_Device_h_
+#define SR_Device_h_
+
 namespace SimpleRISC {
 	class Device {
 	public:
@@ -10,3 +13,5 @@ namespace SimpleRISC {
 		virtual void Reset() {};
 	};
 }
+
+#endif

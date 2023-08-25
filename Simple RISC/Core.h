@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef SR_Core_h_
+#define SR_Core_h_
+
 #include <string>
 #include "SR_Types.h"
 
@@ -21,3 +25,5 @@ namespace SimpleRISC {
 		virtual void SetSP(word value) = 0;
 	};
 }
+
+#endif

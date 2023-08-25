@@ -1,7 +1,9 @@
 #pragma once
 
-#include <rect.hpp>
+#ifndef SR_ColourCharDisplay_h_
+#define SR_ColourCharDisplay_h_
 
+#include <rect.hpp>
 #include "MappedDevice.h"
 
 namespace SDL {
@@ -72,3 +74,5 @@ namespace SimpleRISC {
 		void Reset();
 	};
 }
+
+#endif

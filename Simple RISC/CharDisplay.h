@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_CharDisplay_h_
+#define SR_CharDisplay_h_
+
 #include <rect.hpp>
 #include "MappedDevice.h"
 
@@ -59,3 +62,5 @@ namespace SimpleRISC {
 		void Reset();
 	};
 }
+
+#endif

@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SR_Computer_h_
+#define SR_Computer_h_
+
 #include <vector>
 #include "SR_Types.h"
 
@@ -46,3 +49,5 @@ namespace SimpleRISC {
 		void AddMappedDevice(MappedDevice& dev);
 	};
 }
+
+#endif

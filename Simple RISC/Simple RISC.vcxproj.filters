@@ -70,6 +70,9 @@
     <ClCompile Include="ColourCharDisplay.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="KeyboardDevice.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
@@ -125,22 +128,19 @@
     <ClInclude Include="ROM.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="SR_Definitions.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="SR_String.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="SR_Types.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ASM.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="Assembler.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="ColourCharDisplay.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="KeyboardDevice.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
@@ -160,5 +160,6 @@
     <None Include="blue_wave.asm">
       <Filter>Assembly</Filter>
     </None>
+    <None Include="keyboard.asm" />
   </ItemGroup>
 </Project>
