@@ -1,61 +1,67 @@
+$clock_count 27 // Enough to call on_down a single time
+$frame_delay 125 // 8 FPS
+
 ${:{
 
 $keyboard R4
 $char_mem R5
 $key R6
 
+#ENTRY
 MOV $keyboard, KEYBOARD
 MOV $char_mem, CHAR_MEM
 
 MOV R0, on_down
 RWW R0, [$keyboard]
+
+RRW R0, [.zeroes]
+RWW R0, [$char_mem]
+RWW R0, [$char_mem+4]
 HALT
 
-on_down:
-	PUSH {LR}
+zeroes: 0x30303030
 
+on_down:
 	RRW $key, [$keyboard+8]
-	
-	LSR R0, $key, 28
-	BL .to_hex
+
+	MOV R1, 15
+
+	AND R0, R1, $key >> 28
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem]
 
-	LSR R0, $key, 24
-	BL .to_hex
+	AND R0, R1, $key >> 24
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+1]
 	
-	LSR R0, $key, 20
-	BL .to_hex
+	AND R0, R1, $key >> 20
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+2]
 
-	LSR R0, $key, 16
-	BL .to_hex
+	AND R0, R1, $key >> 16
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+3]
 
-	LSR R0, $key, 12
-	BL .to_hex
+	AND R0, R1, $key >> 12
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+4]
 
-	LSR R0, $key, 8
-	BL .to_hex
+	AND R0, R1, $key >> 8
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+5]
 
-	LSR R0, $key, 4
-	BL .to_hex
+	AND R0, R1, $key >> 4
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+6]
 
-	MOV R0, $key
-	BL .to_hex
+	AND R0, R1, $key >> 0
+	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+7]
 
-	POP {LR}
 	RFE
-
-to_hex:
-	AND R0, R0, 15
-	CMP R0, 10
-	ADD R0, R0, 48 ?LT
-	ADD R0, R0, 55 ?GE
-	RET
-
+	
+#BYTE
+chars:
+	48 49 50 51 52 53 54 55 56 57 // 0 1 2 3 4 5 6 7 8 9
+	65 66 67 68 69 70 // A B C D E F
 }:}$

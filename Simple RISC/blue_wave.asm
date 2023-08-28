@@ -1,4 +1,7 @@
-﻿${
+﻿$clock_count 2611 // Enough to call frame_int a single time
+$frame_delay 50 // 20 FPS
+
+${
 $x R0
 $i R1
 $char_mem R2
@@ -7,7 +10,9 @@ $gradient R4
 $colours R5
 
 $tmp R6
+$tmp2 R7
 
+#ENTRY
 MOV $x, 7                      // word  x = 7;
 MOV $i, 0                      // word  i = 0;
 MOV $char_mem, CHAR_MEM
@@ -15,7 +20,8 @@ MOV $colour_mem, COLOUR_MEM
 MOV $gradient, gradient
 MOV $colours, colours
 MOV $tmp, frame_int
-RWW $tmp, [$char_mem+512]      // set_frame_callback(frame_int);
+MOV $tmp2, RENDER_INT
+RWW $tmp, [$tmp2]      // set_frame_callback(frame_int);
 HALT                           // while(true) {}
 
 frame_int:                     // void frame_int() {

@@ -170,6 +170,9 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="Assembler.cpp" />
     <ClCompile Include="CharDisplay.cpp" />
     <ClCompile Include="ColourCharDisplay.cpp" />
+    <ClCompile Include="GUIButton.cpp" />
+    <ClCompile Include="PickFile.cpp" />
+    <ClCompile Include="PickFile.h" />
     <ClCompile Include="Computer.cpp" />
     <ClCompile Include="ComputerInfo.cpp" />
     <ClCompile Include="Core.cpp" />
@@ -179,6 +182,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="RISCCore.cpp" />
     <ClCompile Include="ROM.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="SR_String.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +194,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="Core.h" />
     <ClInclude Include="DebugCore.h" />
     <ClInclude Include="Device.h" />
+    <ClInclude Include="GUIButton.h" />
     <ClInclude Include="KeyboardDevice.h" />
     <ClInclude Include="MappedDevice.h" />
     <ClInclude Include="MemoryMapped.h" />
@@ -198,6 +203,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="RAM.h" />
     <ClInclude Include="RISCCore.h" />
     <ClInclude Include="ROM.h" />
+    <ClInclude Include="Sprite.h" />
     <ClInclude Include="SR_String.h" />
     <ClInclude Include="SR_Types.h" />
   </ItemGroup>

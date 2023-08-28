@@ -122,22 +122,6 @@ namespace SimpleRISC {
 		return true;
 	}
 
-	constexpr bool IsChar(const std::string& str, const char c, size_t off = 0) noexcept {
-		return str.find_first_not_of(c,off) == std::string::npos;
-	}
-
-	constexpr bool IsChars(const std::string& str, const char* const chars,size_t off = 0) noexcept {
-		return chars != nullptr && str.find_first_not_of(chars, off) == std::string::npos;
-	}
-
-	constexpr bool IsNumeric(const std::string& str) noexcept {
-		for (auto c : str) {
-			if (c < '0' || c > '9') return false;
-		}
-
-		return true;
-	}
-
 	constexpr bool IsDecimal(const std::string& str) noexcept {
 		if (str.empty()) return false;
 		if (str.length() == 1) return str[0] >= '0' && str[0] <= '9';
@@ -458,11 +442,13 @@ namespace SimpleRISC {
 
 		if (it == l.end() || !IsNumeric(*it)) ThrowException("Expected number after shift");
 
-		shift = rshift ? 32 - stoul(*it) : stoul(*it);
+		shift = stoul(*it);
 		it = l.erase(it);
 
 		if (shift >= 32) ThrowException("Shift is too large");
 		if (it != l.end() &&*it != "?") ThrowException("Shift must be at end of instruction");
+
+		if (rshift && shift) shift = 32 - shift;
 
 		return true;
 	}
@@ -733,12 +719,32 @@ namespace SimpleRISC {
 
 	void Assembler::AddLabel(const std::string& label, word address) {
 		constant_addresses[label] = address;
+		label_scopes.front()[label] = address;
 	}
 
 	void Assembler::AddLabels(const std::unordered_map<std::string, word>& addresses) {
 		for (auto& address : addresses) {
 			constant_addresses[address.first] = address.second;
+			label_scopes.front()[address.first] = address.second;
 		}
+	}
+
+	bool Assembler::GetLabel(const std::string& label, std::string& label_out) const
+	{
+		if (!label_scopes.front().contains(label)) return false;
+
+		label_out = label_scopes.front().at(label);
+
+		return true;
+	}
+
+	bool Assembler::GetVariable(const std::string& variable, token_list& var_out) const
+	{
+		if (!variable_scopes.front().contains(variable)) return false;
+
+		var_out = variable_scopes.front().at(variable);
+
+		return true;
 	}
 
 	void Assembler::SetRAM(const RAM& ram) {
@@ -838,7 +844,9 @@ namespace SimpleRISC {
 		}
 		else throw exception("Destination for assembly has not been set");
 
-		program_start = *current_address + memory_start;
+		bool entry_defined = false;
+
+		entry_point = program_start = *current_address + memory_start;
 		program_end = program_start;
 		data_start = program_start;
 		data_end = program_start;
@@ -854,7 +862,6 @@ namespace SimpleRISC {
 		size_t op_depth = 0;
 
 		list<list<string*>> pendingLabels = { {} };
-		label_scopes.push_back(constant_addresses);
 		size_t label_depth = 0;
 
 		string line;
@@ -867,6 +874,7 @@ namespace SimpleRISC {
 			raw_lines.push_back(line);
 			RemoveComments(line);
 			_current_line.line = &(raw_lines.back());
+			_current_line.line_no++;
 			token_list line_tokens = {};
 			GetTokens(line, line_tokens);
 			if (line_tokens.empty()) continue;
@@ -963,7 +971,7 @@ namespace SimpleRISC {
 					else if (token == "ALIGN") {
 						if (!TryConsumeFront(line_tokens, token)) ThrowException("Alignment width not provided");
 						word width = stoul(token);
-						word err = (*current_address) % width;
+						word err = (*current_address + memory_start) % width;
 						if (err == 0) continue;
 						*current_address -= err;
 						*current_address += width;
@@ -976,6 +984,13 @@ namespace SimpleRISC {
 							current_address = &ram_current_address;
 						}
 						if(data_start == program_start) data_start = *current_address + memory_start;
+					}
+					else if (token == "ENTRY") {
+						if(entry_defined) ThrowException("Multiple entry points defined");
+						if((*current_address + memory_start) % 4) ThrowException("Entry point is not word-aligned");
+
+						entry_defined = true;
+						entry_point = *current_address + memory_start;
 					}
 					else ThrowException("Preprocessor directive not recognised");
 				}
@@ -1327,7 +1342,6 @@ namespace SimpleRISC {
 			}
 
 			if (!line_tokens.empty()) ThrowException("Unexpeced token/s in line");
-			_current_line.line_no++;
 		}
 
 		data_end = *current_address + memory_start;

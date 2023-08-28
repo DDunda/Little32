@@ -73,6 +73,18 @@
     <ClCompile Include="KeyboardDevice.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="PickFile.h">
+      <Filter>Headers</Filter>
+    </ClCompile>
+    <ClCompile Include="PickFile.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="GUIButton.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Sprite.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
@@ -143,6 +155,12 @@
     <ClInclude Include="KeyboardDevice.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="GUIButton.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Sprite.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="Char set.png" />
@@ -160,6 +178,8 @@
     <None Include="blue_wave.asm">
       <Filter>Assembly</Filter>
     </None>
-    <None Include="keyboard.asm" />
+    <None Include="keyboard.asm">
+      <Filter>Assembly</Filter>
+    </None>
   </ItemGroup>
 </Project>

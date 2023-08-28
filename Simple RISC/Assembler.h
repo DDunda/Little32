@@ -55,6 +55,7 @@ namespace SimpleRISC {
 		size_t total_ops_defined = 0;
 		size_t total_ops_replaced = 0;
 
+		word entry_point = 0;
 		word program_start = 0;
 		word program_end = 0;
 		word data_start = 0;
@@ -70,6 +71,9 @@ namespace SimpleRISC {
 
 		void AddLabel(const std::string& label, word address);
 		void AddLabels(const std::unordered_map<std::string, word>& addresses);
+		
+		bool GetLabel(const std::string& label, std::string& label_out) const;
+		bool GetVariable(const std::string& variable, token_list& var_out) const;
 
 		constexpr void ClearRAM() noexcept;
 

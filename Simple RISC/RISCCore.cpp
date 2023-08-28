@@ -577,7 +577,7 @@ namespace SimpleRISC {
 		{ // ORR
 			{
 				op { op3r;
-					reg1 = (reg2 | reg3) ^ core.neg;
+					reg1 = (reg2 | doshift(reg3)) ^ core.neg;
 
 					if (!core.set_status) return;
 
@@ -586,7 +586,7 @@ namespace SimpleRISC {
 					core.C = core.V = false;
 				},
 				op { op3i;
-					reg1 = (reg2 | imm) ^ core.neg;
+					reg1 = (reg2 | doshift(imm)) ^ core.neg;
 
 					if (!core.set_status) return;
 
@@ -607,7 +607,7 @@ namespace SimpleRISC {
 		{ // AND
 			{
 				op { op3r;
-					reg1 = (reg2 & reg3) ^ core.neg;
+					reg1 = (reg2 & doshift(reg3)) ^ core.neg;
 
 					if (!core.set_status) return;
 
@@ -637,7 +637,7 @@ namespace SimpleRISC {
 		{ // XOR
 			{
 				op { op3r;
-					reg1 = (reg2 ^ reg3) ^ core.neg;
+					reg1 = (reg2 ^ doshift(reg3)) ^ core.neg;
 
 					if (!core.set_status) return;
 
@@ -795,7 +795,7 @@ namespace SimpleRISC {
 			{
 				op { op2r;
 					word r1 = reg1;
-					reg1 = (~reg2 + 1) ^ core.neg;
+					reg1 = (~doshift(reg2) + 1) ^ core.neg;
 
 					if (!core.set_status) return;
 

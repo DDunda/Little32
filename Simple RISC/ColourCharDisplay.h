@@ -30,8 +30,11 @@ namespace SimpleRISC {
 		word address_start = 0;
 		/// <summary> The size of this RAM in bytes (calculated from area of textSize) </summary>
 		const word address_size = 0;
-		const word text_address_size = 0;
-		const word colour_address_size = 0;
+		const word pixel_area = 0;
+
+		const word colour_position = 0;
+		const word interrupt_position = 0;
+
 		/// <summary> The data used to fill text memory when the device is reset </summary>
 		std::shared_ptr<byte[]> default_text_memory = nullptr;
 		std::shared_ptr<byte[]> text_memory;

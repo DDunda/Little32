@@ -1,4 +1,7 @@
-﻿${
+﻿$clock_count 26 // Enough to call frame_int a single time
+$frame_delay 16 // ~60 FPS
+
+${
 $x R0
 $y R1
 $vx R2
@@ -11,6 +14,7 @@ $col1 R8
 $col2 R9
 $tmp R10
 
+#ENTRY
 MOV $x, 16
 MOV $y, 70
 MOV $vx, 7

@@ -45,6 +45,12 @@ namespace SimpleRISC {
 	void DisassembleMemory(Computer& computer, word start, word end, word offset = 0, bool print_NOP = false);
 
 	void PrintMemory(Computer& computer, word start, word end, word offset = 0, bool print_null = false);
+
+	bool IsChar(const std::string& str, const char c, size_t off = 0);
+
+	bool IsChars(const std::string& str, const char* const chars, size_t off = 0);
+
+	bool IsNumeric(const std::string& str);
 }
 
 #endif

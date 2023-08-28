@@ -1,4 +1,7 @@
-﻿${
+﻿$clock_count 2611 // Enough to call frame_int a single time
+$frame_delay 50 // 20 FPS
+
+${
 $x R0
 $i R1
 $char_mem R2
@@ -8,6 +11,7 @@ $colours R5
 
 $tmp R6
 
+#ENTRY
 MOV $x, 7                      // word  x = 7;
 MOV $i, 0                      // word  i = 0;
 MOV $char_mem, CHAR_MEM
