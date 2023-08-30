@@ -276,7 +276,6 @@ int main(int argc, char* argv[]) {
 			if (!program.is_open())
 			{
 				std::wcout << L"Could not open assembly file '" << file_path << "'\n" << std::endl;
-				file_provided = false;
 				return;
 			}
 
@@ -287,9 +286,9 @@ int main(int argc, char* argv[]) {
 			}
 			catch (const Assembler::FormatException& e)
 			{
+				std::string l { e.line };
 				program.close();
-				printf("%s\n%s", e.message.c_str(), e.line.c_str());
-				file_provided = false;
+				printf("%s\n", e.message.c_str());
 				return;
 			}
 
@@ -303,14 +302,14 @@ int main(int argc, char* argv[]) {
 
 			Assembler::token_list var_out;
 
-			if (assembler.GetVariable("clock_count", var_out) && var_out.size() > 0 && IsNumeric(var_out.front()))
+			if (assembler.GetVariable("clock_count", var_out) && var_out.size() > 0 && var_out.front().type == Assembler::TokenType::INTEGER)
 			{
-				clock_count = stoul(var_out.front());
+				clock_count = stoul(var_out.front().token);
 			}
 
-			if (assembler.GetVariable("frame_delay", var_out) && var_out.size() > 0 && IsNumeric(var_out.front()))
+			if (assembler.GetVariable("frame_delay", var_out) && var_out.size() > 0 && var_out.front().type == Assembler::TokenType::INTEGER)
 			{
-				frame_delay = stoul(var_out.front());
+				frame_delay = stoul(var_out.front().token);
 			}
 		}
 	);
@@ -362,8 +361,6 @@ int main(int argc, char* argv[]) {
 			assembler.SetRAM(ram);
 			assembler.FlushScopes();
 
-			file_provided = false;
-
 			std::wstring file_name;
 			if (FAILED(PickFile(file_name))) return;
 
@@ -377,6 +374,7 @@ int main(int argc, char* argv[]) {
 				return;
 			}
 
+			file_path = new_file_path;
 			assembler.FlushScopes();
 
 			try
@@ -386,21 +384,22 @@ int main(int argc, char* argv[]) {
 			}
 			catch (const Assembler::FormatException& e)
 			{
+				std::string l { e.line };
 				program.close();
-				printf("%s\n%s", e.message.c_str(), e.line.c_str());
+				printf("%s\n", e.message.c_str());
 				return;
 			}
 
 			Assembler::token_list var_out;
 
-			if (assembler.GetVariable("clock_count", var_out) && var_out.size() > 0 && IsNumeric(var_out.front()))
+			if (assembler.GetVariable("clock_count", var_out) && var_out.size() > 0 && var_out.front().type == Assembler::TokenType::INTEGER)
 			{
-				clock_count = stoul(var_out.front());
+				clock_count = stoul(var_out.front().token);
 			}
 
-			if (assembler.GetVariable("frame_delay", var_out) && var_out.size() > 0 && IsNumeric(var_out.front()))
+			if (assembler.GetVariable("frame_delay", var_out) && var_out.size() > 0 && var_out.front().type == Assembler::TokenType::INTEGER)
 			{
-				frame_delay = stoul(var_out.front());
+				frame_delay = stoul(var_out.front().token);
 			}
 
 			computer.start_PC = assembler.entry_point;
@@ -414,7 +413,6 @@ int main(int argc, char* argv[]) {
 			PrintMemory(computer, assembler.data_start, assembler.data_end, 0, true);
 			printf("\n");
 
-			file_path = new_file_path;
 			file_provided = true;
 		}
 	);

@@ -46,11 +46,11 @@ namespace SimpleRISC {
 
 	void PrintMemory(Computer& computer, word start, word end, word offset = 0, bool print_null = false);
 
-	bool IsChar(const std::string& str, const char c, size_t off = 0);
+	bool IsChar(std::string_view str, const char c, size_t off = 0);
 
-	bool IsChars(const std::string& str, const char* const chars, size_t off = 0);
+	bool IsChars(std::string_view str, const char* const chars, size_t off = 0);
 
-	bool IsNumeric(const std::string& str);
+	bool IsNumeric(std::string_view str);
 }
 
 #endif

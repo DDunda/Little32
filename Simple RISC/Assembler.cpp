@@ -11,60 +11,78 @@
 namespace SimpleRISC {
 	const char Assembler::valid_text_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
-	Assembler::FormatException::FormatException(size_t line_no, const std::string& line, const char* const message) :
-		line_no(line_no),
+	Assembler::FormatException::FormatException(const std::string_view line, const Token& token, const char* const message) :
+		line_no(token.line_no),
 		line(line),
 		inner_message(message),
-		message(std::string("Improper format: ") + std::string(message) + " (line: " + std::to_string(line_no) + ")" ),
+		message(
+			std::string("Improper format: ") + std::string(message) + ": (line " + (token.line_no == 0 ? "??" : std::to_string(token.line_no)) + ")\n\n" +
+			std::string(line) + "\n" +
+			std::string(token.raw_token.data() - line.data(), ' ') + std::string(token.raw_token.length(), '^')
+		),
 		exception("Improper format") {}
 
-	Assembler::FormatException::FormatException(size_t line_no, const std::string& line, const std::string& message) :
-		line_no(line_no),
+	Assembler::FormatException::FormatException(const std::string_view line, const Token& token, const std::string& message) :
+		line_no(token.line_no),
 		line(line),
 		inner_message(message),
-		message(std::string("Improper format: ") + message + " (line: " + std::to_string(line_no) + ")"),
+		message(
+			std::string("Improper format: ") + message + ": (line " + ( token.line_no == 0 ? "??" : std::to_string(token.line_no) ) + ")\n\n" +
+			std::string(line) + "\n" +
+			std::string(token.raw_token.data() - line.data(), ' ') + std::string(token.raw_token.length(), '^')
+		),
 		exception("Improper format") {}
 
-	void Assembler::ThrowException(const char* const msg) const { throw FormatException(_current_line.line_no, *_current_line.line, msg); }
-	void Assembler::ThrowException(const std::string& msg) const { throw FormatException(_current_line.line_no, *_current_line.line, msg); }
+	void Assembler::ThrowException(const char* const msg, const Token& token) const { throw FormatException(_current_line.line, token, msg); }
+	void Assembler::ThrowException(const std::string& msg, const Token& token) const { throw FormatException(_current_line.line, token, msg); }
 
-	constexpr bool Contains(const std::string& str, const std::string& token, size_t& i) noexcept {
+	constexpr bool Contains(std::string_view str, const std::string& token, size_t& i) noexcept {
 		i = str.find(token);
 		return i != str.npos;
 	}
 
-	constexpr bool Contains(const std::string& str, char c, size_t& i) noexcept {
+	constexpr bool Contains(std::string_view str, char c, size_t& i) noexcept {
 		i = str.find(c);
 		return i != str.npos;
 	}
 
-	constexpr void TrimStart(std::string& str) {
+	constexpr bool Contains(std::string_view str, const std::string& token) noexcept
+	{
+		return str.find(token) != str.npos;
+	}
+
+	constexpr bool Contains(std::string_view str, char c) noexcept
+	{
+		return str.find(c) != str.npos;
+	}
+
+	constexpr void TrimStart(std::string_view& str) {
 		if (str.empty()) return;
 		size_t i = str.find_first_not_of(" \t\r\n");
 		if (i == str.npos) {
-			str.clear();
+			str = {};
 		}
 		else if(i != 0) {
-			str.erase(0, i);
+			str = str.substr(i);
 		}
 	}
 
-	constexpr void TrimEnd(std::string& str) {
+	constexpr void TrimEnd(std::string_view& str) {
 		if (str.empty()) return;
 		size_t i = str.find_last_not_of(" \t\r\n");
 		if (i == str.npos) {
-			str.clear();
+			str = {};
 		}
 		else if (i != 0) {
-			str.erase(i + 1);
+			str = str.substr(0,i + 1);
 		}
 	}
 
-	constexpr void TrimString(std::string& str) {
+	constexpr void TrimString(std::string_view& str) {
 		if (str.empty()) return;
 		size_t i = str.find_first_not_of(" \t\r\n");
 		if (i == str.npos) {
-			str.clear();
+			str = {};
 			return;
 		}
 		size_t j = str.find_last_not_of(" \t\r\n");
@@ -75,18 +93,19 @@ namespace SimpleRISC {
 		str = str.substr(i, (j + 1) - i);
 	}
 
-	template<class _Ty, class _Alloc>
-	bool TryGet(const std::list<_Ty, _Alloc>& l, const typename std::list<_Ty, _Alloc>::iterator& it, _Ty& out) noexcept {
+	bool TryGet(const Assembler::token_list& l, const Assembler::token_list::iterator& it, Assembler::Token& out, bool allowEOL = false) noexcept {
 		if (it == l.end()) return false;
+		if (!allowEOL && it->type == Assembler::TokenType::EOL) return false;
 
 		out = *it;
 
 		return true;
 	}
 
-	template<class _Ty, class _Alloc>
-	bool TryConsume(std::list<_Ty, _Alloc>& l, typename std::list<_Ty, _Alloc>::iterator& it, _Ty& out) {
+	bool TryConsume(Assembler::token_list& l, Assembler::token_list::iterator& it, Assembler::Token& out, bool allowEOL = false) noexcept
+	{
 		if (it == l.end()) return false;
+		if (!allowEOL && it->type == Assembler::TokenType::EOL) return false;
 
 		out = *it;
 		it = l.erase(it);
@@ -94,18 +113,20 @@ namespace SimpleRISC {
 		return true;
 	}
 
-	template<class _Ty, class _Alloc>
-	bool TryGetFront(const std::list<_Ty, _Alloc>& l, _Ty& out) noexcept {
+	bool TryGetFront(const Assembler::token_list& l, Assembler::Token& out, bool allowEOL = false) noexcept
+	{
 		if (l.empty()) return false;
+		if (!allowEOL && l.front().type == Assembler::TokenType::EOL) return false;
 
 		out = l.front();
 
 		return true;
 	}
 
-	template<class _Ty, class _Alloc>
-	bool TryConsumeFront(std::list<_Ty, _Alloc>& l, _Ty& out) noexcept {
+	bool TryConsumeFront(Assembler::token_list& l, Assembler::Token& out, bool allowEOL = false) noexcept
+	{
 		if (l.empty()) return false;
+		if (!allowEOL && l.front().type == Assembler::TokenType::EOL) return false;
 
 		out = l.front();
 		l.pop_front();
@@ -151,7 +172,7 @@ namespace SimpleRISC {
 		return IsChars(str, "0123456789abcdefABCDEF_", 2);
 	}
 
-	uint64_t decToI(std::string str, uint64_t max) {
+	uint64_t decToI(std::string_view str, uint64_t max) {
 		if (!IsChars(str,"0123456789_")) return max;
 		uint64_t v = 0;
 		for (auto c : str) {
@@ -163,7 +184,7 @@ namespace SimpleRISC {
 		return v;
 	}
 
-	uint64_t binToI(std::string str, uint64_t max) {
+	uint64_t binToI(std::string_view str, uint64_t max) {
 		if (str.length() > 2 && str[1] == 'b') {
 			if (str[0] != '0') return max;
 			str = str.substr(2);
@@ -179,7 +200,7 @@ namespace SimpleRISC {
 		return v;
 	}
 
-	uint64_t octToI(std::string str, uint64_t max) {
+	uint64_t octToI(std::string_view str, uint64_t max) {
 		if (!IsChars(str, "01234567_")) return max;
 		uint64_t v = 0;
 		for (auto c : str) {
@@ -191,14 +212,19 @@ namespace SimpleRISC {
 		return v;
 	}
 
-	uint64_t hexToI(std::string str, uint64_t max) {
-		if (str.length() > 2 && str[1] == 'x') {
+	uint64_t hexToI(std::string_view str, uint64_t max)
+	{
+		if (str.length() > 2 && str[1] == 'x')
+		{
 			if (str[0] != '0') return max;
 			str = str.substr(2);
 		}
+
 		if (!IsChars(str, "0123456789abcdefABCDEF_")) return max;
+
 		uint64_t v = 0;
-		for (auto c : str) {
+		for (auto c : str)
+		{
 			if (c == '_') continue;
 			v <<= 4;
 			if (c >= '0' && c <= '9') v += c - '0';
@@ -206,10 +232,12 @@ namespace SimpleRISC {
 			else if (c >= 'A' && c <= 'F') v += 10 + c - 'A';
 			if (v >= max) return max;
 		}
+
 		return v;
 	}
 
-	uint64_t Assembler::xToI(std::string str, word base, uint64_t max) {
+	uint64_t Assembler::xToI(std::string_view str, word base, uint64_t max)
+	{
 		uint64_t val = max;
 
 		switch (base)
@@ -218,31 +246,36 @@ namespace SimpleRISC {
 		case 10: val = decToI(str, max); break;
 		case 8:  val = octToI(str, max); break;
 		case 2:  val = binToI(str, max); break;
-		default: ThrowException("This number cannot be processed");
+		default: ThrowException("This number cannot be processed", {TokenType::INTEGER, str, std::string(str), _current_line.line_no });
 		}
 
-		if (val == max) ThrowException("This number is too large");
+		if (val == max) ThrowException("This number is too large", { TokenType::INTEGER, str, std::string(str), _current_line.line_no });
 
 		return val;
 	}
 
-	word Assembler::ToReg(const std::string& str) const {
-		for (int i = 0; i < 16; i++) {
+	word Assembler::ToReg(std::string_view str) const
+	{
+		for (int i = 0; i < 16; i++)
+		{
 			if (str == regNames[i]) return i;
 		}
 
-		ThrowException("'" + str + "' is not a register");
+		ThrowException("'" + std::string(str) + "' is not a register", { TokenType::TEXT, str, std::string(str), _current_line.line_no });
 	}
 
-	constexpr bool IsAlpha(const std::string& str) noexcept {
-		for (auto c : str) {
+	constexpr bool IsAlpha(std::string_view str) noexcept
+	{
+		for (auto c : str)
+		{
 			if ((c < 'a' || c > 'z') && (c < 'A' || c > 'Z')) return false;
 		}
 
 		return true;
 	}
 
-	constexpr int IsNumber(const std::string& str) noexcept {
+	constexpr int IsNumber(std::string_view str) noexcept
+	{
 		if (str.empty()) return 0;
 		if (str.length() == 1) return 10 * (str[0] >= '0' && str[0] <= '9');
 		if (IsChar(str, '_')) return 0;
@@ -253,16 +286,29 @@ namespace SimpleRISC {
 		return 8 * IsChars(str, "01234567_");
 	}
 
-	constexpr bool IsLower(const std::string& str) noexcept {
-		for (auto c : str) {
+	bool IsFloat(std::string_view str)
+	{
+		if (str.size() < 3) return false;
+		if (std::count(str.begin(), str.end(), '.') != 1) return false;
+		if (str[0] == '.' || str[str.length() - 1] == '.') return false;
+
+		return IsChars(str, "0123456789.");
+	}
+
+	constexpr bool IsLower(const std::string& str) noexcept
+	{
+		for (auto c : str)
+		{
 			if (c < 'a' || c > 'z') return false;
 		}
 
 		return true;
 	}
 
-	constexpr bool IsUpper(const std::string& str) noexcept {
-		for (auto c : str) {
+	constexpr bool IsUpper(const std::string& str) noexcept
+	{
+		for (auto c : str)
+		{
 			if (c < 'A' || c > 'Z') return false;
 		}
 
@@ -270,7 +316,8 @@ namespace SimpleRISC {
 	}
 
 	constexpr bool IsReg(const std::string& str) noexcept {
-		for (int i = 0; i < 16; i++) {
+		for (int i = 0; i < 16; i++)
+		{
 			if (str == regNames[i]) return true;
 		}
 
@@ -294,159 +341,351 @@ namespace SimpleRISC {
 		memory[address / sizeof(word)] ^= value << x;
 	}
 
-	size_t GetTokens(std::string line, Assembler::token_list& tokens) {
+	size_t GetTokens(std::string_view line, Assembler::token_list& tokens, size_t line_no = 1) {
 		using namespace std;
 
 		size_t token_count = 0;
 
-		TrimString(line);
-
-		/*const auto _GetTokens = [&](const char* const term) {
-			size_t i;
-
-			const size_t tlen = strlen(term);
-
-			while (!line.empty() && Contains(line, term, i)) {
-				GetTokens(line.substr(0, i), tokens);
-				tokens.push_back(term);
-				line = line.substr(i + tlen);
+		//TrimString(line);
+		if (line.empty()) return 0;
+		
+		while (string(" \t\r\n").find(line[0]) != string::npos)
+		{
+			if (line[0] == '\n')
+			{
+				tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
+				line_no++;
 			}
-		};*/
-
-		size_t len = line.length();
-
-		if (len == 0) return 0;
-		if (len == 1) {
-			tokens.push_back(line);
-			return 1;
+			line = line.substr(1);
+			if (line.empty()) return 0;
 		}
 
-		size_t i;
+		size_t i = line.find('\"');
+		size_t l_comment = line.find("//");
+		size_t m_comment = line.find("/*");
 
-#define _GetTokens(term,l)\
-		while (len >= l && Contains(line, term, i)) {\
-			token_count += GetTokens(line.substr(0, i), tokens) + 1;\
-			tokens.push_back(term);\
-			len -= i + l;\
+		while (i != string::npos || l_comment != string::npos || m_comment != string::npos)
+		{
+			if (i < l_comment && i < m_comment)
+			{
+				token_count += GetTokens(line.substr(0, i), tokens, line_no) + 1;
+				line_no += count(line.begin(), std::next(line.begin(), i), '\n');
+				line = line.substr(i);
+
+				size_t end = 0;
+
+				if (Contains(line.substr(1), '"', i) && i < line.find('\r') && i < line.find('\n'))
+				{
+					string str = "";
+
+					for (size_t it = 1; it < line.length(); it++)
+					{
+						char c = line[it];
+
+						if (c == '\\')
+						{
+							if (++it == line.length() || line[it] == '\r' || line[it] == '\n') break;
+
+							switch (line[it])
+							{
+							case 'a':
+								str += '\a';
+								break;
+							case 'b':
+								str += '\b';
+								break;
+							case 'f':
+								str += '\f';
+								break;
+							case 'n':
+								str += '\n';
+								break;
+							case 'r':
+								str += '\r';
+								break;
+							case 't':
+								str += '\t';
+								break;
+							case 'v':
+								str += '\v';
+								break;
+							case '0':
+								str += '\0';
+							case 'x':
+							{
+								char value = 0;
+
+								c = ++it < line.length() ? line[it] : 0;
+
+								if (c >= '0' && c <= '9')      value = ( c - '0' ) << 4;
+								else if (c >= 'a' && c <= 'f') value = ( 10 + c - 'a' ) << 4;
+								else if (c >= 'A' && c <= 'F') value = ( 10 + c - 'A' ) << 4;
+								else
+								{
+									it--;
+									str += 'x';
+									continue;
+								}
+
+								c = ++it < line.length() ? line[it] : 0;
+
+								if (c >= '0' && c <= '9')      value += c - '0';
+								else if (c >= 'a' && c <= 'f') value += 10 + c - 'a';
+								else if (c >= 'A' && c <= 'F') value += 10 + c - 'A';
+								else
+								{
+									it -= 2;
+									str += 'x';
+									continue;
+								}
+								str += value;
+							}
+								break;
+							case '\\':
+								str += '\\';
+								break;
+							case '"':
+								str += '"';
+								break;
+							default:
+								str += line[it];
+								break;
+							}
+						}
+						else if (c == '"')
+						{
+							end = it;
+							break;
+						}
+						else
+						{
+							str += line[it];
+						}
+					}
+
+					tokens.push_back({ Assembler::TokenType::STRING,line.substr(1,end - 1),str });
+				}
+				else
+				{
+					tokens.push_back({ Assembler::TokenType::INVALID,line.substr(0,1),"\"",line_no});
+				}
+
+				line = line.substr(end + 1);
+			}
+			else if (l_comment < m_comment)
+			{
+				token_count += GetTokens(line.substr(0, l_comment), tokens, line_no);
+				auto end = std::next(line.begin(), l_comment);
+
+				line_no += count(line.begin(), end, '\n') + 1;
+
+				line = line.substr(l_comment + 2);
+
+				if (!Contains(line, '\n', i)) return token_count;
+
+				line = line.substr(i);
+				tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
+				line = line.substr(1);
+				line_no++;
+			}
+			else
+			{
+				token_count += GetTokens(line.substr(0, m_comment), tokens, line_no);
+				line_no += count(line.begin(), std::next(line.begin(), m_comment), '\n');
+
+				line = line.substr(m_comment + 2);
+
+				if (Contains(line, "*/", i))
+				{
+					auto end = std::next(line.begin(), i);
+
+					size_t j;
+
+					while (Contains(line.substr(0, i), '\n', j))
+					{
+						line = line.substr(j, 0);
+
+						tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
+
+						line = line.substr(1, 0);
+						line_no++;
+						i -= j + 1;
+					}
+				}
+				else
+				{
+					tokens.push_back({ Assembler::TokenType::INVALID,line.substr(0,2),"/*",line_no });
+				}
+
+				line = line.substr(2);
+			}
+
+			if (line.empty()) return token_count;
+
+			i = line.find('\"');
+			l_comment = line.find("//");
+			m_comment = line.find("/*");
+		}
+
+#define _GetTokens(type,term,l)\
+		while (Contains(line, term, i)) {\
+			token_count += GetTokens(line.substr(0, i), tokens, line_no) + 1;\
+			line_no += count(line.begin(), std::next(line.begin(), i), '\n');\
+			tokens.push_back({Assembler::TokenType::type,line.substr(i,l),term,line_no});\
 			line = line.substr(i + l);\
-			if(len == 0) return token_count;\
+			if(line.empty()) return token_count;\
 		}
 
-		_GetTokens("...",3);
-		_GetTokens("@{",2);
-		_GetTokens("}@",2);
-		_GetTokens("${",2);
-		_GetTokens("}$",2);
-		_GetTokens("?{",2);
-		_GetTokens("}?",2);
-		_GetTokens(":{",2);
-		_GetTokens("}:",2);
-		_GetTokens("<<",2);
-		_GetTokens(">>",2);
-		//_GetTokens("'");
-		_GetTokens("@",1);
-		_GetTokens("$",1);
-		_GetTokens("?",1);
-		_GetTokens(":",1);
-		_GetTokens(",",1);
-		_GetTokens("(",1);
-		_GetTokens(")",1);
-		_GetTokens("[",1);
-		_GetTokens("]",1);
-		_GetTokens("{",1);
-		_GetTokens("}",1);
-		_GetTokens("+",1);
-		_GetTokens("-",1);
-		_GetTokens("#",1);
-		//_GetTokens("="  );
-
-		while (len >= 1 && Contains(line, ".", i)) {
-			if (i == 0 || i == len - 1 || line[i - 1] < '0' || line[i - 1] > '9' || line[i + 1] < '0' || line[i + 1] > '9') {
-				token_count += GetTokens(line.substr(0, i), tokens) + 1;
-				tokens.push_back(".");
-				len -= i + 1;
-				line = line.substr(i + 1);
-				if (len == 0) return token_count;
-			}
-			else {
-				size_t start = line.find_last_not_of("0123456789.", i) + 1;
-				size_t end  = line.find_first_not_of("0123456789.", i);
-				if (start == string::npos) {
-					token_count++;
-
-					if (end == string::npos) {
-						tokens.push_back(line);
-						return token_count;
-					}
-
-					tokens.push_back(line.substr(0,end));
-				}
-				else {
-					token_count += GetTokens(line.substr(0, start), tokens) + 1;
-
-					if (end == string::npos) {
-						tokens.push_back(line.substr(start));
-						return token_count;
-					}
-
-					tokens.push_back(line.substr(start,end-start));
-				}
-
-				line = line.substr(end);
-				len -= end;
-			}
-		}
-
+		_GetTokens(VARGS,"...",3);
+		_GetTokens(SCOPE_FUNCTION_OPEN,"@{",2);
+		_GetTokens(SCOPE_FUNCTION_CLOSE,"}@",2);
+		_GetTokens(SCOPE_VARIABLE_OPEN,"${",2);
+		_GetTokens(SCOPE_VARIABLE_CLOSE,"}$",2);
+		_GetTokens(SCOPE_CONDITION_OPEN,"?{",2);
+		_GetTokens(SCOPE_CONDITION_CLOSE,"}?",2);
+		_GetTokens(SCOPE_LABEL_OPEN,":{",2);
+		_GetTokens(SCOPE_LABEL_CLOSE,"}:",2);
+		_GetTokens(LSHIFT,"<<",2);
+		_GetTokens(RSHIFT,">>",2);
+		_GetTokens(MARKER_PREPROCESSOR,"#", 1);
+		_GetTokens(MARKER_FUNCTION,"@",1);
+		_GetTokens(MARKER_VARIABLE,"$",1);
+		_GetTokens(MARKER_CONDITION,"?",1);
+		_GetTokens(MARKER_LABEL,":",1);
+		_GetTokens(COMMA,",",1);
+		_GetTokens(LPAREN,"(",1);
+		_GetTokens(RPAREN,")",1);
+		_GetTokens(LBRACKET,"[",1);
+		_GetTokens(RBRACKET,"]",1);
+		_GetTokens(LBRACE,"{",1);
+		_GetTokens(RBRACE,"}",1);
+		_GetTokens(PLUS,"+",1);
+		_GetTokens(MINUS,"-",1);
 #undef _GetTokens
 
-		stringstream ss(line);
-		string t;
+		while (!line.empty()) {
+			//TrimStart(line);
 
-		while (getline(ss, t, ' ')) {
-			TrimStart(t);
-			if (t.length() == 0) continue;
-			tokens.push_back(t);
+			while (!Contains(Assembler::valid_text_chars,line[0]))
+			{
+				if (line[0] == '\n')
+				{
+					tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
+					line_no++;
+					line = line.substr(1);
+				}
+				else if (line[0] == '.')
+				{
+					tokens.push_back({ Assembler::TokenType::MARKER_RELATIVE,line.substr(0,1),".",line_no });
+					line = line.substr(1);
+					token_count++;
+				}
+				else if (Contains(" \t\r", line[0]))
+				{
+					line = line.substr(1);
+				}
+				else
+				{
+					size_t last = line.find_first_of("\n\r\t .abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+					tokens.push_back({ Assembler::TokenType::INVALID,line.substr(0,last),string(line.substr(0,last)),line_no});
+					line = line.substr(last);
+					token_count++;
+				}
+				if (line.empty()) return token_count;
+			}
+
+			i = line.find_first_not_of(Assembler::valid_text_chars);
+			string_view t = i == string::npos ? line : line.substr(0, i);
+			line = i == string::npos ? string_view() : line.substr(i);
+
+			if (IsNumber(t))
+			{
+				tokens.push_back({ Assembler::TokenType::INTEGER,t,std::string(t) });
+			}
+			else if (IsFloat(t))
+			{
+				tokens.push_back({ Assembler::TokenType::FLOAT,t,std::string(t) });
+			}
+			else if (IsChars(t, Assembler::valid_text_chars))
+			{
+				tokens.push_back({ Assembler::TokenType::TEXT,t,std::string(t) });
+			}
+			else
+			{
+				tokens.push_back({ Assembler::TokenType::INVALID,t,std::string(t) });
+			}
+
 			token_count++;
 		}
 
 		return token_count;
 	}
 
+	Assembler::token_list::iterator FindToken(Assembler::token_list& list, Assembler::TokenType type, size_t offset)
+	{
+		auto it = std::next(list.begin(), offset);
+		const auto end = list.end();
+
+		for (; it != end; it++)
+		{
+			if (it->type == Assembler::TokenType::EOL) return end;
+			if (it->type == type) break;
+		}
+
+		return it;
+	}
+
+	Assembler::token_list::iterator FindToken(Assembler::token_list& list, Assembler::TokenType type)
+	{
+		auto it = list.begin();
+		const auto end = list.end();
+
+		for (; it != end; it++)
+		{
+			if (it->type == Assembler::TokenType::EOL) return end;
+			if (it->type == type) break;
+		}
+
+		return it;
+	}
+
 	bool Assembler::GetCond(token_list& l, byte& cond) const {
 		using namespace std;
 
-		auto it = std::find(l.begin(), l.end(), "?");
+		auto it = FindToken(l, Assembler::TokenType::MARKER_CONDITION);
 
-		if (it == l.end()) return false;
+		if (it == l.end() || it->type == Assembler::TokenType::EOL) return false;
 
 		it = l.erase(it); // Erase '?'
 
-		if (it == l.end() || !IsCond(*it)) ThrowException("Expected condition for '?' statement");
-		cond = condNames.at(*it);
+		if (it == l.end() || it->type != Assembler::TokenType::TEXT || !IsCond(it->token)) ThrowException("Expected condition for '?' statement", *it);
+
+		cond = condNames.at(it->token);
 		it = l.erase(it); // Erase condition
 		
-		if (it != l.end()) ThrowException("Line does not end after '?' statement");
+		if (it->type != Assembler::TokenType::EOL) ThrowException("Line does not end after '?' statement", *it);
 		return true;
 	}
 
 	bool Assembler::GetShift(token_list& l, byte& shift) const {
 		using namespace std;
 
-		auto it = find(l.begin(), l.end(), "<<");
-		it = it == l.end() ? find(l.begin(), l.end(), ">>") : it;
+		auto it = FindToken(l, TokenType::LSHIFT);
+		it = (it == l.end() || it->type == TokenType::EOL) ? FindToken(l, Assembler::TokenType::RSHIFT) : it;
 
-		if (it == l.end()) return false;
+		if (it == l.end() || it->type == TokenType::EOL) return false;
 
-		bool rshift = *it == ">>" ? true : false;
+		bool rshift = it->type == TokenType::RSHIFT;
 		it = l.erase(it);
 
-		if (it == l.end() || !IsNumeric(*it)) ThrowException("Expected number after shift");
+		if (it == l.end() || it->type != TokenType::INTEGER) ThrowException("Expected number after shift", *it);
 
-		shift = stoul(*it);
+		shift = stoul(it->token);
+		if (shift >= 32) ThrowException("Shift is too large", *it);
+
 		it = l.erase(it);
 
-		if (shift >= 32) ThrowException("Shift is too large");
-		if (it != l.end() &&*it != "?") ThrowException("Shift must be at end of instruction");
+		if (it != l.end() && it->type != TokenType::EOL && it->type != TokenType::MARKER_CONDITION) ThrowException("Shift must be at end of instruction", *it);
 
 		if (rshift && shift) shift = 32 - shift;
 
@@ -457,71 +696,67 @@ namespace SimpleRISC {
 		using namespace std;
 
 		isNegative = false;
-		if (l.front() == "-") {
+		if (l.front().type == Assembler::TokenType::MINUS)
+		{
 			l.pop_front();
 			isNegative = true;
 		}
 
-		if (l.size() != 1) ThrowException("Expected one value for offset");
-		if (!IsNumeric(l.front())) ThrowException("Expected offset to be a number");
+		if (l.size() == 0) ThrowException("Expected a value for offset", { TokenType::INVALID,string_view(_current_line.line.end(),_current_line.line.end()),"",_current_line.line_no});
+		if (l.size() > 1) ThrowException("Expected one value for offset", { TokenType::INVALID,string_view(_current_line.line.end(),_current_line.line.end()),"",_current_line.line_no });
+		if (l.front().type != Assembler::TokenType::INTEGER) ThrowException("Expected offset to be a number", l.front());
 
-		word offset = stoul(l.front());
+		word offset = stoul(l.front().token);
 		offset = std::rotl(offset, shift);
 
-		if (offset & 3) ThrowException("Expected offset to be word aligned");
-		if (offset > 0x03FFFFFC) ThrowException("Offset is too large");
+		if (offset & 3) ThrowException("Expected offset to be word aligned", l.front());
+		if (offset > 0x03FFFFFC) ThrowException("Offset is too large", l.front());
 
 		return offset >> 2;
-	}
-
-	bool IsFloat(std::string str) {
-		if (str.size() < 3) return false;
-		if (std::count(str.begin(), str.end(), '.') != 1) return false;
-
-		auto i = std::find(str.begin(), str.end(), '.');
-		if (i == str.begin() || i == str.end()) return false;
-
-		return IsChars(str, "0123456789.");
 	}
 
 	size_t Assembler::ConvertNumbers(token_list& tokens) const {
 		size_t numbers_replaced = 0;
 
-		for (auto& t : tokens) {
-			int numBase = IsNumber(t);
-			if (!numBase) {
-				if (IsFloat(t)) {
-					float f = std::stof(t);
-					word val = *(word*)&f;
-					t = std::to_string(val);
+		for (auto& t : tokens)
+		{
+			if (t.type == Assembler::TokenType::INTEGER)
+			{
+				int numBase = IsNumber(t.token);
+
+				if (numBase == 10)
+				{
+					uint64_t long_val = stoul(t.token);
+					word word_Val = long_val;
+					if (long_val > word_Val) ThrowException("This number is too large for a word",t);
+					continue;
 				}
-				continue;
+				numbers_replaced++;
+
+				word _v = 0, v = 0;
+
+				if (numBase == 2 || numBase == 16) t.token = t.token.substr(2);
+				else if (numBase == 8) t.token = t.token.substr(1);
+
+				for (auto c : t.token)
+				{
+					if (c == '_') continue;
+					v *= numBase;
+					if (c >= '0' && c <= '9') v += c - '0';
+					else if (c >= 'a' && c <= 'f') v += 10 + c - 'a';
+					else if (c >= 'A' && c <= 'F') v += 10 + c - 'A';
+
+					if (_v > v) ThrowException("This number is too large for a word",t);
+					_v = v;
+				}
+				t.token = std::to_string(v);
 			}
-			if (numBase == 10) {
-				uint64_t long_val = stoul(t);
-				word word_Val = long_val;
-				if (long_val > word_Val) ThrowException("This number is too large for a word");
-				continue;
+			else if (t.type == Assembler::TokenType::FLOAT)
+			{
+				float f = std::stof(t.token);
+				word val = *(word*)&f;
+				t.token = std::to_string(val);
 			}
-			numbers_replaced++;
-
-			word _v = 0, v = 0;
-
-
-			if (numBase == 2 || numBase == 16) t = t.substr(2);
-			else if (numBase == 8) t = t.substr(1);
-
-			for (auto c : t) {
-				if (c == '_') continue;
-				v *= numBase;
-				if (c >= '0' && c <= '9') v += c - '0';
-				else if (c >= 'a' && c <= 'f') v += 10 + c - 'a';
-				else if (c >= 'A' && c <= 'F') v += 10 + c - 'A';
-
-				if (_v > v) ThrowException("This number is too large for a word");
-				_v = v;
-			}
-			t = std::to_string(v);
 		}
 
 		return numbers_replaced;
@@ -533,11 +768,11 @@ namespace SimpleRISC {
 		size_t brackets_replaced = 0;
 
 		auto it = l.begin();
-		string token;
+		Token token;
 
 		while (TryGet(l, it, token)) {
-			if (token == "]") ThrowException("Closing square bracket without opening");
-			if (token != "[") {
+			if (token.type == TokenType::RBRACKET) ThrowException("Closing square bracket without opening",token);
+			if (token.type != TokenType::LBRACKET) {
 				it++;
 				continue;
 			}
@@ -546,55 +781,55 @@ namespace SimpleRISC {
 
 			auto start = it;
 
-			if (!TryGet(l, it, token)) ThrowException("Square brackets must be closed");
-			if (token == "]") ThrowException("Square brackets must contain contents");
-			if (token == "[") ThrowException("Square brackets cannot be nested");
-			if (token == ",") ThrowException("Square brackets cannot contain commas");
+			if (!TryGet(l, it, token)) ThrowException("Square brackets must be closed",token);
+			if (token.type == TokenType::RBRACKET) ThrowException("Square brackets must contain contents",token);
+			if (token.type == TokenType::LBRACKET) ThrowException("Square brackets cannot be nested",token);
+			if (token.type == TokenType::COMMA) ThrowException("Square brackets cannot contain commas",token);
 
-			if (token == "+" && token == "-") { // Bracket starts with a sign - Interpreted as single value relative to PC
-				l.insert(it, "PC");
+			if (token.type == TokenType::PLUS || token.type == TokenType::MINUS) { // Bracket starts with a sign - Interpreted as single value relative to PC
+				l.insert(it, { TokenType::TEXT, {}, "PC", token.line_no });
 			}
 			else {
-				string first_token = token;
+				Token first_token = token;
 				it++;
-				while (TryGet(l, it, token) && token != "]") {
-					if (token == "[") ThrowException("Square brackets cannot be nested");
-					if (token == ",") ThrowException("Square brackets cannot contain commas");
-					if (token == "+" || token == "-") break;
+				while (TryGet(l, it, token) && token.type != TokenType::RBRACKET) {
+					if (token.type == TokenType::LBRACKET) ThrowException("Square brackets cannot be nested",token);
+					if (token.type == TokenType::COMMA) ThrowException("Square brackets cannot contain commas",token);
+					if (token.type == TokenType::PLUS || token.type == TokenType::MINUS) break;
 					it++;
 				}
 
-				if (it == l.end()) ThrowException("Square brackets must be closed");
+				if (it == l.end() || it->type == TokenType::EOL) ThrowException("Square brackets must be closed",token);
 
-				if (token == "]") { // Occurs when no signs were encountered - Interpreted as single value relative to PC
-					if (IsReg(first_token)) { // User entered a register; consider contents as relative to it
-						l.insert(it, ",");
-						l.insert(it, "0");
+				if (token.type == TokenType::RBRACKET) { // Occurs when no signs were encountered - Interpreted as single value relative to PC
+					if (IsReg(first_token.token)) { // User entered a register; consider contents as relative to it
+						l.insert(it, { TokenType::COMMA, {}, ",", token.line_no });
+						l.insert(it, { TokenType::INTEGER, {}, "0", token.line_no });
 					}
 					else {  // User entered a value; consider contents as relative to PC
-						l.insert(start, "PC");
-						l.insert(start, ",");
+						l.insert(start, { TokenType::TEXT, {}, "PC", token.line_no });
+						l.insert(start, { TokenType::COMMA, {}, ",", token.line_no });
 					}
 					it = l.erase(it); // Erase ']'
 					continue;
 				}
 			}
 
-			if (token == "+") *it = ",";
-			else l.insert(it, ",");
+			if (token.type == TokenType::PLUS) *it = { TokenType::COMMA, {}, ",", token.line_no };
+			else l.insert(it, { TokenType::COMMA, {}, ",", token.line_no });
 			it++;
 
-			if (!TryGet(l, it, token)) ThrowException("Square brackets must be closed");
-			if (token == "]") ThrowException("Sign in square brackets must be followed by offset");
+			if (!TryGet(l, it, token)) ThrowException("Square brackets must be closed",token);
+			if (token.type == TokenType::RBRACKET) ThrowException("Sign in square brackets must be followed by offset",token);
 
 			do {
-				if (token == "[") ThrowException("Square brackets cannot be nested");
-				if (token == ",") ThrowException("Square brackets cannot contain commas");
-				if (token == "+" || token == "-") ThrowException("Square brackets can only have one offset");
+				if (token.type == TokenType::LBRACKET) ThrowException("Square brackets cannot be nested",token);
+				if (token.type == TokenType::COMMA) ThrowException("Square brackets cannot contain commas",token);
+				if (token.type == TokenType::PLUS || token.type == TokenType::MINUS) ThrowException("Square brackets can only have one offset",token);
 				it++;
-			} while (TryGet(l, it, token) && token != "]");
+			} while (TryGet(l, it, token) && token.type != TokenType::RBRACKET);
 
-			if (token != "]") ThrowException("Square brackets must be closed");
+			if (token.type != TokenType::RBRACKET) ThrowException("Square brackets must be closed",token);
 			it = l.erase(it); // Erase ']'
 		}
 
@@ -606,10 +841,10 @@ namespace SimpleRISC {
 
 		size_t vars_replaced = 0;
 		auto it = l.begin();
-		string token;
+		Token token;
 
 		while (TryGet(l, it, token)) {
-			if (token != "$") {
+			if (token.type != TokenType::MARKER_VARIABLE) {
 				it++;
 				continue;
 			}
@@ -617,19 +852,20 @@ namespace SimpleRISC {
 
 			it = l.erase(it);
 
-			string var_name;
-			if (!TryConsume(l, it, var_name)) ThrowException("Variable name not provided");
+			Token var_name;
 
-			if (!IsChars(var_name, valid_text_chars)) ThrowException("Invalid characters in variable name");
+			if (!TryConsume(l, it, var_name)) ThrowException("Variable name not provided", token);
+
+			if (var_name.type != TokenType::TEXT) ThrowException("Invalid characters in variable name", var_name);
 
 			auto scope = variable_scopes.rbegin(); // Start with the innermost scope
 
-			while (!scope->contains(var_name))
+			while (!scope->contains(var_name.token))
 			{
-				if (++scope == variable_scopes.rend()) ThrowException("Variable is undefined");
+				if (++scope == variable_scopes.rend()) ThrowException("Variable is undefined", var_name);
 			}
 
-			const token_list var = scope->at(var_name);
+			const token_list var = scope->at(var_name.token);
 
 			it = l.insert(it, var.begin(), var.end());
 		}
@@ -643,19 +879,19 @@ namespace SimpleRISC {
 
 		for (auto& a : l.args) {
 			for (auto it = a.begin(); it != a.end(); it++) {
-				if (*it != ".") continue;
+				if (it->type != TokenType::MARKER_RELATIVE) continue;
 
 				it = a.erase(it);
-				if (it == a.end() || !IsNumeric(*it)) ThrowException("Expected number after '.'");
+				if (it->type != TokenType::INTEGER) ThrowException("Expected number after '.'", *it);
 
-				long int addr = stoul(*it) - l.addr;
+				long int addr = stoul(it->token) - l.addr;
 				if (addr < 0) {
 					addr *= -1;
-					a.insert(it, "-");
+					a.insert(it, {TokenType::MINUS,{},"-",it->line_no});
 				}
 
 				relatives_replaced++;
-				*it = to_string(addr);
+				it->token = to_string(addr);
 			}
 		}
 
@@ -667,10 +903,10 @@ namespace SimpleRISC {
 
 		size_t lists_replaced = 0;
 		auto it = l.begin();
-		string token;
+		Token token;
 
 		while (TryGet(l, it, token)) {
-			if (token != "{") {
+			if (token.type != TokenType::LBRACE) {
 				it++;
 				continue;
 			}
@@ -679,39 +915,39 @@ namespace SimpleRISC {
 			word list = 0;
 			it = l.erase(it); // Erase '{'
 
-			while (TryConsume(l, it, token) && token != "}") {
+			while (TryConsume(l, it, token) && token.type != TokenType::RBRACE) {
 				word reg1 = 0;
 				for (; reg1 < 16; reg1++) {
-					if (regNames[reg1] == token) break;
+					if (regNames[reg1] == token.token) break;
 				}
-				if (reg1 == 16) ThrowException("Expected register in register list");
+				if (reg1 == 16) ThrowException("Expected register in register list",token);
 
-				if (!TryConsume(l, it, token)) ThrowException("Expected register list to continue");
+				if (!TryConsume(l, it, token)) ThrowException("Expected register list to continue",token);
 
-				if (token == "," || token == "}") {
-					if (list & (1 << reg1)) ThrowException("Register list has duplicate registers");
+				if (token.type == TokenType::COMMA || token.type == TokenType::RBRACE) {
+					if (list & (1 << reg1)) ThrowException("Register list has duplicate registers",token);
 					list |= 1 << reg1;
-					if (token == "}") break;
-				} else if (token == "-") {
-					if (!TryConsume(l, it, token)) ThrowException("Expected second register for range");
+					if (token.type == TokenType::RBRACE) break;
+				} else if (token.type == TokenType::MINUS) {
+					if (!TryConsume(l, it, token)) ThrowException("Expected second register for range",token);
 					word reg2 = 0;
 					for (; reg2 < 16; reg2++) {
-						if (regNames[reg2] == token) break;
+						if (regNames[reg2] == token.token) break;
 					}
-					if (reg2 == 16) ThrowException("Expected register in register list");
-					if (reg1 > reg2) ThrowException("Expected register range to be from min to max");
-					if (reg1 == reg2) ThrowException("Expected register range to be greater than 1");
+					if (reg2 == 16) ThrowException("Expected register in register list",token);
+					if (reg1 > reg2) ThrowException("Expected register range to be from min to max",token);
+					if (reg1 == reg2) ThrowException("Expected register range to be greater than 1",token);
 					word range = ((0xFFFF >> (reg1 + (15 - reg2))) << reg1) & 0xFFFF;
 
-					if (list & range) ThrowException("Register list has duplicate registers");
+					if (list & range) ThrowException("Register list has duplicate registers",token);
 					list |= range;
 				}
-				else ThrowException("Unexpected value in register list");
+				else ThrowException("Unexpected value in register list",token);
 			}
 
-			if (token != "}") ThrowException("Register list must be closed");
+			if (token.type != TokenType::RBRACE) ThrowException("Register list must be closed",token);
 
-			l.insert(it, to_string(list));
+			l.insert(it, { TokenType::INTEGER,{},to_string(list),it->line_no });
 		}
 
 		return lists_replaced;
@@ -797,6 +1033,27 @@ namespace SimpleRISC {
 		label_scopes = { constant_addresses };
 	}
 
+	// https://stackoverflow.com/a/116220
+	auto read_file(std::istream& stream) -> std::string
+	{
+		constexpr auto read_size = std::size_t(4096);
+		stream.exceptions(std::ios_base::badbit);
+
+		if (not stream)
+		{
+			throw std::ios_base::failure("file does not exist");
+		}
+
+		auto out = std::string();
+		auto buf = std::string(read_size, '\0');
+		while (stream.read(&buf[0], read_size))
+		{
+			out.append(buf, 0, stream.gcount());
+		}
+		out.append(buf, 0, stream.gcount());
+		return out;
+	}
+
 	void Assembler::Assemble(std::istream& code, bool print_intermediate) {
 		using namespace std;
 
@@ -851,7 +1108,8 @@ namespace SimpleRISC {
 		data_start = program_start;
 		data_end = program_start;
 
-		list<string> raw_lines;
+		string file_contents = read_file(code);
+		string_view consumable_contents = file_contents;
 		list<AssemblyLine> assemblyLines;
 
 		struct cond_scope { bool has_cond = false; word cond = 0; };
@@ -861,488 +1119,527 @@ namespace SimpleRISC {
 		size_t variable_depth = 0;
 		size_t op_depth = 0;
 
-		list<list<string*>> pendingLabels = { {} };
+		list<list<Token*>> pendingLabels = { {} };
 		size_t label_depth = 0;
 
-		string line;
-		string token;
+		stringstream line_reader(file_contents);
+		Token token;
 		bool byte_mode = false;
+		bool terminator_mode = true;
 
-		_current_line = { 0, nullptr };
+		token_list file_tokens = {};
+		GetTokens(file_contents, file_tokens);
+		size_t line_no = file_tokens.empty() ? 1 : (file_tokens.back().line_no + (file_tokens.back().type == TokenType::EOL));
+		file_tokens.push_back({ TokenType::EOL, {}, "\n", line_no });
 
-		while (getline(code, line)) {
-			raw_lines.push_back(line);
-			RemoveComments(line);
-			_current_line.line = &(raw_lines.back());
-			_current_line.line_no++;
-			token_list line_tokens = {};
-			GetTokens(line, line_tokens);
-			if (line_tokens.empty()) continue;
+		ConvertNumbers(file_tokens);
 
-			ConvertNumbers(line_tokens);
+		size_t line_end = consumable_contents.find_first_of('\n');
+		_current_line.line_no = 1;
+		_current_line.line = consumable_contents.substr(0, line_end);
+		consumable_contents = consumable_contents.substr(line_end + 1);
 
-			// Process tokens
-			while (TryConsumeFront(line_tokens, token))
+		while (TryConsumeFront(file_tokens, token, true))
+		{
+			bool isNegative = token.type == TokenType::MINUS;
+			bool isPositive = token.type == TokenType::PLUS;
+			if (token.type == TokenType::EOL)
 			{
-				bool isNegative = token == "-";
-				bool isPositive = token == "+";
-				if (isNegative || isPositive || IsNumeric(token)) { // This is a constant value
-					if (byte_mode) {
-						if (*current_address >= memory_range) ThrowException("This value would be written beyond memory");
-						//if(isNegative) ThrowException("Bytes cannot be negative");
+				line_end = consumable_contents.find_first_of('\n');
+				_current_line.line_no++;
+				_current_line.line = consumable_contents.substr(0, line_end);
+				consumable_contents = consumable_contents.substr(line_end + 1);
+			}
+			else if (isNegative || isPositive || token.type == TokenType::INTEGER) { // This is a constant value
+				if (byte_mode) {
+					if (*current_address >= memory_range) ThrowException("This value would be written beyond memory", token);
+					//if(isNegative) ThrowException("Bytes cannot be negative");
 
-						if (isPositive || isNegative) {
-							if (!TryConsumeFront(line_tokens, token)) ThrowException("Positive symbol not followed by anything");
-							if (!IsNumeric(token)) ThrowException("Positive symbol not followed by number");
-						}
-
-						word val = stoul(token);
-
-						if(val > 255) ThrowException("Value is too large");
-
-						if (isNegative) val = 1 + ~val;
-
-						PutByte(memory, *current_address, val);
-						(*current_address)++;
+					if (token.type != TokenType::INTEGER) {
+						if (!TryConsumeFront(file_tokens, token)) ThrowException("Sign not followed by anything",token);
+						if (token.type != TokenType::INTEGER) ThrowException("Sign not followed by number",token);
 					}
-					else {
-						if ((*current_address) & 3) ThrowException("Word not aligned");
-						if (((*current_address) >> 2) >= (memory_range >> 2)) ThrowException("This value would be written beyond memory");
 
-						if (isPositive || isNegative) {
-							if (!TryConsumeFront(line_tokens, token)) ThrowException("Sign symbol not followed by anything");
-							if (!IsNumeric(token)) ThrowException("Sign symbol not followed by number");
-						}
+					word val = stoul(token.token);
 
-						word val = stoul(token);
+					if(val > 255) ThrowException("Value is too large",token);
 
-						if (isNegative) val = 1 + ~val;
+					if (isNegative) val = 1 + ~val;
 
-						memory[(*current_address) >> 2] = val;
-						(*current_address) += 4;
-					}
-					data_end = *current_address + memory_start;
+					PutByte(memory, *current_address, val);
+					(*current_address)++;
 				}
-				else if (!line_tokens.empty() && line_tokens.front() == ":") { // This is a label
-					if (!IsChars(token, valid_text_chars)) ThrowException("Invalid characters in label");
-					if (label_scopes.back().contains(token)) ThrowException("Label already defined in scope");
+				else {
+					if ((*current_address) & 3) ThrowException("Word not aligned",token);
+					if (((*current_address) >> 2) >= (memory_range >> 2)) ThrowException("This value would be written beyond memory",token);
 
-					line_tokens.pop_front(); // Erase ':'
-					label_scopes.back()[token] = *current_address + memory_start;
-
-					string num = to_string(label_scopes.back()[token]);
-
-					auto lit = pendingLabels.back().begin();
-					while (lit != pendingLabels.back().end()) {
-						if (*(*lit) == token) { // Resolve this label
-							*(*lit) = num;
-							lit = pendingLabels.back().erase(lit);
-						}
-						else { // Needs another label
-							lit++;
-						}
+					if (isPositive || isNegative) {
+						if (!TryConsumeFront(file_tokens, token)) ThrowException("Sign symbol not followed by anything",token);
+						if (token.type != TokenType::INTEGER) ThrowException("Sign symbol not followed by number",token);
 					}
+
+					word val = stoul(token.token);
+
+					if (isNegative) val = 1 + ~val;
+
+					memory[(*current_address) >> 2] = val;
+					(*current_address) += 4;
 				}
-				else if (token == "#") {
-					if (!TryConsumeFront(line_tokens, token)) ThrowException("Preprocessor directive not provided");
-					if (token == "BLOCK") {
-						if (!TryConsumeFront(line_tokens, token) || !IsNumeric(token)) ThrowException("Block size not provided");
-						word size = stoul(token);
-						if (size == 0) ThrowException("Expected nonzero memory block");
-						if(*current_address + size >= memory_range) ThrowException("Block exceeds memory");
-
-						if (data_start == program_start) data_start = *current_address + memory_start;
-
-						for (int i = 0; i < size; i++) {
-							PutByte(memory, *current_address + i, 0);
-						}
-
-						(*current_address) += size;
-						data_end += size;
-					}
-					else if (token == "BYTE") {
-						if (data_start == program_start) data_start = *current_address + memory_start;
-						byte_mode = true;
-					}
-					else if (token == "WORD") {
-						if (data_start == program_start) data_start = *current_address + memory_start;
-						byte_mode = false;
-					}
-					else if (token == "ALIGN") {
-						if (!TryConsumeFront(line_tokens, token)) ThrowException("Alignment width not provided");
-						word width = stoul(token);
-						word err = (*current_address + memory_start) % width;
-						if (err == 0) continue;
-						*current_address -= err;
-						*current_address += width;
-					}
-					else if (token == "DATA") {
-						if (ram != nullptr) {
-							memory = ram;
-							memory_start = ram_start;
-							memory_range = ram_range;
-							current_address = &ram_current_address;
-						}
-						if(data_start == program_start) data_start = *current_address + memory_start;
-					}
-					else if (token == "ENTRY") {
-						if(entry_defined) ThrowException("Multiple entry points defined");
-						if((*current_address + memory_start) % 4) ThrowException("Entry point is not word-aligned");
-
-						entry_defined = true;
-						entry_point = *current_address + memory_start;
-					}
-					else ThrowException("Preprocessor directive not recognised");
+				data_end = *current_address + memory_start;
+			}
+			else if (token.type == TokenType::STRING)
+			{
+				for (char c : token.token)
+				{
+					if (*current_address + terminator_mode >= memory_range) ThrowException("String exceeds memory", token);
+					PutByte(memory, *current_address, c);
+					( *current_address )++;
 				}
-				else if (token == "@") {
-					func_scopes.back().push_back({});
-					OpReplace& new_op = func_scopes.back().back();
 
-					if (!TryConsumeFront(line_tokens, new_op.op)) ThrowException("Function name not provided");
-					if (!IsUpper(new_op.op)) ThrowException("Function name must be uppercase");
-
-					if (TryGetFront(line_tokens, token) && token == "(") {
-						line_tokens.pop_front();
-						string num;
-						if (!TryConsumeFront(line_tokens, num) || num == ")") ThrowException("Required args not provided");
-						if (!IsNumeric(num)) ThrowException("Required args is not numeric");
-						new_op.requiredArgs = stoi(num);
-						if (!TryConsumeFront(line_tokens, token) || token != ")") ThrowException("Brackets not closed");
-					}
-					if (new_op.op.front() == 'N') ThrowException("Function name cannot start with N");
-					if (new_op.op.back() == 'S') ThrowException("Function name cannot end with S");
-
-					if (!TryConsumeFront(line_tokens, new_op.newop)) ThrowException("Instruction to assign function not provided");
-					if (!IsUpper(new_op.newop)) ThrowException("Instruction name must be uppercase");
-
-					if (new_op.newop == "N") ThrowException("Function replacement instruction is only N flag");
-					if (new_op.newop == "S") ThrowException("Function replacement instruction is only S flag");
-					if (new_op.newop == "NS") ThrowException("Function replacement instruction is only flags");
-
-					if (new_op.newop.front() == 'N') {
-						new_op.newop = new_op.newop.substr(1);
-						new_op.newN = true;
-					}
-
-					if (new_op.newop.back() == 'S') {
-						new_op.newop = new_op.newop.substr(0, new_op.newop.length() - 1);
-						new_op.newS = true;
-					}
-
-					new_op.has_cond = GetCond(line_tokens, new_op.new_cond);
-
-					if (new_op.has_cond) {
-						if (cond_scopes.back().has_cond) ThrowException("Function overwrites the scope condition");
-					}
-					else {
-						new_op.new_cond = cond_scopes.back().cond;
-						new_op.has_cond = cond_scopes.back().has_cond;
-					}
-
-					new_op.has_shift = GetShift(line_tokens, new_op.new_shift);
-
-					while (TryConsumeFront(line_tokens, token)) {
-						if (token == "...") {
-							if (new_op.requiredArgs != -1) ThrowException("Cannot use '...' in constant length function");
-							new_op.tokens.push_back(token);
-						}
-						else if (token == "@") {
-							if (new_op.requiredArgs == -1) ThrowException("Cannot use '@' in variable length function");
-							new_op.tokens.push_back(token);
-							if (!TryConsumeFront(line_tokens, token) || !IsNumeric(token)) ThrowException("'@' must be followed by a number");
-							if (stoi(token) >= new_op.requiredArgs) ThrowException("Arg number greater than number of args");
-							new_op.tokens.push_back(token);
-						}
-						else {
-							new_op.tokens.push_back(token);
-						}
-					}
-
-					total_ops_defined++;
-					break;
-				}
-				else if (token == "@{") {
-					op_depth++;
-					func_scopes.push_back({});
-				}
-				else if (token == "}@") {
-					if (op_depth == 0) ThrowException("Too many closing function scopes");
-
-					op_depth--;
-					func_scopes.pop_back();
-				}
-				else if (token == "${") {
-					variable_depth++;
-					variable_scopes.push_back({});
-				}
-				else if (token == "}$") {
-					if (variable_depth == 0) ThrowException("Too many closing variable scopes");
-
-					variable_depth--;
-					variable_scopes.pop_back();
-				}
-				else if (token == "?{") {
-					cond_depth++;
-					cond_scopes.push_back({});
-					// ThrowException("No condition was provided for the condition scope");
-					if (line_tokens.empty()) continue;
-					//ThrowException("Invalid condition was provided for the condition scope");
-					if (!IsCond(line_tokens.front())) continue;
-
-					cond_scopes.back().has_cond = true;
-					cond_scopes.back().cond = condNames.at(line_tokens.front());
-					line_tokens.pop_front();
-				}
-				else if (token == "}?") {
-					if (cond_depth == 0) ThrowException("Too many closing condition scopes");
-
-					cond_depth--;
-					cond_scopes.pop_back();
-				}
-				else if (token == ":{") {
-					label_depth++;
-					label_scopes.push_back({});
-					pendingLabels.push_back({});
-				}
-				else if (token == "}:") {
-					if (label_depth == 0) ThrowException("Too many closing label scopes");
-					label_depth--;
-
-					if (pendingLabels.back().size() > 0) {
-						std::list<string*>& lower_list = *(pendingLabels.rbegin()++); // Get second last list
-						lower_list.splice(lower_list.end(), pendingLabels.back());  // Move labels down to second last list
-					}
-					pendingLabels.pop_back();
-					label_scopes.pop_back();
-				}
-				else if (token == "$") {
-					string var_name;
-					if (!TryConsumeFront(line_tokens, var_name)) ThrowException("Variable name not provided");
-					if (!IsChars(var_name, valid_text_chars)) ThrowException("Invalid characters in variable name");
-
-					if (!variable_scopes.back().contains(var_name)) {
-						total_variables_defined++;
-					}
-
-					if (line_tokens.empty()) ThrowException("Value to assign variable not provided");
-
-					variable_scopes.back()[var_name] = line_tokens;
-					line_tokens.clear();
-
-					/*while (TryConsumeFront(line_tokens, token)) {
-						variable_scopes.back()[var_name].push_back(token);
-					*/
-					break;
-				}
-				else { // This is an instruction
-					if ((*current_address) & 3) ThrowException("Instruction not aligned");
-					if (!IsUpper(token)) ThrowException("Invalid characters in instruction code");
-
-					assemblyLines.push_back({
-						_current_line,
-						memory_start + *current_address,
-						memory + ((*current_address) >> 2),
-						token
-					});
-					AssemblyLine& instruction = assemblyLines.back();
-					if (instruction.code.length() == 0) ThrowException("Instruction name is empty");
-
-					if (instruction.code == "N") ThrowException("Instruction is only N flag");
-					if (instruction.code == "S") ThrowException("Instruction is only S flag");
-					if (instruction.code == "NS") ThrowException("Instruction is only flags");
-
-					if (instruction.code.front() == 'N') {
-						instruction.code = instruction.code.substr(1);
-						instruction.N = true;
-					}
-
-					if (instruction.code.back() == 'S') {
-						instruction.code = instruction.code.substr(0, instruction.code.length() - 1);
-						instruction.S = true;
-					}
-
-					instruction.has_cond = GetCond(line_tokens, instruction.cond);
-					instruction.has_shift = GetShift(line_tokens, instruction.shift);
-
-					total_variables_replaced += ResolveVariables(line_tokens);
-					SplitSquareBrackets(line_tokens);
-					ResolveRegLists(line_tokens);
-
-					if (!line_tokens.empty()) {
-						instruction.args.push_back({});
-						list<string>* tokens = &instruction.args.back();
-						do {
-							if (line_tokens.front() == ",") {
-								line_tokens.pop_front(); // Erase ','
-
-								if (tokens->empty() || line_tokens.empty()) ThrowException("Empty instruction parameter");
-
-								instruction.args.push_back({});
-								tokens = &instruction.args.back();
-							}
-							else {
-								tokens->push_back(line_tokens.front());
-								line_tokens.pop_front();
-							}
-						} while (!line_tokens.empty());
-					}
-
-
-					OpReplace* op = nullptr;
-
-					unordered_set<OpReplace*> used_replacements = {};
-
-					// Replace instruction with preprocessor instruction
-					do {
-						op = nullptr;
-						for (auto scope_it = func_scopes.rbegin(); scope_it != func_scopes.rend(); scope_it++) {
-							for (auto& op_it : *scope_it) {
-								if (op_it.op != instruction.code) continue;
-								if (op_it.requiredArgs == -1) {
-									if (op == nullptr) op = &op_it;
-									continue;
-								}
-								if (op_it.requiredArgs != instruction.args.size()) continue;
-
-								op = &op_it;
-								break;
-							}
-							if (op == nullptr) continue;
-							if (op->requiredArgs != instruction.args.size()) continue;
-							break;
-						}
-
-						if (op == nullptr) break;
-
-						if (used_replacements.contains(op)) ThrowException("This function is recursive");
-						instruction.code = op->newop; // Replace instruction name
-						used_replacements.insert(op);
-
-						if (op->has_cond) { // Replace condition
-							if (instruction.has_cond) ThrowException("Function overwrites condition");
-							instruction.cond = op->new_cond;
-							instruction.has_cond = true;
-						}
-
-						if (op->has_shift) {
-							if (instruction.has_shift) ThrowException("Function overwrites shift");
-							instruction.shift = op->new_shift;
-							instruction.has_shift = true;
-						}
-
-						vector<list<string>> old_args = {};
-						old_args.insert(old_args.begin(), instruction.args.begin(), instruction.args.end());
-
-						instruction.args = {};
-
-						list<string> op_tokens = op->tokens;
-						total_variables_replaced += ResolveVariables(op_tokens);
-						SplitSquareBrackets(op_tokens);
-						ResolveRegLists(op_tokens);
-
-						if (op_tokens.empty()) continue;
-
-						instruction.args.push_back({});
-						list<string>* tokens = &instruction.args.back();
-						do {
-							if (op_tokens.front() == ",") {
-								op_tokens.pop_front(); // Erase ','
-
-								if (tokens->empty() || op_tokens.empty()) ThrowException("Function parameter resolved as empty");
-
-								instruction.args.push_back({});
-								tokens = &instruction.args.back();
-							}
-							else {
-								tokens->push_back(op_tokens.front());
-								op_tokens.pop_front();
-							}
-						} while (!op_tokens.empty());
-
-						if (op->requiredArgs > 0) {
-							for (auto& a : instruction.args) {
-								auto b_it = a.begin();
-								while (TryGet(a, b_it, token)) {
-									if (token != "@") {
-										b_it++;
-										continue;
-									}
-
-									b_it = a.erase(b_it);  // Erase '@'
-									int arg_num = stoi(*b_it); // String was verified as numeric earlier
-									b_it = a.erase(b_it);  // Erase number
-									a.insert(b_it, old_args[arg_num].begin(), old_args[arg_num].end()); // Number was verified as in range earlier
-								}
-							}
-						}
-						else if (op->requiredArgs == -1) {
-							auto a_it = instruction.args.begin();
-							while (a_it != instruction.args.end()) {
-								list<string> arg = {};
-								arg.splice(arg.begin(), *a_it);
-								auto b_it = arg.begin();
-								while (TryConsume(arg, b_it, token)) {
-									if (token != "...") {
-										a_it->push_back(token);
-										continue;
-									}
-
-									if (old_args.empty()) continue;
-
-									auto c_it = old_args.begin();
-									a_it->insert(a_it->end(), c_it->begin(), c_it->end());
-									c_it++;
-
-									while (c_it != old_args.end()) {
-										a_it++;
-										a_it = instruction.args.insert(a_it, *c_it);
-										c_it++;
-									}
-								}
-								if (a_it->empty()) ThrowException("Function parameter resolved as empty");
-								a_it++;
-							}
-						}
-					} while (op != nullptr);
-
-					if (instruction.has_cond) {
-						if (cond_scopes.back().has_cond) ThrowException("Instruction overwrites the scope condition");
-					}
-					else {
-						instruction.cond = cond_scopes.back().cond;
-						instruction.has_cond = cond_scopes.back().has_cond;
-					}
-
-					for (auto& a : instruction.args) {
-						if (a.empty()) ThrowException("Argument cannot be empty");
-
-						if (a.front() == "<<" || a.front() == ">>") ThrowException("Expected '" + a.front() + "' to follow a value");
-						if (a.back() == "<<" || a.back() == ">>" || a.back() == "-" || a.back() == ".") ThrowException("Expected '" + a.front() + "' to follow a value");
-
-						for (auto& t : a) {
-							if (t == "<<" || t == ">>" || t == "-" || t == "." || IsNumeric(t) || IsReg(t)) continue;
-							if (!IsChars(t, valid_text_chars)) ThrowException("Unexpected token '" + t + "' in argument");
-
-							pendingLabels.back().push_back(&t);
-
-							for (auto it = label_scopes.rbegin(); it != label_scopes.rend(); it++) {
-								if (!it->contains(t)) continue;
-
-								t = to_string((*it)[t]);
-								pendingLabels.back().pop_back();
-								break;
-							}
-						}
-					}
-
-					*current_address += 4;
-					program_end = *current_address + memory_start;
-					break;
+				if (terminator_mode)
+				{
+					PutByte(memory, *current_address, 0);
+					( *current_address )++;
 				}
 			}
+			else if (!file_tokens.empty() && file_tokens.front().type == TokenType::MARKER_LABEL) { // This is a label
+				if (token.type != TokenType::TEXT) ThrowException("Invalid characters in label",token);
+				if (label_scopes.back().contains(token.token)) ThrowException("Label already defined in scope", token);
 
-			if (!line_tokens.empty()) ThrowException("Unexpeced token/s in line");
+				file_tokens.pop_front(); // Erase ':'
+				label_scopes.back()[token.token] = *current_address + memory_start;
+
+				string num = to_string(label_scopes.back()[token.token]);
+
+				auto lit = pendingLabels.back().begin();
+				while (lit != pendingLabels.back().end()) {
+					if ((*lit)->token == token.token) { // Resolve this label
+						(*lit)->token = num;
+						(*lit)->type = TokenType::INTEGER;
+						lit = pendingLabels.back().erase(lit);
+					}
+					else { // Needs another label
+						lit++;
+					}
+				}
+			}
+			else if (token.type == TokenType::MARKER_PREPROCESSOR) {
+				if (!TryConsumeFront(file_tokens, token)) ThrowException("Preprocessor directive not provided", token);
+				if (token.token == "BLOCK") {
+					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER) ThrowException("Block size not provided", token);
+					word size = stoul(token.token);
+					if (size == 0) ThrowException("Expected nonzero memory block", token);
+					if(*current_address + size >= memory_range) ThrowException("Block exceeds memory", token);
+
+					if (data_start == program_start) data_start = *current_address + memory_start;
+
+					for (int i = 0; i < size; i++) {
+						PutByte(memory, *current_address + i, 0);
+					}
+
+					(*current_address) += size;
+					data_end += size;
+				}
+				else if (token.token == "BYTE") {
+					if (data_start == program_start) data_start = *current_address + memory_start;
+					byte_mode = true;
+				}
+				else if (token.token == "WORD") {
+					if (data_start == program_start) data_start = *current_address + memory_start;
+					byte_mode = false;
+				}
+				else if (token.token == "ALIGN") {
+					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER) ThrowException("Alignment width not provided", token);
+					word width = stoul(token.token);
+					word err = (*current_address + memory_start) % width;
+					if (err == 0) continue;
+					*current_address -= err;
+					*current_address += width;
+				}
+				else if (token.token == "DATA") {
+					if (ram != nullptr) {
+						memory = ram;
+						memory_start = ram_start;
+						memory_range = ram_range;
+						current_address = &ram_current_address;
+					}
+					if(data_start == program_start) data_start = *current_address + memory_start;
+				}
+				else if (token.token == "ENTRY") {
+					if(entry_defined) ThrowException("Multiple entry points defined", token);
+					if((*current_address + memory_start) % 4) ThrowException("Entry point is not word-aligned", token);
+
+					entry_defined = true;
+					entry_point = *current_address + memory_start;
+				}
+				else if (token.token == "ASCII")
+				{
+					terminator_mode = false;
+				}
+				else if (token.token == "ASCIZ")
+				{
+					terminator_mode = true;
+				}
+				else ThrowException("Preprocessor directive not recognised", token);
+			}
+			else if (token.type == TokenType::MARKER_FUNCTION) {
+				func_scopes.back().push_back({});
+				OpReplace& new_op = func_scopes.back().back();
+
+				if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::TEXT) ThrowException("Function name not provided", token);
+				new_op.op = token.token;
+				if (!IsUpper(new_op.op)) ThrowException("Function name must be uppercase", token);
+
+				if (TryGetFront(file_tokens, token) && token.type == TokenType::LPAREN) {
+					file_tokens.pop_front();
+					if (!TryConsumeFront(file_tokens, token) || token.type == TokenType::RPAREN) ThrowException("Required args not provided", token);
+					if (token.type != TokenType::INTEGER) ThrowException("Required args is not numeric", token);
+					new_op.requiredArgs = stoi(token.token);
+					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::RPAREN) ThrowException("Brackets not closed", token);
+				}
+				if (new_op.op.front() == 'N') ThrowException("Function name cannot start with N", token);
+				if (new_op.op.back() == 'S') ThrowException("Function name cannot end with S", token);
+
+				if (!TryConsumeFront(file_tokens,token) || token.type == TokenType::TEXT) ThrowException("Instruction to assign function not provided", token);
+				if (!IsUpper(token.token)) ThrowException("Instruction name must be uppercase", token);
+				new_op.newop = token.token;
+
+				if (new_op.newop == "N") ThrowException("Function replacement instruction is only N flag", token);
+				if (new_op.newop == "S") ThrowException("Function replacement instruction is only S flag", token);
+				if (new_op.newop == "NS") ThrowException("Function replacement instruction is only flags", token);
+
+				if (new_op.newop.front() == 'N') {
+					new_op.newop = new_op.newop.substr(1);
+					new_op.newN = true;
+				}
+
+				if (new_op.newop.back() == 'S') {
+					new_op.newop = new_op.newop.substr(0, new_op.newop.length() - 1);
+					new_op.newS = true;
+				}
+
+				new_op.has_cond = GetCond(file_tokens, new_op.new_cond);
+
+				if (new_op.has_cond) {
+					if (cond_scopes.back().has_cond) ThrowException("Function overwrites the scope condition", token);
+				}
+				else {
+					new_op.new_cond = cond_scopes.back().cond;
+					new_op.has_cond = cond_scopes.back().has_cond;
+				}
+
+				new_op.has_shift = GetShift(file_tokens, new_op.new_shift);
+
+				while (TryConsumeFront(file_tokens, token)) {
+					if (token.type == TokenType::VARGS) {
+						if (new_op.requiredArgs != -1) ThrowException("Cannot use '...' in constant length function", token);
+						new_op.tokens.push_back(token);
+					}
+					else if (token.type == TokenType::MARKER_FUNCTION) {
+						if (new_op.requiredArgs == -1) ThrowException("Cannot use '@' in variable length function", token);
+						new_op.tokens.push_back(token);
+						if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER) ThrowException("'@' must be followed by a number", token);
+						if (stoi(token.token) >= new_op.requiredArgs) ThrowException("Arg number greater than number of args", token);
+						new_op.tokens.push_back(token);
+					}
+					else {
+						new_op.tokens.push_back(token);
+					}
+				}
+
+				total_ops_defined++;
+				break;
+			}
+			else if (token.type == TokenType::SCOPE_FUNCTION_OPEN) {
+				op_depth++;
+				func_scopes.push_back({});
+			}
+			else if (token.type == TokenType::SCOPE_FUNCTION_CLOSE) {
+				if (op_depth == 0) ThrowException("Too many closing function scopes", token);
+
+				op_depth--;
+				func_scopes.pop_back();
+			}
+			else if (token.type == TokenType::SCOPE_VARIABLE_OPEN) {
+				variable_depth++;
+				variable_scopes.push_back({});
+			}
+			else if (token.type == TokenType::SCOPE_VARIABLE_CLOSE) {
+				if (variable_depth == 0) ThrowException("Too many closing variable scopes", token);
+
+				variable_depth--;
+				variable_scopes.pop_back();
+			}
+			else if (token.type == TokenType::SCOPE_CONDITION_OPEN) {
+				cond_depth++;
+				cond_scopes.push_back({});
+				// ThrowException("No condition was provided for the condition scope");
+				if (!TryGetFront(file_tokens,token) || token.type != TokenType::TEXT) continue;
+				//ThrowException("Invalid condition was provided for the condition scope");
+				if (!IsCond(token.token)) continue;
+
+				cond_scopes.back().has_cond = true;
+				cond_scopes.back().cond = condNames.at(token.token);
+				file_tokens.pop_front();
+			}
+			else if (token.type == TokenType::SCOPE_CONDITION_CLOSE) {
+				if (cond_depth == 0) ThrowException("Too many closing condition scopes", token);
+
+				cond_depth--;
+				cond_scopes.pop_back();
+			}
+			else if (token.type == TokenType::SCOPE_LABEL_OPEN) {
+				label_depth++;
+				label_scopes.push_back({});
+				pendingLabels.push_back({});
+			}
+			else if (token.type == TokenType::SCOPE_LABEL_CLOSE) {
+				if (label_depth == 0) ThrowException("Too many closing label scopes", token);
+				label_depth--;
+
+				if (pendingLabels.back().size() > 0) {
+					std::list<Token*>& lower_list = *(pendingLabels.rbegin()++); // Get second last list
+					lower_list.splice(lower_list.end(), pendingLabels.back());  // Move labels down to second last list
+				}
+				pendingLabels.pop_back();
+				label_scopes.pop_back();
+			}
+			else if (token.type == TokenType::MARKER_VARIABLE) {
+				if (!TryConsumeFront(file_tokens, token)) ThrowException("Variable name not provided", token);
+				if (token.type != TokenType::TEXT) ThrowException("Invalid characters in variable name", token);
+
+				string var_name = token.token;
+
+				if (!variable_scopes.back().contains(var_name)) {
+					total_variables_defined++;
+				}
+
+				if (file_tokens.front().type == TokenType::EOL) ThrowException("Value to assign variable not provided", token);
+
+				while (TryConsumeFront(file_tokens, token))
+				{
+					variable_scopes.back()[var_name].push_back(token);
+				}
+			}
+			else if (token.type == TokenType::TEXT) { // This is an instruction
+				if ((*current_address) & 3) ThrowException("Instruction not aligned", token);
+				if (!IsUpper(token.token)) ThrowException("Invalid characters in instruction code", token);
+
+				assemblyLines.push_back({
+					_current_line,
+					memory_start + *current_address,
+					memory + ((*current_address) >> 2),
+					token
+				});
+				AssemblyLine& instruction = assemblyLines.back();
+				if (instruction.code.token.length() == 0) ThrowException("Instruction name is empty", token);
+
+				if (instruction.code.token == "N") ThrowException("Instruction is only N flag", token);
+				if (instruction.code.token == "S") ThrowException("Instruction is only S flag", token);
+				if (instruction.code.token == "NS") ThrowException("Instruction is only flags", token);
+
+				if (instruction.code.token.front() == 'N') {
+					instruction.code.token = instruction.code.token.substr(1);
+					instruction.N = true;
+				}
+
+				if (instruction.code.token.back() == 'S') {
+					instruction.code.token = instruction.code.token.substr(0, instruction.code.token.length() - 1);
+					instruction.S = true;
+				}
+
+				instruction.has_cond = GetCond(file_tokens, instruction.cond);
+				instruction.has_shift = GetShift(file_tokens, instruction.shift);
+
+				total_variables_replaced += ResolveVariables(file_tokens);
+				SplitSquareBrackets(file_tokens);
+				ResolveRegLists(file_tokens);
+
+				if (TryConsumeFront(file_tokens, token)) {
+					instruction.args.push_back({});
+					token_list* tokens = &instruction.args.back();
+
+					do
+					{
+						if (token.type == TokenType::COMMA)
+						{
+							if (tokens->empty() || file_tokens.front().type == TokenType::EOL) ThrowException("Empty instruction parameter", token);
+
+							instruction.args.push_back({});
+							tokens = &instruction.args.back();
+						}
+						else
+						{
+							tokens->push_back(token);
+						}
+					} while (TryConsumeFront(file_tokens, token));
+				}
+
+
+				OpReplace* op = nullptr;
+
+				unordered_set<OpReplace*> used_replacements = {};
+
+				// Replace instruction with preprocessor instruction
+				do {
+					op = nullptr;
+					for (auto scope_it = func_scopes.rbegin(); scope_it != func_scopes.rend(); scope_it++) {
+						for (auto& op_it : *scope_it) {
+							if (op_it.op != instruction.code.token) continue;
+							if (op_it.requiredArgs == -1) {
+								if (op == nullptr) op = &op_it;
+								continue;
+							}
+							if (op_it.requiredArgs != instruction.args.size()) continue;
+
+							op = &op_it;
+							break;
+						}
+						if (op == nullptr) continue;
+						if (op->requiredArgs != instruction.args.size()) continue;
+						break;
+					}
+
+					if (op == nullptr) break;
+
+					if (used_replacements.contains(op)) ThrowException("This function is recursive", token);
+					instruction.code.token = op->newop; // Replace instruction name
+					used_replacements.insert(op);
+
+					if (op->has_cond) { // Replace condition
+						if (instruction.has_cond) ThrowException("Function overwrites condition", token);
+						instruction.cond = op->new_cond;
+						instruction.has_cond = true;
+					}
+
+					if (op->has_shift) {
+						if (instruction.has_shift) ThrowException("Function overwrites shift", token);
+						instruction.shift = op->new_shift;
+						instruction.has_shift = true;
+					}
+
+					vector<token_list> old_args = {};
+					old_args.insert(old_args.begin(), instruction.args.begin(), instruction.args.end());
+
+					instruction.args = {};
+
+					token_list op_tokens = op->tokens;
+					total_variables_replaced += ResolveVariables(op_tokens);
+					SplitSquareBrackets(op_tokens);
+					ResolveRegLists(op_tokens);
+
+					if (op_tokens.empty()) continue;
+
+					instruction.args.push_back({});
+					token_list* tokens = &instruction.args.back();
+					do {
+						if (op_tokens.front().type == TokenType::COMMA) {
+							op_tokens.pop_front(); // Erase ','
+
+							if (tokens->empty() || op_tokens.empty()) ThrowException("Function parameter resolved as empty", token);
+
+							instruction.args.push_back({});
+							tokens = &instruction.args.back();
+						}
+						else {
+							tokens->push_back(op_tokens.front());
+							op_tokens.pop_front();
+						}
+					} while (!op_tokens.empty());
+
+					if (op->requiredArgs > 0) {
+						for (auto& a : instruction.args) {
+							auto b_it = a.begin();
+							while (TryGet(a, b_it, token)) {
+								if (token.type != TokenType::MARKER_FUNCTION) {
+									b_it++;
+									continue;
+								}
+
+								b_it = a.erase(b_it);  // Erase '@'
+								int arg_num = stoi(b_it->token); // String was verified as numeric earlier
+								b_it = a.erase(b_it);  // Erase number
+								a.insert(b_it, old_args[arg_num].begin(), old_args[arg_num].end()); // Number was verified as in range earlier
+							}
+						}
+					}
+					else if (op->requiredArgs == -1) {
+						auto a_it = instruction.args.begin();
+						while (a_it != instruction.args.end()) {
+							token_list arg = {};
+							arg.splice(arg.begin(), *a_it);
+							auto b_it = arg.begin();
+							while (TryConsume(arg, b_it, token)) {
+								if (token.type != TokenType::VARGS){
+									a_it->push_back(token);
+									continue;
+								}
+
+								if (old_args.empty()) continue;
+
+								auto c_it = old_args.begin();
+								a_it->insert(a_it->end(), c_it->begin(), c_it->end());
+								c_it++;
+
+								while (c_it != old_args.end()) {
+									a_it++;
+									a_it = instruction.args.insert(a_it, *c_it);
+									c_it++;
+								}
+							}
+							if (a_it->empty()) ThrowException("Function parameter resolved as empty",token);
+							a_it++;
+						}
+					}
+				} while (op != nullptr);
+
+				if (instruction.has_cond) {
+					if (cond_scopes.back().has_cond) ThrowException("Instruction overwrites the scope condition",token);
+				}
+				else {
+					instruction.cond = cond_scopes.back().cond;
+					instruction.has_cond = cond_scopes.back().has_cond;
+				}
+
+				for (auto& a : instruction.args) {
+					if (a.empty()) ThrowException("Argument cannot be empty",token);
+
+					if (a.front().type == TokenType::LSHIFT || a.front().type == TokenType::RSHIFT) ThrowException("Expected '" + a.front().token + "' to follow a value", a.front());
+					if (a.back().type == TokenType::LSHIFT || a.back().type == TokenType::RSHIFT || a.back().type == TokenType::MINUS || a.back().type == TokenType::MARKER_RELATIVE) ThrowException("Expected '" + a.front().token + "' to follow a value", a.back());
+
+					for (auto& t : a) {
+						if (
+							t.type == TokenType::LSHIFT ||
+							t.type == TokenType::RSHIFT ||
+							t.type == TokenType::MINUS ||
+							t.type == TokenType::MARKER_RELATIVE ||
+							t.type == TokenType::INTEGER ||
+							(t.type == TokenType::TEXT && IsReg(t.token))
+						) {
+							continue;
+						}
+						if (t.type != TokenType::TEXT) ThrowException("Unexpected token '" + t.token + "' in argument", t);
+
+						pendingLabels.back().push_back(&t);
+
+						for (auto it = label_scopes.rbegin(); it != label_scopes.rend(); it++) {
+							if (!it->contains(t.token)) continue;
+
+							t.token = to_string((*it)[t.token]);
+							t.type = TokenType::INTEGER;
+							pendingLabels.back().pop_back();
+							break;
+						}
+					}
+				}
+
+				*current_address += 4;
+				program_end = *current_address + memory_start;
+			}
+			else ThrowException("Unregognised token", token);
 		}
+
+		if (!file_tokens.empty()) ThrowException("Unexpected token/s in file", file_tokens.front());
 
 		data_end = *current_address + memory_start;
 		if (data_start == program_start) data_start = program_end;
@@ -1350,24 +1647,24 @@ namespace SimpleRISC {
 		if (label_depth != 0)
 		{
 			FlushScopes();
-			ThrowException("Did not close every label scope");
+			ThrowException("Did not close every label scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
 		}
 		if (cond_depth != 0)
 		{
 			FlushScopes();
-			ThrowException("Did not close every condition scope");
+			ThrowException("Did not close every condition scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
 		}
 		if (op_depth != 0)
 		{
 			FlushScopes();
-			ThrowException("Did not close every function scope");
+			ThrowException("Did not close every function scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
 		}
 
 		if (!pendingLabels.front().empty()) {
 			string err = "Could not resolve all labels (";
 			unordered_set<string> labels;
 			for (auto& label : pendingLabels.front()) {
-				labels.insert(*label);
+				labels.insert(label->token);
 			}
 			auto it = labels.begin();
 			while (true) {
@@ -1376,16 +1673,16 @@ namespace SimpleRISC {
 				err += ", ";
 			}
 			err += ")";
-			ThrowException(err);
+			ThrowException(err, { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
 		}
 
 		if (print_intermediate) {
 			printf("Intermediate output:\n");
 			for (auto& l : assemblyLines) {
-				printf("0x%08X: %s%s%s ", l.addr, l.N ? "N" : "", l.code.c_str(), l.S ? "S" : "");
+				printf("0x%08X: %s%s%s ", l.addr, l.N ? "N" : "", l.code.token.c_str(), l.S ? "S" : "");
 				for (auto& a : l.args) {
 					for (auto& t : a) {
-						printf("%s", t.c_str());
+						printf("%s", t.token.c_str());
 					}
 					if (&a != &(l.args.back())) printf(", ");
 				}
@@ -1478,14 +1775,14 @@ namespace SimpleRISC {
 		for (auto& l : assemblyLines) {
 			_current_line = l.rline;
 			ResolveRelatives(l);
-			if (!definitions.contains(l.code)) ThrowException("Unknown instruction '" + l.code + "'");
+			if (!definitions.contains(l.code.token)) ThrowException("Unknown instruction '" + l.code.token + "'",l.code);
 
-			InstructionDefinition def = definitions.at(l.code);
+			InstructionDefinition def = definitions.at(l.code.token);
 
-			if (!def.allow_shift && l.has_shift) ThrowException("Cannot set shift for " + l.code);
-			if (!def.allow_N && l.N) ThrowException("Cannot set N flag for " + l.code);
-			if (!def.allow_S && l.S) ThrowException("Cannot set S flag for " + l.code);
-			if (l.args.size() != pack_args.at(def.packing)) ThrowException("Expected " + to_string(pack_args.at(def.packing)) + " argument/s for " + l.code);
+			if (!def.allow_shift && l.has_shift) ThrowException("Cannot set shift for " + l.code.token,l.code);
+			if (!def.allow_N && l.N) ThrowException("Cannot set N flag for " + l.code.token, l.code);
+			if (!def.allow_S && l.S) ThrowException("Cannot set S flag for " + l.code.token, l.code);
+			if (l.args.size() != pack_args.at(def.packing)) ThrowException("Expected " + to_string(pack_args.at(def.packing)) + " argument/s for " + l.code.token, l.code);
 
 			*(l.mem) = (l.cond << 28) | (l.N << 27) | def.code | (l.S << 21);
 
@@ -1493,46 +1790,46 @@ namespace SimpleRISC {
 
 			switch (def.packing) {
 			case None:
-				if (l.has_shift) ThrowException("Cannot use shift for " + l.code);
+				if (l.has_shift) ThrowException("Cannot use shift for " + l.code.token, l.code);
 				break;
 
 			case Reg3:
-				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument");
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 16;
 				arg++;
 
-				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument");
-				*(l.mem) |= ToReg(arg->front()) << 12;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 12;
 				arg++;
 
-				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument");
-				*(l.mem) |= ToReg(arg->front()) << 8;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 8;
 				break;
 
 			case Flex3i:
-				if (next(arg)->front() == "-") {
+				if (next(arg)->front().type == TokenType::MINUS) {
 					next(arg)->pop_front();
 					*(l.mem) ^= (1 << 22) | (1 << 27); // Switch to negative alternate, and set N flag
 				}
 
-				if (l.args.back().front() == "-") {
+				if (l.args.back().front().type == TokenType::MINUS) {
 					l.args.back().pop_front();
 					*(l.mem) ^= (1 << 22);
 				}
 
 			case Flex3:
-				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument");
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 16;
 				arg++;
 
-				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument");
-				*(l.mem) |= ToReg(arg->front()) << 12;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 12;
 				arg++;
 
-				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument");
+				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument", *std::next(arg->begin()));
 
-				if (IsNumeric(arg->front())) {
-					word val = rotl(stoul(arg->front()), l.shift);
+				if (arg->front().type == TokenType::INTEGER) {
+					word val = rotl(stoul(arg->front().token), l.shift);
 					word min_val = val;
 					word shift = 0;
 
@@ -1542,34 +1839,34 @@ namespace SimpleRISC {
 						shift = i;
 					}
 
-					if (min_val > 0xFF) ThrowException("Immediate value is too large");
+					if (min_val > 0xFF) ThrowException("Immediate value is too large", arg->front());
 					*(l.mem) |= 1 << 20; // set 'i'
 					*(l.mem) |= min_val << 4;
 					*(l.mem) |= shift;
 				}
 				else
 				{
-					if (l.shift & 1) ThrowException("Register shifts must be even");
-					*(l.mem) |= ToReg(arg->front()) << 8;
+					if (l.shift & 1) ThrowException("Register shifts must be even", arg->front());
+					*(l.mem) |= ToReg(arg->front().token) << 8;
 					*(l.mem) |= l.shift >> 1;
 				}
 				break;
 
 			case Flex2i:
-				if (l.args.back().front() == "-") {
+				if (l.args.back().front().type == TokenType::MINUS) {
 					l.args.back().pop_front();
 					*(l.mem) ^= (1 << 22);
 				}
 
 			case Flex2:
-				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument");
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 16;
 				arg++;
 
-				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument");
+				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
 
-				if (IsNumeric(arg->front())) {
-					word val = rotl(stoul(arg->front()), l.shift);
+				if (arg->front().type == TokenType::INTEGER) {
+					word val = rotl(stoul(arg->front().token), l.shift);
 					word min_val = val;
 					word shift = 0;
 
@@ -1579,38 +1876,38 @@ namespace SimpleRISC {
 						shift = i;
 					}
 
-					if (min_val > 0xFFF) ThrowException("Immediate value is too large");
+					if (min_val > 0xFFF) ThrowException("Immediate value is too large", arg->front());
 					*(l.mem) |= 1 << 20; // set 'i'
 					*(l.mem) |= min_val << 4;
 					*(l.mem) |= shift;
 				}
 				else
 				{
-					if (l.shift & 1) ThrowException("Register shifts must be even");
-					*(l.mem) |= ToReg(arg->front()) << 12;
+					if (l.shift & 1) ThrowException("Register shifts must be even", arg->front());
+					*(l.mem) |= ToReg(arg->front().token) << 12;
 					*(l.mem) |= l.shift >> 1;
 				}
 				break;
 
 			case Reg2:
-				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument");
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 16;
 				arg++;
 
-				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument");
-				*(l.mem) |= ToReg(arg->front()) << 12;
+				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 12;
 				break;
 
 			case RegList:
-				if (l.has_shift) ThrowException("Cannot use shift for " + l.code);
-				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument");
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				if (l.has_shift) ThrowException("Cannot use shift for " + l.code.token, l.code);
+				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
+				*(l.mem) |= ToReg(arg->front().token) << 16;
 				arg++;
 
-				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument");
+				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
 			{
-				word list = stoul(arg->front());
-				if (list > 0xFFFF) ThrowException("'" + arg->front() + "' is not a register set");
+				word list = stoul(arg->front().token);
+				if (list > 0xFFFF) ThrowException("'" + arg->front().token + "' is not a register set", arg->front());
 				*(l.mem) |= list;
 			}
 				break;

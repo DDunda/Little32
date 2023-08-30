@@ -73,9 +73,6 @@
     <ClCompile Include="KeyboardDevice.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="PickFile.h">
-      <Filter>Headers</Filter>
-    </ClCompile>
     <ClCompile Include="PickFile.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -161,6 +158,9 @@
     <ClInclude Include="Sprite.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="PickFile.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="Char set.png" />
@@ -179,6 +179,9 @@
       <Filter>Assembly</Filter>
     </None>
     <None Include="keyboard.asm">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="ascii.asm">
       <Filter>Assembly</Filter>
     </None>
   </ItemGroup>

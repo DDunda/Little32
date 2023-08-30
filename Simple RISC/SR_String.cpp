@@ -88,17 +88,17 @@ namespace SimpleRISC {
 		}
 	}
 
-	bool IsChar(const std::string& str, const char c, size_t off)
+	bool IsChar(std::string_view str, const char c, size_t off)
 	{
 		return str.find_first_not_of(c, off) == std::string::npos;
 	}
 
-	bool IsChars(const std::string& str, const char* const chars, size_t off)
+	bool IsChars(std::string_view str, const char* const chars, size_t off)
 	{
 		return chars != nullptr && str.find_first_not_of(chars, off) == std::string::npos;
 	}
 
-	bool IsNumeric(const std::string& str)
+	bool IsNumeric(std::string_view str)
 	{
 		for (auto c : str)
 		{

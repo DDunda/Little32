@@ -89,7 +89,6 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,7 +119,6 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -154,6 +152,12 @@ copy "$(SDL_image)\lib\$(PlatformShortName)\*.dll" "$(OutDir)"&amp;
 copy "$(SDL_mixer)\lib\$(PlatformShortName)\*.dll" "$(OutDir)"&amp;
 copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     </PostBuildEvent>
+    <ClCompile>
+      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</GenerateXMLDocumentationFiles>
+      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateXMLDocumentationFiles>
+      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenerateXMLDocumentationFiles>
+      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateXMLDocumentationFiles>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(SDLpp)\src\blendmode.cpp" />
@@ -172,7 +176,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="ColourCharDisplay.cpp" />
     <ClCompile Include="GUIButton.cpp" />
     <ClCompile Include="PickFile.cpp" />
-    <ClCompile Include="PickFile.h" />
+    <ClInclude Include="PickFile.h" />
     <ClCompile Include="Computer.cpp" />
     <ClCompile Include="ComputerInfo.cpp" />
     <ClCompile Include="Core.cpp" />
@@ -214,6 +218,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ascii.asm" />
     <None Include="blue_wave.asm" />
     <None Include="bounce.asm" />
     <None Include="float.asm" />
