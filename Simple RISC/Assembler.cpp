@@ -411,35 +411,37 @@ namespace SimpleRISC {
 								break;
 							case '0':
 								str += '\0';
+								break;
 							case 'x':
-							{
-								char value = 0;
-
-								c = ++it < line.length() ? line[it] : 0;
-
-								if (c >= '0' && c <= '9')      value = ( c - '0' ) << 4;
-								else if (c >= 'a' && c <= 'f') value = ( 10 + c - 'a' ) << 4;
-								else if (c >= 'A' && c <= 'F') value = ( 10 + c - 'A' ) << 4;
-								else
+								for(;;)
 								{
-									it--;
-									str += 'x';
-									continue;
-								}
+									char value = 0;
 
-								c = ++it < line.length() ? line[it] : 0;
+									c = ++it < line.length() ? line[it] : 0;
 
-								if (c >= '0' && c <= '9')      value += c - '0';
-								else if (c >= 'a' && c <= 'f') value += 10 + c - 'a';
-								else if (c >= 'A' && c <= 'F') value += 10 + c - 'A';
-								else
-								{
-									it -= 2;
-									str += 'x';
-									continue;
+									if (c >= '0' && c <= '9')      value = ( c - '0' ) << 4;
+									else if (c >= 'a' && c <= 'f') value = ( 10 + c - 'a' ) << 4;
+									else if (c >= 'A' && c <= 'F') value = ( 10 + c - 'A' ) << 4;
+									else
+									{
+										it--;
+										if (line[it] == 'x') str += 'x';
+										break;
+									}
+
+									c = ++it < line.length() ? line[it] : 0;
+
+									if (c >= '0' && c <= '9')      value += c - '0';
+									else if (c >= 'a' && c <= 'f') value += 10 + c - 'a';
+									else if (c >= 'A' && c <= 'F') value += 10 + c - 'A';
+									else
+									{
+										it -= 2;
+										if (line[it] == 'x') str += 'x';
+										break;
+									}
+									str += value;
 								}
-								str += value;
-							}
 								break;
 							case '\\':
 								str += '\\';
@@ -477,7 +479,7 @@ namespace SimpleRISC {
 				token_count += GetTokens(line.substr(0, l_comment), tokens, line_no);
 				auto end = std::next(line.begin(), l_comment);
 
-				line_no += count(line.begin(), end, '\n') + 1;
+				line_no += count(line.begin(), end, '\n');
 
 				line = line.substr(l_comment + 2);
 
@@ -491,25 +493,22 @@ namespace SimpleRISC {
 			else
 			{
 				token_count += GetTokens(line.substr(0, m_comment), tokens, line_no);
-				line_no += count(line.begin(), std::next(line.begin(), m_comment), '\n');
 
 				line = line.substr(m_comment + 2);
 
 				if (Contains(line, "*/", i))
 				{
-					auto end = std::next(line.begin(), i);
+					auto commented = line.substr(0, i);
+					line = line.substr(i + 2);
 
-					size_t j;
-
-					while (Contains(line.substr(0, i), '\n', j))
+					while (Contains(commented, '\n', i))
 					{
-						line = line.substr(j, 0);
+						commented = commented.substr(i);
 
-						tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
+						tokens.push_back({ Assembler::TokenType::EOL,commented.substr(0,1),"\n",line_no });
 
-						line = line.substr(1, 0);
+						commented = commented.substr(1);
 						line_no++;
-						i -= j + 1;
 					}
 				}
 				else
@@ -941,6 +940,11 @@ namespace SimpleRISC {
 
 					if (list & range) ThrowException("Register list has duplicate registers",token);
 					list |= range;
+
+					if (TryGet(l, it, token) && token.type == TokenType::COMMA)
+					{
+						it = l.erase(it);
+					}
 				}
 				else ThrowException("Unexpected value in register list",token);
 			}
@@ -1057,6 +1061,8 @@ namespace SimpleRISC {
 	void Assembler::Assemble(std::istream& code, bool print_intermediate) {
 		using namespace std;
 
+		srand(time(0));
+
 		// Strip byte order mark
 		char a, b, c, d;
 		a = code.get();
@@ -1150,7 +1156,10 @@ namespace SimpleRISC {
 				_current_line.line = consumable_contents.substr(0, line_end);
 				consumable_contents = consumable_contents.substr(line_end + 1);
 			}
-			else if (isNegative || isPositive || token.type == TokenType::INTEGER) { // This is a constant value
+			else if (isNegative || isPositive || token.type == TokenType::INTEGER) // This is a constant value
+			{
+				if (data_start == program_start) data_start = *current_address + memory_start;
+
 				if (byte_mode) {
 					if (*current_address >= memory_range) ThrowException("This value would be written beyond memory", token);
 					//if(isNegative) ThrowException("Bytes cannot be negative");
@@ -1185,10 +1194,13 @@ namespace SimpleRISC {
 					memory[(*current_address) >> 2] = val;
 					(*current_address) += 4;
 				}
+
 				data_end = *current_address + memory_start;
 			}
 			else if (token.type == TokenType::STRING)
 			{
+				if (data_start == program_start) data_start = *current_address + memory_start;
+
 				for (char c : token.token)
 				{
 					if (*current_address + terminator_mode >= memory_range) ThrowException("String exceeds memory", token);
@@ -1201,6 +1213,8 @@ namespace SimpleRISC {
 					PutByte(memory, *current_address, 0);
 					( *current_address )++;
 				}
+
+				data_end = *current_address + memory_start;
 			}
 			else if (!file_tokens.empty() && file_tokens.front().type == TokenType::MARKER_LABEL) { // This is a label
 				if (token.type != TokenType::TEXT) ThrowException("Invalid characters in label",token);
@@ -1224,9 +1238,10 @@ namespace SimpleRISC {
 				}
 			}
 			else if (token.type == TokenType::MARKER_PREPROCESSOR) {
-				if (!TryConsumeFront(file_tokens, token)) ThrowException("Preprocessor directive not provided", token);
+				if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::TEXT) ThrowException("Preprocessor directive not provided", token);
 				if (token.token == "BLOCK") {
 					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER) ThrowException("Block size not provided", token);
+
 					word size = stoul(token.token);
 					if (size == 0) ThrowException("Expected nonzero memory block", token);
 					if(*current_address + size >= memory_range) ThrowException("Block exceeds memory", token);
@@ -1238,7 +1253,8 @@ namespace SimpleRISC {
 					}
 
 					(*current_address) += size;
-					data_end += size;
+
+					data_end = *current_address + memory_start;
 				}
 				else if (token.token == "BYTE") {
 					if (data_start == program_start) data_start = *current_address + memory_start;
@@ -1274,11 +1290,55 @@ namespace SimpleRISC {
 				}
 				else if (token.token == "ASCII")
 				{
+					if (data_start == program_start) data_start = *current_address + memory_start;
 					terminator_mode = false;
 				}
 				else if (token.token == "ASCIZ")
 				{
+					if (data_start == program_start) data_start = *current_address + memory_start;
 					terminator_mode = true;
+				}
+				else if (token.token == "SEED")
+				{
+					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER)
+					{
+						srand(time(0));
+					}
+					else
+					{
+						srand(stoul(token.token));
+					}
+				}
+				else if (token.token == "RANDOM")
+				{
+					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER) ThrowException("Random size not provided", token);
+					
+					word size = stoul(token.token);
+					if (size == 0) ThrowException("Expected nonzero random size", token);
+					if (*current_address + size >= memory_range) ThrowException("Random data exceeds memory", token);
+
+					if (data_start == program_start) data_start = *current_address + memory_start;
+
+					word bytes = sizeof(word);
+					word val = rand();
+					PutByte(memory, ( *current_address )++, val);
+					size--;
+										
+					while (size > 0) {
+						bytes--;
+						val >>= 8;
+
+						if (bytes == 0)
+						{
+							bytes = sizeof(word);
+							val = rand();
+						}
+
+						PutByte(memory, ( *current_address )++, val);
+						size--;
+					} 
+
+					data_end = *current_address + memory_start;
 				}
 				else ThrowException("Preprocessor directive not recognised", token);
 			}
@@ -1348,7 +1408,6 @@ namespace SimpleRISC {
 				}
 
 				total_ops_defined++;
-				break;
 			}
 			else if (token.type == TokenType::SCOPE_FUNCTION_OPEN) {
 				op_depth++;
@@ -1397,11 +1456,14 @@ namespace SimpleRISC {
 				if (label_depth == 0) ThrowException("Too many closing label scopes", token);
 				label_depth--;
 
-				if (pendingLabels.back().size() > 0) {
-					std::list<Token*>& lower_list = *(pendingLabels.rbegin()++); // Get second last list
-					lower_list.splice(lower_list.end(), pendingLabels.back());  // Move labels down to second last list
-				}
+				std::list<Token*> cur_scope = pendingLabels.back();
 				pendingLabels.pop_back();
+
+				if (cur_scope.size() > 0) {
+					std::list<Token*>& lower_list = pendingLabels.back(); // Get second last list
+					lower_list.splice(lower_list.end(), cur_scope);  // Move labels down to second last list
+				}
+
 				label_scopes.pop_back();
 			}
 			else if (token.type == TokenType::MARKER_VARIABLE) {

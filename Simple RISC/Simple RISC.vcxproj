@@ -223,6 +223,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <None Include="bounce.asm" />
     <None Include="float.asm" />
     <None Include="keyboard.asm" />
+    <None Include="pipes.asm" />
     <None Include="program.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

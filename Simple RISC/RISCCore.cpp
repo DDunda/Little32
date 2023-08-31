@@ -243,10 +243,10 @@ namespace SimpleRISC {
 				return nstr + name + " " + r1 + ", [" + addr + "]" + cond2;
 			}
 			else if (instruction & 0x00400000) { // Register list <-> stack
-				return nstr + ((instruction & 0x00200000) ? "SWR " : "SRR ") + r1 + ", " + RegListToString(im16) + shstr + cond2;
+				return nstr + ((instruction & 0x00200000) ? "SWR " : "SRR ") + r1 + ", " + RegListToString(im16) + cond2;
 			}
 			else if (instruction & 0x002000000) { // MVM
-				return nstr + "MVM" + " " + r1 + ", " + RegListToString(im16) + shstr + cond2;
+				return nstr + "MVM" + " " + r1 + ", " + RegListToString(im16) + cond2;
 			}
 			else { // SWP	
 				return nstr + "SWP" + " " + r1 + ", " + r2 + shstr + cond2;
@@ -667,7 +667,7 @@ namespace SimpleRISC {
 		{ // TST
 			{
 				op { op3r;
-					word val = reg1 & (doshift(reg2) ^ core.inv);
+					word val = reg1 & (doshift(reg2) ^ core.neg);
 
 					core.N = val >> 31;
 					core.Z = val == 0;
@@ -675,7 +675,7 @@ namespace SimpleRISC {
 					core.V = false;
 				},
 				op { op2i;
-					word val = reg & (imm ^ core.inv);
+					word val = reg & (imm ^ core.neg);
 
 					core.N = val >> 31;
 					core.Z = val == 0;
@@ -688,7 +688,7 @@ namespace SimpleRISC {
 					return nstr + "TST " + r1 + ", " + r2 + shstr + cond;
 				},
 				dop {
-					return nstr + "TST " + r1 + ", 0b" + ToBinary(im12 ^ (n ? -1 : 1),0) + cond;
+					return nstr + "TST " + r1 + ", 0b" + ToBinary(im12 ^ (n ? -1 : 0),0) + cond;
 				}
 			}
 		}, // 1011 TST          Test bits with &

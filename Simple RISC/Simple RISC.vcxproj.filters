@@ -184,5 +184,8 @@
     <None Include="ascii.asm">
       <Filter>Assembly</Filter>
     </None>
+    <None Include="pipes.asm">
+      <Filter>Assembly</Filter>
+    </None>
   </ItemGroup>
 </Project>
