@@ -120,51 +120,56 @@ namespace SimpleRISC {
 		}
 		else if (instruction & 0x00800000) { // FPU
 			word& rdn = registers[reg1];
-			word& reg2 = registers[(instruction >> 12) & 0xF];
-			word& reg3 = registers[(instruction >>  8) & 0xF];
+			word reg2 = registers[(instruction >> 12) & 0xF];
+			word reg3 = registers[(instruction >> 8) & 0xF];
+			word reg2s = std::rotl(reg2, shift);
+			word reg3s = std::rotl(reg3, shift);
 			float f;
 			switch ((instruction) >> 20 & 0x7) {
 			case 0: // ADDF
-				f = (*(float*)(&reg2) + *(float*)(&reg3)) * inv;
+				f = (*(float*)(&reg2) + *(float*)(&reg3s)) * inv;
 				rdn = *(word*)(&f);
 				break;
 			case 1: // SUBF
-				f = (*(float*)(&reg2) - *(float*)(&reg3)) * inv;
+				f = (*(float*)(&reg2) - *(float*)(&reg3s)) * inv;
 				rdn = *(word*)(&f);
 				break;
 			case 2: // MULF
-				f = (*(float*)(&reg2) * *(float*)(&reg3)) * inv;
+				f = (*(float*)(&reg2) * *(float*)(&reg3s)) * inv;
 				rdn = *(word*)(&f);
 				break;
 			case 3: // DIVF
-				f = (*(float*)(&reg2) / *(float*)(&reg3)) * inv;
+				f = (*(float*)(&reg2) / *(float*)(&reg3s)) * inv;
 				rdn = *(word*)(&f);
 				break;
 			case 4: // ITOF
-			{
-				float f = (float)reg2 * inv;
+				f = (float)(*(int32_t*)(&reg2s) * inv);
 				rdn = *(word*)(&f);
-			}
 				break;
 			case 5: // FTOI
-				rdn = (word)(*(float*)(&reg2) * inv);
-				break;
+			{	int32_t i = (int32_t)(*(float*)(&reg2s) * inv);
+				rdn = *(word*)(&i);
+			}	break;
 			case 6: // CMPF
-			{
-				float cmp = (*(float*)(&rdn) - *(float*)(&reg2)) * inv;
+			{	float a = *(float*)(&rdn);
+				float b = *(float*)(&reg2s);
+
+				float cmp = (a - b) * inv;
 				N = cmp < 0;
 				Z = cmp == 0;
-				C = Z = false;
-			}
-				break;
+				V = (a < 0.0) != (b < 0.0) && std::abs(b) > std::numeric_limits<double>::max() - std::abs(a);
+				C = false;
+			}	break;
 			case 7: // CMPFI
-			{
-				float cmp = (*(float*)(&rdn) - reg2) * inv;
+			{	float a = *(float*)(&rdn);
+				int32_t b = *(int32_t*)(&reg2s);
+
+				float cmp = (a - b) * inv;
 				N = cmp < 0;
 				Z = cmp == 0;
-				C = Z = false;
-			}
-				break;
+				V = (a < 0) != (b < 0.0) && std::abs(b) > std::numeric_limits<double>::max() - std::abs(a);
+				C = false;
+			}	break;
 			}
 		}
 		// Else NOP
