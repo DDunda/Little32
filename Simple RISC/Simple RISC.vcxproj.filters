@@ -82,6 +82,9 @@
     <ClCompile Include="Sprite.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="LoadPalettes.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
@@ -159,6 +162,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="PickFile.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="LoadPalettes.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <filesystem>
 
+#include <array>
 #include <bit>
 #include <fstream>
 #include <iostream>
@@ -25,31 +26,19 @@
 #include "RISCCore.h"
 
 #include "GUIButton.h"
+#include "LoadPalettes.h"
 #include "PickFile.h"
 #include "Sprite.h"
 
 using namespace SDL;
 using namespace SimpleRISC;
 
-const int palette_count = 2;
-
-const SDL::Colour palettes[palette_count][16] =
-{
-	{
-		{0, 0, 0 }, {127,0,0}, {127,51, 0}, {127,106,0}, {0,127,0}, {0,0,127}, {87, 0,127}, {127,127,127},
-		{64,64,64}, {255,0,0}, {255,106,0}, {255,216,0}, {0,255,0}, {0,0,255}, {178,0,255}, {255,255,255}
-	},
-	{
-		{12,18, 6 }, {15,22, 7 }, {18, 27, 9 }, {23, 34, 11}, {29, 43, 14}, {36, 53, 17 }, {45, 67, 21 }, {56, 84, 27 },
-		{70,104,33}, {88,131,41}, {109,163,52}, {137,204,65}, {171,255,81}, {195,255,119}, {223,255,174}, {255,255,255}
-	}
-};
-
 const Colour neutral_colour(255, 106, 0);
 const Colour hover_colour(242, 96, 0);
 const Colour click_colour(216, 86, 0);
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
 	Init();
 	IMG::Init(IMG_INIT_PNG);
 	Input::Init();
@@ -58,6 +47,7 @@ int main(int argc, char* argv[]) {
 	const Point text_size { 16,16 };
 	const Point char_size { 8,8 };
 
+	bool running = true;
 	int frame_delay = 16;
 	int clock_count = 1000;
 	bool manually_clocked = false;
@@ -76,17 +66,8 @@ int main(int argc, char* argv[]) {
 
 	const Uint32 wID = w.GetID();
 
-	/*Listener<const Event&> window_resizer(
-		[&](const Event& e)
-		{
-			if (e.window.event != SDL_WINDOWEVENT_RESIZED) return;
-			if (e.window.windowID != wID) return;
-			
-			window_size = { e.window.data1, e.window.data2 };
-		}	
-	);
-
-	Input::RegisterEventType(Event::Type::WINDOWEVENT, window_resizer);*/
+	std::vector<std::array<Colour, 16>> palettes = {};
+	LoadPalettes(palettes);
 
 	GUIButton reload_button(
 		Button::LEFT,
@@ -216,7 +197,7 @@ int main(int argc, char* argv[]) {
 		computer,
 		r,
 		char_set,
-		palettes[selected_palette],
+		palettes[selected_palette].data(),
 		char_size,
 		16,       // Characters per row of source texture
 		text_size,
@@ -259,6 +240,11 @@ int main(int argc, char* argv[]) {
 	computer.start_PC = ram.address_start;
 	computer.start_SP = ram.address_start + ram.address_size;
 	computer.SoftReset();
+
+	Listener<const Event&> quitter(
+		[&](const Event& e) { running = false; },
+		Input::GetTypedEventSubject(Event::Type::QUIT)
+	);
 
 	Listener<const Point, const Uint32> reloader(
 		[&](const Point, const Uint32)
@@ -311,7 +297,8 @@ int main(int argc, char* argv[]) {
 			{
 				frame_delay = stoul(var_out.front().token);
 			}
-		}
+		},
+		reload_button
 	);
 
 	Listener<const Point, const Uint32> pause_toggler(
@@ -319,7 +306,8 @@ int main(int argc, char* argv[]) {
 		{
 			manually_clocked = !manually_clocked;
 			clocks = 0;
-		}
+		},
+		pause_button
 	);
 
 	Listener<const Point, const Uint32> stepper(
@@ -342,27 +330,29 @@ int main(int argc, char* argv[]) {
 			clocks %= clock_count;
 			computer.Clock(1);
 			cram.Render(clocks == 0);
-		}
+		},
+		step_button
 	);
 
 	Listener<const Point, const Uint32> palette_swapper(
 		[&](const Point, const Uint32)
 		{
-			selected_palette = ( selected_palette + 1 ) % palette_count;
-			memcpy(cram.colours, palettes[selected_palette], sizeof(SDL::Colour) * 16);
+			selected_palette = ( selected_palette + 1 ) % palettes.size();
+			memcpy(cram.colours, palettes[selected_palette].data(), sizeof(SDL::Colour) * 16);
 			cram.Render(false);
-		}
+		},
+		palette_button
 	);
 
 	Listener<const Point, const Uint32> file_picker(
 		[&](const Point, const Uint32)
 		{
+			std::wstring file_name;
+			if (FAILED(PickFile(file_name))) return;
+
 			computer.HardReset();
 			assembler.SetRAM(ram);
 			assembler.FlushScopes();
-
-			std::wstring file_name;
-			if (FAILED(PickFile(file_name))) return;
 
 			std::ifstream program;
 			auto new_file_path = std::filesystem::path(file_name);
@@ -414,16 +404,11 @@ int main(int argc, char* argv[]) {
 			printf("\n");
 
 			file_provided = true;
-		}
+		},
+		file_button
 	);
 
-	reload_button.Register(reloader);
-	pause_button.Register(pause_toggler);
-	step_button.Register(stepper);
-	palette_button.Register(palette_swapper);
-	file_button.Register(file_picker);
-
-	for (int frame = 0; Input::running; frame++)
+	for (int frame = 0; running; frame++)
 	{
 		Input::Update();
 

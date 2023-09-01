@@ -175,7 +175,9 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="CharDisplay.cpp" />
     <ClCompile Include="ColourCharDisplay.cpp" />
     <ClCompile Include="GUIButton.cpp" />
+    <ClCompile Include="LoadPalettes.cpp" />
     <ClCompile Include="PickFile.cpp" />
+    <ClInclude Include="LoadPalettes.h" />
     <ClInclude Include="PickFile.h" />
     <ClCompile Include="Computer.cpp" />
     <ClCompile Include="ComputerInfo.cpp" />
