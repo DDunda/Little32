@@ -33,9 +33,15 @@
 using namespace SDL;
 using namespace SimpleRISC;
 
-const Colour neutral_colour(255, 106, 0);
-const Colour hover_colour(242, 96, 0);
-const Colour click_colour(216, 86, 0);
+constexpr Colour neutral_colour(255, 106, 0);
+constexpr Colour hover_colour(242, 96, 0);
+constexpr Colour click_colour(216, 86, 0);
+
+constexpr Point scale{ 4,4 };
+constexpr Point text_size{ 16,16 };
+constexpr Point char_size{ 8,8 };
+
+constexpr Rect button_area = { { 0, text_size.y * char_size.y * scale.y }, { text_size.x * char_size.x * scale.x, 80 } };
 
 int main(int argc, char* argv[])
 {
@@ -43,18 +49,12 @@ int main(int argc, char* argv[])
 	IMG::Init(IMG_INIT_PNG);
 	Input::Init();
 
-	const Point scale { 4,4 };
-	const Point text_size { 16,16 };
-	const Point char_size { 8,8 };
-
 	bool running = true;
 	int frame_delay = 16;
 	int clock_count = 1000;
 	bool manually_clocked = false;
-	int selected_palette = 0;
+	size_t selected_palette = 0;
 	int clocks = 0;
-
-	Rect button_area = { { 0, text_size.y * char_size.y * scale.y }, { text_size.x * char_size.x * scale.x, 80 } };
 
 	Window w;
 	Renderer r;
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
 
 	Texture char_set = IMG::LoadTexture(r, "Char set.png");
 
-	float multiple = 0.7;
+	constexpr float multiple = 0.7f;
 
 	Sprite reload {
 		IMG::LoadTexture(r, "reload.png"),
@@ -445,7 +445,7 @@ int main(int argc, char* argv[])
 
 	Input::Quit();
 	IMG::Quit();
-	Quit();
+	SDL::Quit();
 
 	return 0;
 }

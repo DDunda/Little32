@@ -18,7 +18,7 @@ class GUIButton : public Subject<const SDL::Point, const Uint32>
 		{
 			if (e.button.windowID != parent.window_ID) return;
 			if (e.button.button != (Uint8)parent.button) return;
-			if (!SDL::Point(e.button.x, e.button.y).inRect(parent.area)) return;
+			if (!parent.area.contains(SDL::Point(e.button.x, e.button.y))) return;
 
 			parent.Notify(SDL::Point(e.button.x, e.button.y), e.button.windowID);
 		}

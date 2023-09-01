@@ -50,10 +50,10 @@ namespace SimpleRISC {
 
 		struct Token
 		{
-			TokenType type;
-			std::string_view raw_token;
-			std::string token;
-			size_t line_no;
+			TokenType type = TokenType::INVALID;
+			std::string_view raw_token = {};
+			std::string token = "";
+			size_t line_no = 0;
 		};
 
 		using token_list = std::list<Token>;
@@ -109,10 +109,12 @@ namespace SimpleRISC {
 		static const char valid_text_chars[];
 
 		void SetRAM(const RAM& ram);
-		void SetRAM(word* memory, word start_address, word range);
-
-		void SetROM(const ROM& rom);
-		void SetROM(word* memory, word start_address, word range);
+		constexpr void SetRAM(word* memory, word start_address, word range) {
+			ram = memory;
+			ram_start = start_address;
+			ram_range = range;
+			ram_current_address = 0;
+		}
 
 		void AddLabel(const std::string& label, word address);
 		void AddLabels(const std::unordered_map<std::string, word>& addresses);
@@ -120,9 +122,12 @@ namespace SimpleRISC {
 		bool GetLabel(const std::string& label, std::string& label_out) const;
 		bool GetVariable(const std::string& variable, token_list& var_out) const;
 
-		constexpr void ClearRAM() noexcept;
-
-		constexpr void ClearROM() noexcept;
+		constexpr void ClearRAM() noexcept {
+			ram = nullptr;
+			ram_start = 0;
+			ram_range = 0;
+			ram_current_address = 0;
+		}
 
 		void ClearLabels() noexcept;
 
@@ -156,11 +161,6 @@ namespace SimpleRISC {
 		word ram_start = 0;
 		word ram_range = 0;
 		word ram_current_address = 0;
-
-		word* rom = nullptr;
-		word rom_start = 0;
-		word rom_range = 0;
-		word rom_current_address = 0;
 
 		std::unordered_map<std::string, word> constant_addresses = {};
 

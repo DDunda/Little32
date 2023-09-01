@@ -319,10 +319,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				},
 				op { op3i;
 					uint64_t val = ((int64_t)(int32_t)reg2 + (int64_t)(int32_t)imm) * core.inv;
@@ -330,10 +330,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				}
 			},
 			{
@@ -353,10 +353,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				},
 				op { op3i;
 					uint64_t val = ((int64_t)(int32_t)reg2 - (int64_t)(int32_t)imm) * (int64_t)core.inv;
@@ -364,10 +364,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				}
 			},
 			{
@@ -389,10 +389,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				},
 				op { op3i;
 					int64_t c = core.C;
@@ -402,10 +402,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				}
 			},
 			{
@@ -427,10 +427,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				},
 				op { op3i;
 					int64_t c = core.C;
@@ -440,10 +440,10 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				}
 			},
 			{
@@ -465,7 +465,7 @@ namespace SimpleRISC {
 					core.N = reg1 >> 31;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) >> doshift(reg3)) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				},
 				op { op3i;
 					reg1 = (reg2 << imm) * core.inv;
@@ -475,7 +475,7 @@ namespace SimpleRISC {
 					core.N = reg1 >> 31;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) >> imm) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				}
 			},
 			{
@@ -497,7 +497,7 @@ namespace SimpleRISC {
 					core.N = reg1 >> 31;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) << doshift(reg3)) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				},
 				op { op3i;
 					reg1 = ((reg2 >> imm) | ~(~((word)0) << imm)) * core.inv;
@@ -507,7 +507,7 @@ namespace SimpleRISC {
 					core.N = reg1 >> 31;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) << imm) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				}
 			},
 			{
@@ -523,21 +523,21 @@ namespace SimpleRISC {
 			{
 				op { op3r;
 					uint64_t val = ((int64_t)(int32_t)reg2 - (int64_t)(int32_t)doshift(reg3)) * core.inv;
-					uint32_t v2 = val;
+					uint32_t v2 = (uint32_t)val;
 
-					core.N = v2 >> 31;
+					core.N = v2 >> 31 == 1;
 					core.Z = v2 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (reg1 >> 31);
 				},
 				op { op2i;
 					uint64_t val = ((int64_t)(int32_t)reg - (int64_t)(int32_t)imm) * core.inv;
-					uint32_t v2 = val;
+					uint32_t v2 = (uint32_t)val;
 
-					core.N = v2 >> 31;
+					core.N = v2 >> 31 == 1;
 					core.Z = v2 == 0;
-					core.C = (val >> 32) & 1;
-					core.V = (val >> 63) ^ core.N;
+					core.C = ((val >> 32) & 1) != 0;
+					core.V = (val >> 63) != (v2 >> 31);
 				}
 			},
 			{
@@ -553,21 +553,21 @@ namespace SimpleRISC {
 			{
 				op { op3r;
 					uint64_t val = ((int64_t)(int32_t)reg2 + (int64_t)(int32_t)doshift(reg3)) * core.inv;
-					uint32_t v2 = val;
+					uint32_t v2 = (uint32_t)val;
 
-					core.N = v2 >> 31;
+					core.N = v2 >> 31 == 1;
 					core.Z = v2 == 0;
 					core.C = val > v2;
-					core.V = (val >> 63) ^ (v2 >> 31);
+					core.V = (val >> 63) != (v2 >> 31);
 				},
 				op { op2i;
 					uint64_t val = ((int64_t)(int32_t)reg + (int64_t)(int32_t)imm) * core.inv;
-					uint32_t v2 = val;
+					uint32_t v2 = (uint32_t)val;
 
-					core.N = v2 >> 31;
+					core.N = v2 >> 31 == 1;
 					core.Z = v2 == 0;
 					core.C = val > v2;
-					core.V = (val >> 63) ^ (v2 >> 31);
+					core.V = (val >> 63) != (v2 >> 31);
 				}
 			},
 			{
@@ -586,7 +586,7 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = core.V = false;
 				},
@@ -595,7 +595,7 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = core.V = false;
 				}
@@ -616,7 +616,7 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = core.V = false;
 				},
@@ -625,7 +625,7 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = core.V = false;
 				}
@@ -646,7 +646,7 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = core.V = false;
 				},
@@ -655,7 +655,7 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = core.V = false;
 				}
@@ -674,7 +674,7 @@ namespace SimpleRISC {
 				op { op3r;
 					word val = reg1 & (doshift(reg2) ^ core.neg);
 
-					core.N = val >> 31;
+					core.N = val >> 31 == 1;
 					core.Z = val == 0;
 					core.C = false;
 					core.V = false;
@@ -682,7 +682,7 @@ namespace SimpleRISC {
 				op { op2i;
 					word val = reg & (imm ^ core.neg);
 
-					core.N = val >> 31;
+					core.N = val >> 31 == 1;
 					core.Z = val == 0;
 					core.C = false;
 					core.V = false;
@@ -704,20 +704,20 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) >> doshift(reg3)) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				},
 				op { op3i;
 					reg1 = (reg2 << imm) ^ core.neg;
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) >> imm) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				}
 			},
 			{
@@ -736,20 +736,20 @@ namespace SimpleRISC {
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) << doshift(reg3)) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				},
 				op { op3i;
 					reg1 = (reg2 >> imm) ^ core.neg;
 
 					if (!core.set_status) return;
 
-					core.N = reg1 >> 31;
+					core.N = reg1 >> 31 == 1;
 					core.Z = reg1 == 0;
 					core.C = ((reg1 * core.inv) << imm) != reg2;
-					core.V = (reg1 ^ reg2) >> 31;
+					core.V = (reg1 >> 31) != (reg2 >> 31);
 				}
 			},
 			{
@@ -772,7 +772,7 @@ namespace SimpleRISC {
 					core.N = reg1 >> 31;
 					core.Z = reg1 == 0;
 					core.C = false;
-					core.V = (r1 ^ reg1) >> 31;
+					core.V = (r1 >> 31) != (reg2 >> 31);
 				},
 				op { op2i;
 					word r1 = reg;
@@ -783,7 +783,7 @@ namespace SimpleRISC {
 					core.N = reg >> 31;
 					core.Z = reg == 0;
 					core.C = false;
-					core.V = (r1 ^ reg) >> 31;
+					core.V = (r1 >> 31) != (reg >> 31);
 				}
 			},
 			{
@@ -807,7 +807,7 @@ namespace SimpleRISC {
 					core.N = reg1 >> 31;
 					core.Z = reg1 == 0;
 					core.C = false;
-					core.V = (r1 ^ reg1) >> 31;
+					core.V = (r1 >> 31) != (reg1 >> 31);
 				},
 				op { op2i;
 					word r1 = reg;
@@ -818,7 +818,7 @@ namespace SimpleRISC {
 					core.N = reg >> 31;
 					core.Z = reg == 0;
 					core.C = false;
-					core.V = (r1 ^ reg) >> 31;
+					core.V = (r1 >> 31) != (reg >> 31);
 				}
 			},
 			{

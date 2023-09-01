@@ -9,7 +9,7 @@
 #include "ROM.h"
 
 namespace SimpleRISC {
-	const char Assembler::valid_text_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+	constexpr char Assembler::valid_text_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 	Assembler::FormatException::FormatException(const std::string_view line, const Token& token, const char* const message) :
 		line_no(token.line_no),
@@ -54,43 +54,6 @@ namespace SimpleRISC {
 	constexpr bool Contains(std::string_view str, char c) noexcept
 	{
 		return str.find(c) != str.npos;
-	}
-
-	constexpr void TrimStart(std::string_view& str) {
-		if (str.empty()) return;
-		size_t i = str.find_first_not_of(" \t\r\n");
-		if (i == str.npos) {
-			str = {};
-		}
-		else if(i != 0) {
-			str = str.substr(i);
-		}
-	}
-
-	constexpr void TrimEnd(std::string_view& str) {
-		if (str.empty()) return;
-		size_t i = str.find_last_not_of(" \t\r\n");
-		if (i == str.npos) {
-			str = {};
-		}
-		else if (i != 0) {
-			str = str.substr(0,i + 1);
-		}
-	}
-
-	constexpr void TrimString(std::string_view& str) {
-		if (str.empty()) return;
-		size_t i = str.find_first_not_of(" \t\r\n");
-		if (i == str.npos) {
-			str = {};
-			return;
-		}
-		size_t j = str.find_last_not_of(" \t\r\n");
-		/*if (i == 0) {
-			str =  str.substr(0, j);
-			return;
-		}*/
-		str = str.substr(i, (j + 1) - i);
 	}
 
 	bool TryGet(const Assembler::token_list& l, const Assembler::token_list::iterator& it, Assembler::Token& out, bool allowEOL = false) noexcept {
@@ -143,36 +106,7 @@ namespace SimpleRISC {
 		return true;
 	}
 
-	constexpr bool IsDecimal(const std::string& str) noexcept {
-		if (str.empty()) return false;
-		if (str.length() == 1) return str[0] >= '0' && str[0] <= '9';
-		if (str[0] == '0') return false;
-		if (IsChar(str, '_')) return false;
-		return IsChars(str, "0123456789_");
-	}
-
-	constexpr bool IsBinary(const std::string& str) noexcept {
-		if (str.length() < 3) return false;
-		if (str[0] != '0' || str[1] != 'b') return false;
-		if (IsChar(str, '_', 2)) return false;
-		return IsChars(str, "01_", 2);
-	}
-
-	constexpr bool IsOctal(const std::string& str) noexcept {
-		if (str.length() < 2) return false;
-		if (str[0] != '0') return false;
-		if (IsChar(str, '_', 1)) return false;
-		return IsChars(str, "01234567_", 1);
-	}
-
-	constexpr bool IsHexadecimal(const std::string& str) noexcept {
-		if (str.length() < 3) return false;
-		if (str[0] != '0' || str[1] != 'x') return false;
-		if (IsChar(str, '_', 2)) return false;
-		return IsChars(str, "0123456789abcdefABCDEF_", 2);
-	}
-
-	uint64_t decToI(std::string_view str, uint64_t max) {
+	constexpr uint64_t decToI(std::string_view str, uint64_t max) {
 		if (!IsChars(str,"0123456789_")) return max;
 		uint64_t v = 0;
 		for (auto c : str) {
@@ -184,7 +118,7 @@ namespace SimpleRISC {
 		return v;
 	}
 
-	uint64_t binToI(std::string_view str, uint64_t max) {
+	constexpr uint64_t binToI(std::string_view str, uint64_t max) {
 		if (str.length() > 2 && str[1] == 'b') {
 			if (str[0] != '0') return max;
 			str = str.substr(2);
@@ -200,7 +134,7 @@ namespace SimpleRISC {
 		return v;
 	}
 
-	uint64_t octToI(std::string_view str, uint64_t max) {
+	constexpr uint64_t octToI(std::string_view str, uint64_t max) {
 		if (!IsChars(str, "01234567_")) return max;
 		uint64_t v = 0;
 		for (auto c : str) {
@@ -212,7 +146,7 @@ namespace SimpleRISC {
 		return v;
 	}
 
-	uint64_t hexToI(std::string_view str, uint64_t max)
+	constexpr uint64_t hexToI(std::string_view str, uint64_t max)
 	{
 		if (str.length() > 2 && str[1] == 'x')
 		{
@@ -262,6 +196,7 @@ namespace SimpleRISC {
 		}
 
 		ThrowException("'" + std::string(str) + "' is not a register", { TokenType::TEXT, str, std::string(str), _current_line.line_no });
+		return -1;
 	}
 
 	constexpr bool IsAlpha(std::string_view str) noexcept
@@ -286,7 +221,7 @@ namespace SimpleRISC {
 		return 8 * IsChars(str, "01234567_");
 	}
 
-	bool IsFloat(std::string_view str)
+	constexpr bool IsFloat(std::string_view str)
 	{
 		if (str.size() < 3) return false;
 		if (std::count(str.begin(), str.end(), '.') != 1) return false;
@@ -334,7 +269,7 @@ namespace SimpleRISC {
 		str.erase(i);
 	}
 
-	void PutByte(word* memory, word address, byte value) {
+	constexpr void PutByte(word* memory, word address, byte value) {
 		word x = (address % sizeof(word)) * 8;
 
 		value ^= memory[address / sizeof(word)] >> x;
@@ -346,7 +281,6 @@ namespace SimpleRISC {
 
 		size_t token_count = 0;
 
-		//TrimString(line);
 		if (line.empty()) return 0;
 		
 		while (string(" \t\r\n").find(line[0]) != string::npos)
@@ -563,8 +497,6 @@ namespace SimpleRISC {
 #undef _GetTokens
 
 		while (!line.empty()) {
-			//TrimStart(line);
-
 			while (!Contains(Assembler::valid_text_chars,line[0]))
 			{
 				if (line[0] == '\n')
@@ -679,7 +611,7 @@ namespace SimpleRISC {
 
 		if (it == l.end() || it->type != TokenType::INTEGER) ThrowException("Expected number after shift", *it);
 
-		shift = stoul(it->token);
+		shift = (byte)stoul(it->token);
 		if (shift >= 32) ThrowException("Shift is too large", *it);
 
 		it = l.erase(it);
@@ -726,7 +658,7 @@ namespace SimpleRISC {
 				if (numBase == 10)
 				{
 					uint64_t long_val = stoul(t.token);
-					word word_Val = long_val;
+					word word_Val = (word)long_val;
 					if (long_val > word_Val) ThrowException("This number is too large for a word",t);
 					continue;
 				}
@@ -767,7 +699,7 @@ namespace SimpleRISC {
 
 		size_t brackets_replaced = 0;
 
-		auto it = l.begin();
+		token_list::iterator it = l.begin();
 		Token token;
 
 		while (TryGet(l, it, token)) {
@@ -779,7 +711,7 @@ namespace SimpleRISC {
 			brackets_replaced++;
 			it = l.erase(it); // Erase '['
 
-			auto start = it;
+			token_list::iterator start = it;
 
 			if (!TryGet(l, it, token)) ThrowException("Square brackets must be closed",token);
 			if (token.type == TokenType::RBRACKET) ThrowException("Square brackets must contain contents",token);
@@ -994,39 +926,6 @@ namespace SimpleRISC {
 		ram_range = ram.GetRange();
 		ram_current_address = 0;
 	}
-	void Assembler::SetRAM(word* memory, word start_address, word range) {
-		ram = memory;
-		ram_start = start_address;
-		ram_range = range;
-		ram_current_address = 0;
-	}
-
-	void Assembler::SetROM(const ROM& rom) {
-		this->rom = rom.memory.get();
-		rom_start = rom.GetAddress();
-		rom_range = rom.GetRange();
-		rom_current_address = 0;
-	}
-	void Assembler::SetROM(word* memory, word start_address, word range) {
-		rom = memory;
-		rom_start = start_address;
-		rom_range = range;
-		rom_current_address = 0;
-	}
-
-	constexpr void Assembler::ClearRAM() noexcept {
-		ram = nullptr;
-		ram_start = 0;
-		ram_range = 0;
-		ram_current_address = 0;
-	}
-
-	constexpr void Assembler::ClearROM() noexcept {
-		rom = nullptr;
-		rom_start = 0;
-		rom_range = 0;
-		rom_current_address = 0;
-	}
 
 	void Assembler::ClearLabels() noexcept {
 		constant_addresses.clear();
@@ -1062,7 +961,7 @@ namespace SimpleRISC {
 	void Assembler::Assemble(std::istream& code, bool print_intermediate) {
 		using namespace std;
 
-		srand(time(0));
+		srand((unsigned int)time(0));
 
 		// Strip byte order mark
 		char a, b, c, d;
@@ -1094,13 +993,7 @@ namespace SimpleRISC {
 		word memory_range = 0;
 		word* current_address = 0;
 
-		if (rom != nullptr) {
-			memory = rom;
-			memory_start = rom_start;
-			memory_range = rom_range;
-			current_address = &rom_current_address;
-		}
-		else if (ram != nullptr) {
+		if (ram != nullptr) {
 			memory = ram;
 			memory_start = ram_start;
 			memory_range = ram_range;
@@ -1249,7 +1142,7 @@ namespace SimpleRISC {
 
 					if (data_start == program_start) data_start = *current_address + memory_start;
 
-					for (int i = 0; i < size; i++) {
+					for (word i = 0; i < size; i++) {
 						PutByte(memory, *current_address + i, 0);
 					}
 
@@ -1303,7 +1196,7 @@ namespace SimpleRISC {
 				{
 					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER)
 					{
-						srand(time(0));
+						srand((unsigned int)time(0));
 					}
 					else
 					{
@@ -1879,7 +1772,7 @@ namespace SimpleRISC {
 					l.args.back().pop_front();
 					*(l.mem) ^= (1 << 22);
 				}
-
+				[[fallthrough]];
 			case Flex3:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
 				*(l.mem) |= ToReg(arg->front().token) << 16;
@@ -1920,7 +1813,7 @@ namespace SimpleRISC {
 					l.args.back().pop_front();
 					*(l.mem) ^= (1 << 22);
 				}
-
+				[[fallthrough]];
 			case Flex2:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
 				*(l.mem) |= ToReg(arg->front().token) << 16;

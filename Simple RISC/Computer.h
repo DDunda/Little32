@@ -14,12 +14,12 @@ namespace SimpleRISC {
 
 	class Computer {
 	public:
-		Core* core;
+		Core* core = nullptr;
 		std::vector<Device*> devices;
 		std::vector<MemoryMapped*> mappings;
 
-		word start_PC;
-		word start_SP;
+		word start_PC = 0;
+		word start_SP = 0;
 
 		/// <summary> Clocks the computer a number of times </summary>
 		/// <param name="clocks">Number of times to clock the computer</param>
