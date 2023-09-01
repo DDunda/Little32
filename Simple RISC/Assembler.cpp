@@ -593,7 +593,7 @@ namespace SimpleRISC {
 				if (line.empty()) return token_count;
 			}
 
-			i = line.find_first_not_of(Assembler::valid_text_chars);
+			i = line.find_first_not_of(".abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
 			string_view t = i == string::npos ? line : line.substr(0, i);
 			line = i == string::npos ? string_view() : line.substr(i);
 
@@ -755,6 +755,7 @@ namespace SimpleRISC {
 				float f = std::stof(t.token);
 				word val = *(word*)&f;
 				t.token = std::to_string(val);
+				t.type = Assembler::TokenType::INTEGER;
 			}
 		}
 
