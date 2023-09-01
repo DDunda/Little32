@@ -227,6 +227,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <None Include="keyboard.asm" />
     <None Include="pipes.asm" />
     <None Include="program.asm" />
+    <None Include="random.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
