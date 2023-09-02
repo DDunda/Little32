@@ -53,6 +53,7 @@ namespace SimpleRISC {
 			TokenType type = TokenType::INVALID;
 			std::string_view raw_token = {};
 			std::string token = "";
+			size_t index = 0;
 			size_t line_no = 0;
 		};
 
@@ -67,7 +68,7 @@ namespace SimpleRISC {
 		class FormatException : public std::exception {
 		public:
 			const size_t line_no;
-			const std::string_view line;
+			const std::string line;
 			const std::string message;
 			const std::string inner_message;
 			FormatException(const std::string_view line, const Token& token, const char* const message);
@@ -214,7 +215,7 @@ namespace SimpleRISC {
 		size_t ResolveRegLists(token_list& l) const;
 		size_t ResolveRelatives(AssemblyLine& l) const;
 
-		uint64_t xToI(std::string_view str, word base, uint64_t max);
-		word ToReg(std::string_view str) const;
+		uint64_t xToI(Token& t, word base, uint64_t max);
+		word ToReg(Token& t) const;
 	};
 }

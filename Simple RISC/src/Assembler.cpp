@@ -16,20 +16,20 @@ namespace SimpleRISC {
 		line(line),
 		inner_message(message),
 		message(
-			std::string("Improper format: ") + std::string(message) + ": (line " + (token.line_no == 0 ? "??" : std::to_string(token.line_no)) + ")\n\n" +
+			std::string("Improper format: ") + message + ": (line " + (token.line_no == 0 ? "??" : std::to_string(token.line_no)) + ")\n\n" +
 			std::string(line) + "\n" +
-			std::string(token.raw_token.data() - line.data(), ' ') + std::string(token.raw_token.length(), '^')
+			std::string(token.index, ' ') + std::string(token.raw_token.length(), '^')
 		),
 		exception("Improper format") {}
 
-	Assembler::FormatException::FormatException(const std::string_view line, const Token& token, const std::string& message) :
+	Assembler::FormatException::FormatException(const std::string_view _line, const Token& token, const std::string& message) :
 		line_no(token.line_no),
-		line(line),
+		line(_line),
 		inner_message(message),
 		message(
 			std::string("Improper format: ") + message + ": (line " + ( token.line_no == 0 ? "??" : std::to_string(token.line_no) ) + ")\n\n" +
 			std::string(line) + "\n" +
-			std::string(token.raw_token.data() - line.data(), ' ') + std::string(token.raw_token.length(), '^')
+			std::string(token.index, ' ') + std::string(token.raw_token.length(), '^')
 		),
 		exception("Improper format") {}
 
@@ -170,32 +170,32 @@ namespace SimpleRISC {
 		return v;
 	}
 
-	uint64_t Assembler::xToI(std::string_view str, word base, uint64_t max)
+	uint64_t Assembler::xToI(Token& t, word base, uint64_t max)
 	{
 		uint64_t val = max;
 
 		switch (base)
 		{
-		case 16: val = hexToI(str, max); break;
-		case 10: val = decToI(str, max); break;
-		case 8:  val = octToI(str, max); break;
-		case 2:  val = binToI(str, max); break;
-		default: ThrowException("This number cannot be processed", {TokenType::INTEGER, str, std::string(str), _current_line.line_no });
+		case 16: val = hexToI(t.token, max); break;
+		case 10: val = decToI(t.token, max); break;
+		case 8:  val = octToI(t.token, max); break;
+		case 2:  val = binToI(t.token, max); break;
+		default: ThrowException("This number cannot be processed", t);
 		}
 
-		if (val == max) ThrowException("This number is too large", { TokenType::INTEGER, str, std::string(str), _current_line.line_no });
+		if (val == max) ThrowException("This number is too large", t);
 
 		return val;
 	}
 
-	word Assembler::ToReg(std::string_view str) const
+	word Assembler::ToReg(Token& t) const
 	{
 		for (int i = 0; i < 16; i++)
 		{
-			if (str == regNames[i]) return i;
+			if (t.token == regNames[i]) return i;
 		}
 
-		ThrowException("'" + std::string(str) + "' is not a register", { TokenType::TEXT, str, std::string(str), _current_line.line_no });
+		ThrowException("'" + std::string(t.token) + "' is not a register", t);
 		return -1;
 	}
 
@@ -276,7 +276,7 @@ namespace SimpleRISC {
 		memory[address / sizeof(word)] ^= value << x;
 	}
 
-	size_t GetTokens(std::string_view line, Assembler::token_list& tokens, size_t line_no = 1) {
+	size_t GetTokens(std::string_view line, Assembler::token_list& tokens, size_t& pos, size_t& line_no) {
 		using namespace std;
 
 		size_t token_count = 0;
@@ -287,8 +287,13 @@ namespace SimpleRISC {
 		{
 			if (line[0] == '\n')
 			{
-				tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
+				tokens.push_back({ Assembler::TokenType::EOL, line.substr(0,1), "\\n", pos, line_no });
+				token_count++;
 				line_no++;
+				pos = 0;
+			}
+			else {
+				pos++;
 			}
 			line = line.substr(1);
 			if (line.empty()) return 0;
@@ -300,10 +305,9 @@ namespace SimpleRISC {
 
 		while (i != string::npos || l_comment != string::npos || m_comment != string::npos)
 		{
-			if (i < l_comment && i < m_comment)
+			if (i < l_comment && i < m_comment) // "
 			{
-				token_count += GetTokens(line.substr(0, i), tokens, line_no) + 1;
-				line_no += count(line.begin(), std::next(line.begin(), i), '\n');
+				token_count += GetTokens(line.substr(0, i), tokens, pos, line_no) + 1;
 				line = line.substr(i);
 
 				size_t end = 0;
@@ -312,15 +316,13 @@ namespace SimpleRISC {
 				{
 					string str = "";
 
-					for (size_t it = 1; it < line.length(); it++)
+					for (size_t it = 1; ; it++)
 					{
 						char c = line[it];
 
 						if (c == '\\')
 						{
-							if (++it == line.length() || line[it] == '\r' || line[it] == '\n') break;
-
-							switch (line[it])
+							switch (line[++it])
 							{
 							case 'a':
 								str += '\a';
@@ -388,69 +390,79 @@ namespace SimpleRISC {
 								break;
 							}
 						}
-						else if (c == '"')
+						else if (c != '"')
+						{
+							str += line[it];
+						}
+						else
 						{
 							end = it;
 							break;
 						}
-						else
-						{
-							str += line[it];
-						}
 					}
 
-					tokens.push_back({ Assembler::TokenType::STRING,line.substr(1,end - 1),str });
+					tokens.push_back({ Assembler::TokenType::STRING, line.substr(1,end - 1), str, pos + 1, line_no});
 				}
 				else
 				{
-					tokens.push_back({ Assembler::TokenType::INVALID,line.substr(0,1),"\"",line_no});
+					tokens.push_back({ Assembler::TokenType::INVALID, line.substr(0,1), "\"", pos, line_no });
 				}
 
+				token_count++;
+
 				line = line.substr(end + 1);
+				pos += end + 1;
 			}
-			else if (l_comment < m_comment)
+			else if (l_comment < m_comment) // "//"
 			{
-				token_count += GetTokens(line.substr(0, l_comment), tokens, line_no);
-				auto end = std::next(line.begin(), l_comment);
-
-				line_no += count(line.begin(), end, '\n');
-
+				token_count += GetTokens(line.substr(0, l_comment), tokens, pos, line_no);
 				line = line.substr(l_comment + 2);
+				pos += 2;
 
-				if (!Contains(line, '\n', i)) return token_count;
+				if (!Contains(line, '\n', i)) return token_count; // No newline after comment; means there is no more code
 
 				line = line.substr(i);
-				tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
+				pos += i;
+
+				tokens.push_back({ Assembler::TokenType::EOL, line.substr(0,1), "\\n", pos, line_no });
+				token_count++;
 				line = line.substr(1);
+				pos = 0;
 				line_no++;
 			}
-			else
+			else // /*
 			{
-				token_count += GetTokens(line.substr(0, m_comment), tokens, line_no);
-
-				line = line.substr(m_comment + 2);
+				token_count += GetTokens(line.substr(0, m_comment), tokens, pos, line_no);
 
 				if (Contains(line, "*/", i))
 				{
-					auto commented = line.substr(0, i);
+					line = line.substr(m_comment + 2);
+					pos += 2;
+					auto commented = line.substr(0, i); // in between /* and */
 					line = line.substr(i + 2);
 
 					while (Contains(commented, '\n', i))
 					{
 						commented = commented.substr(i);
+						pos += i;
 
-						tokens.push_back({ Assembler::TokenType::EOL,commented.substr(0,1),"\n",line_no });
+						tokens.push_back({ Assembler::TokenType::EOL, commented.substr(0,1), "\\n", pos, line_no });
 
 						commented = commented.substr(1);
+						token_count++;
+						pos = 0;
 						line_no++;
 					}
+
+					pos += commented.length() + 2; // Remaining characters in comment + "*/"
 				}
 				else
 				{
-					tokens.push_back({ Assembler::TokenType::INVALID,line.substr(0,2),"/*",line_no });
+					tokens.push_back({ Assembler::TokenType::INVALID, line.substr(0,2), "/*", pos, line_no });
+					token_count++;
+					line = line.substr(2);
+					pos += 2;
 				}
-
-				line = line.substr(2);
 			}
 
 			if (line.empty()) return token_count;
@@ -459,14 +471,14 @@ namespace SimpleRISC {
 			l_comment = line.find("//");
 			m_comment = line.find("/*");
 		}
-
+		
 #define _GetTokens(type,term,l)\
 		while (Contains(line, term, i)) {\
-			token_count += GetTokens(line.substr(0, i), tokens, line_no) + 1;\
-			line_no += count(line.begin(), std::next(line.begin(), i), '\n');\
-			tokens.push_back({Assembler::TokenType::type,line.substr(i,l),term,line_no});\
+			token_count += GetTokens(line.substr(0, i), tokens, pos, line_no) + 1;\
+			tokens.push_back({Assembler::TokenType::type,line.substr(i,l),term,pos,line_no});\
 			line = line.substr(i + l);\
-			if(line.empty()) return token_count;\
+			pos += l;\
+			if (line.empty()) return token_count;\
 		}
 
 		_GetTokens(VARGS,"...",3);
@@ -476,7 +488,7 @@ namespace SimpleRISC {
 		_GetTokens(SCOPE_VARIABLE_CLOSE,"}$",2);
 		_GetTokens(SCOPE_CONDITION_OPEN,"?{",2);
 		_GetTokens(SCOPE_CONDITION_CLOSE,"}?",2);
-		_GetTokens(SCOPE_LABEL_OPEN,":{",2);
+		_GetTokens(SCOPE_LABEL_OPEN, ":{", 2);
 		_GetTokens(SCOPE_LABEL_CLOSE,"}:",2);
 		_GetTokens(LSHIFT,"<<",2);
 		_GetTokens(RSHIFT,">>",2);
@@ -494,34 +506,39 @@ namespace SimpleRISC {
 		_GetTokens(RBRACE,"}",1);
 		_GetTokens(PLUS,"+",1);
 		_GetTokens(MINUS,"-",1);
-#undef _GetTokens
+#undef _GetTokens*/
 
 		while (!line.empty()) {
 			while (!Contains(Assembler::valid_text_chars,line[0]))
 			{
 				if (line[0] == '\n')
 				{
-					tokens.push_back({ Assembler::TokenType::EOL,line.substr(0,1),"\n",line_no });
-					line_no++;
+					tokens.push_back({ Assembler::TokenType::EOL, line.substr(0,1), "\n", pos, line_no });
 					line = line.substr(1);
+					line_no++;
+					pos = 0;
 				}
 				else if (line[0] == '.')
 				{
-					tokens.push_back({ Assembler::TokenType::MARKER_RELATIVE,line.substr(0,1),".",line_no });
+					tokens.push_back({ Assembler::TokenType::MARKER_RELATIVE, line.substr(0,1), ".", pos, line_no });
 					line = line.substr(1);
 					token_count++;
+					pos++;
 				}
 				else if (Contains(" \t\r", line[0]))
 				{
 					line = line.substr(1);
+					pos++;
 				}
 				else
 				{
 					size_t last = line.find_first_of("\n\r\t .abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
-					tokens.push_back({ Assembler::TokenType::INVALID,line.substr(0,last),string(line.substr(0,last)),line_no});
+					tokens.push_back({ Assembler::TokenType::INVALID, line.substr(0,last), string(line.substr(0,last)), pos, line_no});
 					line = line.substr(last);
+					pos += last;
 					token_count++;
 				}
+
 				if (line.empty()) return token_count;
 			}
 
@@ -531,22 +548,23 @@ namespace SimpleRISC {
 
 			if (IsNumber(t))
 			{
-				tokens.push_back({ Assembler::TokenType::INTEGER,t,std::string(t) });
+				tokens.push_back({ Assembler::TokenType::INTEGER, t, std::string(t), pos, line_no });
 			}
 			else if (IsFloat(t))
 			{
-				tokens.push_back({ Assembler::TokenType::FLOAT,t,std::string(t) });
+				tokens.push_back({ Assembler::TokenType::FLOAT, t, std::string(t), pos, line_no });
 			}
 			else if (IsChars(t, Assembler::valid_text_chars))
 			{
-				tokens.push_back({ Assembler::TokenType::TEXT,t,std::string(t) });
+				tokens.push_back({ Assembler::TokenType::TEXT, t, std::string(t), pos, line_no });
 			}
 			else
 			{
-				tokens.push_back({ Assembler::TokenType::INVALID,t,std::string(t) });
+				tokens.push_back({ Assembler::TokenType::INVALID, t, std::string(t), pos, line_no });
 			}
 
 			token_count++;
+			pos += i;
 		}
 
 		return token_count;
@@ -633,8 +651,8 @@ namespace SimpleRISC {
 			isNegative = true;
 		}
 
-		if (l.size() == 0) ThrowException("Expected a value for offset", { TokenType::INVALID,string_view(_current_line.line.end(),_current_line.line.end()),"",_current_line.line_no});
-		if (l.size() > 1) ThrowException("Expected one value for offset", { TokenType::INVALID,string_view(_current_line.line.end(),_current_line.line.end()),"",_current_line.line_no });
+		if (l.size() == 0) ThrowException("Expected a value for offset", { TokenType::INVALID, string_view(_current_line.line.end(),_current_line.line.end()),"", _current_line.line.length(), _current_line.line_no});
+		if (l.size() > 1) ThrowException("Expected one value for offset", { TokenType::INVALID, string_view(_current_line.line.end(),_current_line.line.end()),"", _current_line.line.length(), _current_line.line_no });
 		if (l.front().type != Assembler::TokenType::INTEGER) ThrowException("Expected offset to be a number", l.front());
 
 		word offset = stoul(l.front().token);
@@ -735,12 +753,12 @@ namespace SimpleRISC {
 
 				if (token.type == TokenType::RBRACKET) { // Occurs when no signs were encountered - Interpreted as single value relative to PC
 					if (IsReg(first_token.token)) { // User entered a register; consider contents as relative to it
-						l.insert(it, { TokenType::COMMA, {}, ",", token.line_no });
-						l.insert(it, { TokenType::INTEGER, {}, "0", token.line_no });
+						l.insert(it, { TokenType::COMMA, {}, ",", token.index, token.line_no });
+						l.insert(it, { TokenType::INTEGER, {}, "0", token.index, token.line_no });
 					}
 					else {  // User entered a value; consider contents as relative to PC
-						l.insert(start, { TokenType::TEXT, {}, "PC", token.line_no });
-						l.insert(start, { TokenType::COMMA, {}, ",", token.line_no });
+						l.insert(start, { TokenType::TEXT, {}, "PC", token.index, token.line_no });
+						l.insert(start, { TokenType::COMMA, {}, ",", token.index, token.line_no });
 					}
 					it = l.erase(it); // Erase ']'
 					continue;
@@ -884,7 +902,7 @@ namespace SimpleRISC {
 
 			if (token.type != TokenType::RBRACE) ThrowException("Register list must be closed",token);
 
-			l.insert(it, { TokenType::INTEGER,{},to_string(list),it->line_no });
+			l.insert(it, { TokenType::INTEGER,{},to_string(list), it->index, it->line_no });
 		}
 
 		return lists_replaced;
@@ -1010,7 +1028,7 @@ namespace SimpleRISC {
 
 		string file_contents = read_file(code);
 		string_view consumable_contents = file_contents;
-		list<AssemblyLine> assemblyLines;
+		list<AssemblyLine> assemblyLines = {};
 
 		struct cond_scope { bool has_cond = false; word cond = 0; };
 
@@ -1022,15 +1040,15 @@ namespace SimpleRISC {
 		list<list<Token*>> pendingLabels = { {} };
 		size_t label_depth = 0;
 
-		stringstream line_reader(file_contents);
 		Token token;
 		bool byte_mode = false;
 		bool terminator_mode = true;
 
 		token_list file_tokens = {};
-		GetTokens(file_contents, file_tokens);
-		size_t line_no = file_tokens.empty() ? 1 : (file_tokens.back().line_no + (file_tokens.back().type == TokenType::EOL));
-		file_tokens.push_back({ TokenType::EOL, {}, "\n", line_no });
+		size_t pos = 0;
+		size_t line_no = 0;
+		GetTokens(file_contents, file_tokens, pos, line_no);
+		file_tokens.push_back({ TokenType::EOL, {}, "\n", pos, line_no });
 
 		ConvertNumbers(file_tokens);
 
@@ -1194,12 +1212,13 @@ namespace SimpleRISC {
 				}
 				else if (token.token == "SEED")
 				{
-					if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::INTEGER)
+					if (!TryGetFront(file_tokens, token) || token.type != TokenType::INTEGER)
 					{
 						srand((unsigned int)time(0));
 					}
 					else
 					{
+						file_tokens.pop_front();
 						srand(stoul(token.token));
 					}
 				}
@@ -1603,17 +1622,17 @@ namespace SimpleRISC {
 		if (label_depth != 0)
 		{
 			FlushScopes();
-			ThrowException("Did not close every label scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
+			ThrowException("Did not close every label scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"", _current_line.line.length(), _current_line.line_no });
 		}
 		if (cond_depth != 0)
 		{
 			FlushScopes();
-			ThrowException("Did not close every condition scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
+			ThrowException("Did not close every condition scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"", _current_line.line.length(), _current_line.line_no });
 		}
 		if (op_depth != 0)
 		{
 			FlushScopes();
-			ThrowException("Did not close every function scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
+			ThrowException("Did not close every function scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"", _current_line.line.length(), _current_line.line_no });
 		}
 
 		if (!pendingLabels.front().empty()) {
@@ -1629,7 +1648,7 @@ namespace SimpleRISC {
 				err += ", ";
 			}
 			err += ")";
-			ThrowException(err, { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line_no });
+			ThrowException(err, { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line.length(),_current_line.line_no});
 		}
 
 		if (print_intermediate) {
@@ -1751,15 +1770,15 @@ namespace SimpleRISC {
 
 			case Reg3:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 16;
+				*(l.mem) |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 12;
+				*(l.mem) |= ToReg(arg->front()) << 12;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 8;
+				*(l.mem) |= ToReg(arg->front()) << 8;
 				break;
 
 			case Flex3i:
@@ -1775,11 +1794,11 @@ namespace SimpleRISC {
 				[[fallthrough]];
 			case Flex3:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 16;
+				*(l.mem) |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 12;
+				*(l.mem) |= ToReg(arg->front()) << 12;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument", *std::next(arg->begin()));
@@ -1803,7 +1822,7 @@ namespace SimpleRISC {
 				else
 				{
 					if (l.shift & 1) ThrowException("Register shifts must be even", arg->front());
-					*(l.mem) |= ToReg(arg->front().token) << 8;
+					*(l.mem) |= ToReg(arg->front()) << 8;
 					*(l.mem) |= l.shift >> 1;
 				}
 				break;
@@ -1816,7 +1835,7 @@ namespace SimpleRISC {
 				[[fallthrough]];
 			case Flex2:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 16;
+				*(l.mem) |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
@@ -1840,24 +1859,24 @@ namespace SimpleRISC {
 				else
 				{
 					if (l.shift & 1) ThrowException("Register shifts must be even", arg->front());
-					*(l.mem) |= ToReg(arg->front().token) << 12;
+					*(l.mem) |= ToReg(arg->front()) << 12;
 					*(l.mem) |= l.shift >> 1;
 				}
 				break;
 
 			case Reg2:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 16;
+				*(l.mem) |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 12;
+				*(l.mem) |= ToReg(arg->front()) << 12;
 				break;
 
 			case RegList:
 				if (l.has_shift) ThrowException("Cannot use shift for " + l.code.token, l.code);
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front().token) << 16;
+				*(l.mem) |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
