@@ -34,55 +34,55 @@
     <ClCompile Include="$(SDLpp)\src\version.cpp">
       <Filter>SDL++</Filter>
     </ClCompile>
-    <ClCompile Include="CharDisplay.cpp">
+    <ClCompile Include="src\CharDisplay.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Computer.cpp">
+    <ClCompile Include="src\Computer.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="ComputerInfo.cpp">
+    <ClCompile Include="src\ComputerInfo.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Core.cpp">
+    <ClCompile Include="src\Core.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="DebugCore.cpp">
+    <ClCompile Include="src\DebugCore.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="RAM.cpp">
+    <ClCompile Include="src\RAM.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="RISCCore.cpp">
+    <ClCompile Include="src\RISCCore.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="ROM.cpp">
+    <ClCompile Include="src\ROM.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source.cpp">
+    <ClCompile Include="src\Source.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="SR_String.cpp">
+    <ClCompile Include="src\SR_String.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Assembler.cpp">
+    <ClCompile Include="src\Assembler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="ColourCharDisplay.cpp">
+    <ClCompile Include="src\ColourCharDisplay.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="KeyboardDevice.cpp">
+    <ClCompile Include="src\KeyboardDevice.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="PickFile.cpp">
+    <ClCompile Include="src\PickFile.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="GUIButton.cpp">
+    <ClCompile Include="src\GUIButton.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Sprite.cpp">
+    <ClCompile Include="src\Sprite.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="LoadPalettes.cpp">
+    <ClCompile Include="src\LoadPalettes.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -101,100 +101,107 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CharDisplay.h">
+    <ClInclude Include="include\Assembler.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Computer.h">
+    <ClInclude Include="include\CharDisplay.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ComputerInfo.h">
+    <ClInclude Include="include\ColourCharDisplay.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Core.h">
+    <ClInclude Include="include\Computer.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="DebugCore.h">
+    <ClInclude Include="include\ComputerInfo.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Device.h">
+    <ClInclude Include="include\Core.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="MappedDevice.h">
+    <ClInclude Include="include\DebugCore.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="MemoryMapped.h">
+    <ClInclude Include="include\Device.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="NullDevice.h">
+    <ClInclude Include="include\GUIButton.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="PreProcAssember.h">
+    <ClInclude Include="include\KeyboardDevice.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="RAM.h">
+    <ClInclude Include="include\LoadPalettes.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="RISCCore.h">
+    <ClInclude Include="include\MappedDevice.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ROM.h">
+    <ClInclude Include="include\MemoryMapped.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="SR_String.h">
+    <ClInclude Include="include\NullDevice.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="SR_Types.h">
+    <ClInclude Include="include\PickFile.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Assembler.h">
+    <ClInclude Include="include\PreProcAssember.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ColourCharDisplay.h">
+    <ClInclude Include="include\RAM.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="KeyboardDevice.h">
+    <ClInclude Include="include\RISCCore.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="GUIButton.h">
+    <ClInclude Include="include\ROM.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Sprite.h">
+    <ClInclude Include="include\Sprite.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="PickFile.h">
+    <ClInclude Include="include\SR_String.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="LoadPalettes.h">
+    <ClInclude Include="include\SR_Types.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="Char set.png" />
+    <Image Include="assets\char set.png" />
+    <Image Include="assets\palette.png" />
+    <Image Include="assets\buttons\folder.png" />
+    <Image Include="assets\buttons\pause.png" />
+    <Image Include="assets\buttons\play.png" />
+    <Image Include="assets\buttons\p_button.png" />
+    <Image Include="assets\buttons\reload.png" />
+    <Image Include="assets\buttons\step.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="program.asm">
+    <Text Include="Scripts\ascii.asm">
       <Filter>Assembly</Filter>
-    </None>
-    <None Include="bounce.asm">
+    </Text>
+    <Text Include="Scripts\blue_wave.asm">
       <Filter>Assembly</Filter>
-    </None>
-    <None Include="float.asm">
+    </Text>
+    <Text Include="Scripts\bounce.asm">
       <Filter>Assembly</Filter>
-    </None>
-    <None Include="blue_wave.asm">
+    </Text>
+    <Text Include="Scripts\float.asm">
       <Filter>Assembly</Filter>
-    </None>
-    <None Include="keyboard.asm">
+    </Text>
+    <Text Include="Scripts\keyboard.asm">
       <Filter>Assembly</Filter>
-    </None>
-    <None Include="ascii.asm">
+    </Text>
+    <Text Include="Scripts\pipes.asm">
       <Filter>Assembly</Filter>
-    </None>
-    <None Include="pipes.asm">
+    </Text>
+    <Text Include="Scripts\program.asm">
       <Filter>Assembly</Filter>
-    </None>
-    <None Include="random.asm">
+    </Text>
+    <Text Include="Scripts\random.asm">
       <Filter>Assembly</Filter>
-    </None>
+    </Text>
   </ItemGroup>
 </Project>

@@ -8,7 +8,7 @@
 struct Sprite
 {
 	SDL::Texture txt;
-	SDL::Rect shape;
+	SDL::FRect shape;
 
 	void Render(SDL::Renderer& r);
 };

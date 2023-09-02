@@ -315,7 +315,7 @@ namespace SimpleRISC {
 			{
 				op { op3r;
 					uint64_t val = ((int64_t)(int32_t)reg2 + (int64_t)(int32_t)doshift(reg3)) * core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 
@@ -326,7 +326,7 @@ namespace SimpleRISC {
 				},
 				op { op3i;
 					uint64_t val = ((int64_t)(int32_t)reg2 + (int64_t)(int32_t)imm) * core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 
@@ -349,7 +349,7 @@ namespace SimpleRISC {
 			{
 				op { op3r;
 					uint64_t val = ((int64_t)(int32_t)reg2 - (int64_t)(int32_t)doshift(reg3)) * (int64_t)core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 
@@ -360,7 +360,7 @@ namespace SimpleRISC {
 				},
 				op { op3i;
 					uint64_t val = ((int64_t)(int32_t)reg2 - (int64_t)(int32_t)imm) * (int64_t)core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 
@@ -385,7 +385,7 @@ namespace SimpleRISC {
 					int64_t c = core.C;
 					c *= 1 - (int64_t)(core.N ^ core.V) * 2;
 					uint64_t val = ((int64_t)(int32_t)reg2 + (int64_t)(int32_t)doshift(reg3) + c) * core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 
@@ -398,7 +398,7 @@ namespace SimpleRISC {
 					int64_t c = core.C;
 					c *= 1 - (int64_t)(core.N ^ core.V) * 2;
 					uint64_t val = ((int64_t)(int32_t)reg2 + (int64_t)(int32_t)imm + c) * core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 
@@ -423,7 +423,7 @@ namespace SimpleRISC {
 					int64_t c = core.C;
 					c *= 1 - (int64_t)(core.N ^ core.V) * 2;
 					uint64_t val = ((int64_t)(int32_t)reg2 - (int64_t)(int32_t)doshift(reg3) + c) * core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 
@@ -436,7 +436,7 @@ namespace SimpleRISC {
 					int64_t c = core.C;
 					c *= 1 - (int64_t)(core.N ^ core.V) * 2;
 					uint64_t val = ((int64_t)(int32_t)reg2 - (int64_t)(int32_t)imm + c) * core.inv;
-					reg1 = val;
+					reg1 = (word)val;
 
 					if (!core.set_status) return;
 

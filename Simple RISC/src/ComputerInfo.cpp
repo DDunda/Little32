@@ -29,6 +29,6 @@ namespace SimpleRISC {
 	}
 
 	word ComputerInfo::GetAddress() const { return 0; }
-	word ComputerInfo::GetRange() const { return computer.mappings.size() * 3 * sizeof(word); }
+	word ComputerInfo::GetRange() const { return (word)computer.mappings.size() * 3 * sizeof(word); }
 	const Device_ID ComputerInfo::GetID() const { return Device_ID::ComputerInfo; }
 }

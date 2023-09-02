@@ -77,10 +77,13 @@
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup>
-    <IncludePath>$(SDL)\include\;$(SDL_image)\include\;$(SDL_mixer)\include\;$(SDL_ttf)\include\;$(SDLpp)\include\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SDL)\include\;$(SDL_image)\include\;$(SDL_mixer)\include\;$(SDL_ttf)\include\;$(SDLpp)\include\;$(ProjectDir)\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SDL)\lib\$(PlatformShortName)\;$(SDL_image)\lib\$(PlatformShortName)\;$(SDL_mixer)\lib\$(PlatformShortName)\;$(SDL_ttf)\lib\$(PlatformShortName)\;$(LibraryPath)</LibraryPath>
-    <OutDir>$(ProjectDir)\out\$(Configuration)_$(PlatformShortName)\</OutDir>
-    <IntDir>$(ProjectDir)\tmp\$(Configuration)_$(PlatformShortName)\</IntDir>
+    <OutDir>$(ProjectDir)out\$(Configuration)_$(PlatformShortName)\</OutDir>
+    <IntDir>$(ProjectDir)tmp\$(Configuration)_$(PlatformShortName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -153,10 +156,9 @@ copy "$(SDL_mixer)\lib\$(PlatformShortName)\*.dll" "$(OutDir)"&amp;
 copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     </PostBuildEvent>
     <ClCompile>
-      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</GenerateXMLDocumentationFiles>
-      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateXMLDocumentationFiles>
-      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenerateXMLDocumentationFiles>
-      <GenerateXMLDocumentationFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateXMLDocumentationFiles>
+      <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+      <XMLDocumentationFileName>$(ProjectDir)doc\$(Configuration)_$(PlatformShortName)\</XMLDocumentationFileName>
+      <StringPooling>true</StringPooling>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -171,63 +173,110 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="$(SDLpp)\src\render.cpp" />
     <ClCompile Include="$(SDLpp)\src\SDL_ttf.cpp" />
     <ClCompile Include="$(SDLpp)\src\version.cpp" />
-    <ClCompile Include="Assembler.cpp" />
-    <ClCompile Include="CharDisplay.cpp" />
-    <ClCompile Include="ColourCharDisplay.cpp" />
-    <ClCompile Include="GUIButton.cpp" />
-    <ClCompile Include="LoadPalettes.cpp" />
-    <ClCompile Include="PickFile.cpp" />
-    <ClInclude Include="LoadPalettes.h" />
-    <ClInclude Include="PickFile.h" />
-    <ClCompile Include="Computer.cpp" />
-    <ClCompile Include="ComputerInfo.cpp" />
-    <ClCompile Include="Core.cpp" />
-    <ClCompile Include="DebugCore.cpp" />
-    <ClCompile Include="KeyboardDevice.cpp" />
-    <ClCompile Include="RAM.cpp" />
-    <ClCompile Include="RISCCore.cpp" />
-    <ClCompile Include="ROM.cpp" />
-    <ClCompile Include="Source.cpp" />
-    <ClCompile Include="Sprite.cpp" />
-    <ClCompile Include="SR_String.cpp" />
+    <ClCompile Include="src\Assembler.cpp" />
+    <ClCompile Include="src\CharDisplay.cpp" />
+    <ClCompile Include="src\ColourCharDisplay.cpp" />
+    <ClCompile Include="src\Computer.cpp" />
+    <ClCompile Include="src\ComputerInfo.cpp" />
+    <ClCompile Include="src\Core.cpp" />
+    <ClCompile Include="src\DebugCore.cpp" />
+    <ClCompile Include="src\GUIButton.cpp" />
+    <ClCompile Include="src\KeyboardDevice.cpp" />
+    <ClCompile Include="src\LoadPalettes.cpp" />
+    <ClCompile Include="src\PickFile.cpp" />
+    <ClCompile Include="src\RAM.cpp" />
+    <ClCompile Include="src\RISCCore.cpp" />
+    <ClCompile Include="src\ROM.cpp" />
+    <ClCompile Include="src\Source.cpp" />
+    <ClCompile Include="src\Sprite.cpp" />
+    <ClCompile Include="src\SR_String.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Assembler.h" />
-    <ClInclude Include="CharDisplay.h" />
-    <ClInclude Include="ColourCharDisplay.h" />
-    <ClInclude Include="Computer.h" />
-    <ClInclude Include="ComputerInfo.h" />
-    <ClInclude Include="Core.h" />
-    <ClInclude Include="DebugCore.h" />
-    <ClInclude Include="Device.h" />
-    <ClInclude Include="GUIButton.h" />
-    <ClInclude Include="KeyboardDevice.h" />
-    <ClInclude Include="MappedDevice.h" />
-    <ClInclude Include="MemoryMapped.h" />
-    <ClInclude Include="NullDevice.h" />
-    <ClInclude Include="PreProcAssember.h" />
-    <ClInclude Include="RAM.h" />
-    <ClInclude Include="RISCCore.h" />
-    <ClInclude Include="ROM.h" />
-    <ClInclude Include="Sprite.h" />
-    <ClInclude Include="SR_String.h" />
-    <ClInclude Include="SR_Types.h" />
+    <ClInclude Include="include\Assembler.h" />
+    <ClInclude Include="include\CharDisplay.h" />
+    <ClInclude Include="include\ColourCharDisplay.h" />
+    <ClInclude Include="include\Computer.h" />
+    <ClInclude Include="include\ComputerInfo.h" />
+    <ClInclude Include="include\Core.h" />
+    <ClInclude Include="include\DebugCore.h" />
+    <ClInclude Include="include\Device.h" />
+    <ClInclude Include="include\GUIButton.h" />
+    <ClInclude Include="include\KeyboardDevice.h" />
+    <ClInclude Include="include\LoadPalettes.h" />
+    <ClInclude Include="include\MappedDevice.h" />
+    <ClInclude Include="include\MemoryMapped.h" />
+    <ClInclude Include="include\NullDevice.h" />
+    <ClInclude Include="include\PickFile.h" />
+    <ClInclude Include="include\PreProcAssember.h" />
+    <ClInclude Include="include\RAM.h" />
+    <ClInclude Include="include\RISCCore.h" />
+    <ClInclude Include="include\ROM.h" />
+    <ClInclude Include="include\Sprite.h" />
+    <ClInclude Include="include\SR_String.h" />
+    <ClInclude Include="include\SR_Types.h" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="Char set.png">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
+    <Text Include="scripts\ascii.asm">
       <DeploymentContent>true</DeploymentContent>
-    </CopyFileToFolders>
+      <FileType>Script</FileType>
+    </Text>
+    <Text Include="scripts\blue_wave.asm">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Script</FileType>
+    </Text>
+    <Text Include="scripts\bounce.asm">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Script</FileType>
+    </Text>
+    <Text Include="scripts\float.asm">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Script</FileType>
+    </Text>
+    <Text Include="scripts\keyboard.asm">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Script</FileType>
+    </Text>
+    <Text Include="scripts\pipes.asm">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Script</FileType>
+    </Text>
+    <Text Include="scripts\program.asm">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Script</FileType>
+    </Text>
+    <Text Include="scripts\random.asm">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Script</FileType>
+    </Text>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ascii.asm" />
-    <None Include="blue_wave.asm" />
-    <None Include="bounce.asm" />
-    <None Include="float.asm" />
-    <None Include="keyboard.asm" />
-    <None Include="pipes.asm" />
-    <None Include="program.asm" />
-    <None Include="random.asm" />
+    <Image Include="assets\buttons\palette.png">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </Image>
+    <Image Include="assets\char set.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="assets\palette.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="assets\buttons\folder.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="assets\buttons\pause.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="assets\buttons\play.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="assets\buttons\reload.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="assets\buttons\step.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

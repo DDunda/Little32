@@ -18,11 +18,9 @@ void LoadPalettes(std::vector<std::array<SDL::Colour, 16>>& palettes, const std:
 {
 	SDL::Surface palette_image = SDL::IMG::Load(file_name.c_str());
 
-	const size_t im_size = palette_image.surface->w * palette_image.surface->h;
-
 	palettes.clear();
 
-	if (palette_image.surface == NULL || im_size % 16 != 0)
+	if (palette_image.surface == NULL || (palette_image.surface->w * palette_image.surface->h) % 16 != 0)
 	{
 		for (const std::array<SDL::Colour, 16>&p : fallback_palettes)
 		{
@@ -43,7 +41,7 @@ void LoadPalettes(std::vector<std::array<SDL::Colour, 16>>& palettes, const std:
 
 	SDL::Colour* pixels = (SDL::Colour*)palette_image.surface->pixels;
 
-	const SDL::Colour* end = pixels + im_size;
+	const SDL::Colour* end = pixels + palette_image.surface->w * palette_image.surface->h;
 
 	while (pixels != end)
 	{

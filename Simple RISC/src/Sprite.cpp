@@ -2,5 +2,5 @@
 
 void Sprite::Render(SDL::Renderer& r)
 {
-	r.Copy(txt, shape);
+	r.CopyF(txt, shape);
 }

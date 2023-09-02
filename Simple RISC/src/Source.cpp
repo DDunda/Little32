@@ -33,9 +33,9 @@
 using namespace SDL;
 using namespace SimpleRISC;
 
-constexpr Colour neutral_colour(255, 106, 0);
-constexpr Colour hover_colour(242, 96, 0);
-constexpr Colour click_colour(216, 86, 0);
+constexpr Colour neutral_colour(255, 106, 0, 255);
+constexpr Colour hover_colour(242, 96, 0, 255);
+constexpr Colour click_colour(216, 86, 0, 255);
 
 constexpr Point scale{ 4,4 };
 constexpr Point text_size{ 16,16 };
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 	const Uint32 wID = w.GetID();
 
 	std::vector<std::array<Colour, 16>> palettes = {};
-	LoadPalettes(palettes);
+	LoadPalettes(palettes, "assets/palette.png");
 
 	GUIButton reload_button(
 		Button::LEFT,
@@ -129,57 +129,57 @@ int main(int argc, char* argv[])
 		click_colour
 	);
 
-	Texture char_set = IMG::LoadTexture(r, "Char set.png");
+	Texture char_set = IMG::LoadTexture(r, "assets/char set.png");
 
 	constexpr float multiple = 0.7f;
 
 	Sprite reload {
-		IMG::LoadTexture(r, "reload.png"),
+		IMG::LoadTexture(r, "assets/buttons/reload.png"),
 		{
-			reload_button.area.x + lround((reload_button.area.w - reload_button.area.h * multiple ) / 2.f),
-			reload_button.area.y + lround(reload_button.area.h * (1.f - multiple) / 2.f),
-			lround(reload_button.area.h * multiple),
-			lround(reload_button.area.h * multiple)
+			reload_button.area.x + ( reload_button.area.w - reload_button.area.h * multiple ) / 2.f,
+			reload_button.area.y + reload_button.area.h * (1.f - multiple) / 2.f,
+			reload_button.area.h * multiple,
+			reload_button.area.h * multiple
 		}
 	};
 	Sprite play {
-		IMG::LoadTexture(r, "play.png"),
+		IMG::LoadTexture(r, "assets/buttons/play.png"),
 		{
-			pause_button.area.x + lround(( pause_button.area.w - pause_button.area.h * multiple ) / 2.f),
-			pause_button.area.y + lround(pause_button.area.h * (1.f - multiple) / 2.f),
-			lround(pause_button.area.h * multiple),
-			lround(pause_button.area.h * multiple)
+			pause_button.area.x + ( pause_button.area.w - pause_button.area.h * multiple ) / 2.f,
+			pause_button.area.y + pause_button.area.h * (1.f - multiple) / 2.f,
+			pause_button.area.h * multiple,
+			pause_button.area.h * multiple
 		}
 	};
 	Sprite pause {
-		IMG::LoadTexture(r, "pause.png"),
+		IMG::LoadTexture(r, "assets/buttons/pause.png"),
 		play.shape
 	};
 	Sprite step {
-		IMG::LoadTexture(r, "step.png"),
+		IMG::LoadTexture(r, "assets/buttons/step.png"),
 		{
-			step_button.area.x + lround(( step_button.area.w - step_button.area.h * multiple ) / 2.f),
-			step_button.area.y + lround(step_button.area.h * ( 1.f - multiple ) / 2.f),
-			lround(step_button.area.h* multiple),
-			lround(step_button.area.h * multiple)
+			step_button.area.x + ( step_button.area.w - step_button.area.h * multiple ) / 2.f,
+			step_button.area.y + step_button.area.h * ( 1.f - multiple ) / 2.f,
+			step_button.area.h * multiple,
+			step_button.area.h * multiple
 		}
 	};
 	Sprite palette {
-		IMG::LoadTexture(r, "p_button.png"),
+		IMG::LoadTexture(r, "assets/buttons/palette.png"),
 		{
-			palette_button.area.x + lround(( palette_button.area.w - palette_button.area.h * multiple ) / 2.f),
-			palette_button.area.y + lround(palette_button.area.h * ( 1.f - multiple ) / 2.f),
-			lround(palette_button.area.h* multiple),
-			lround(palette_button.area.h * multiple)
+			palette_button.area.x + ( palette_button.area.w - palette_button.area.h * multiple ) / 2.f,
+			palette_button.area.y + palette_button.area.h * ( 1.f - multiple ) / 2.f,
+			palette_button.area.h * multiple,
+			palette_button.area.h * multiple
 		}
 	};
-	Sprite folder {
-		IMG::LoadTexture(r, "folder.png"),
+	Sprite folder{
+		IMG::LoadTexture(r, "assets/buttons/folder.png"),
 		{
-			file_button.area.x + lround(( file_button.area.w - file_button.area.h * multiple ) / 2.f),
-			file_button.area.y + lround(file_button.area.h * ( 1.f - multiple ) / 2.f),
-			lround(file_button.area.h* multiple),
-			lround(file_button.area.h * multiple)
+			file_button.area.x + (file_button.area.w - file_button.area.h * multiple) / 2.f,
+			file_button.area.y + file_button.area.h * (1.f - multiple) / 2.f,
+			file_button.area.h * multiple,
+			file_button.area.h * multiple
 		}
 	};
 
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 
 	word address = 256;
 
-	RAM ram(address, 512);
+	RAM ram(address, 4096);
 
 	address += ram.GetRange();
 
@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
 		char_set,
 		palettes[selected_palette].data(),
 		char_size,
-		16,       // Characters per row of source texture
+		text_size.w,       // Characters per row of source texture
 		text_size,
 		scale,
 		address,
@@ -407,6 +407,13 @@ int main(int argc, char* argv[])
 		},
 		file_button
 	);
+
+	reload.txt.SetScaleMode(Texture::ScaleMode::Best);
+	step.txt.SetScaleMode(Texture::ScaleMode::Best);
+	palette.txt.SetScaleMode(Texture::ScaleMode::Best);
+	folder.txt.SetScaleMode(Texture::ScaleMode::Best);
+	pause.txt.SetScaleMode(Texture::ScaleMode::Best);
+	play.txt.SetScaleMode(Texture::ScaleMode::Best);
 
 	for (int frame = 0; running; frame++)
 	{
