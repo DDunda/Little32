@@ -164,13 +164,13 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
   <ItemGroup>
     <ClCompile Include="$(SDLpp)\src\blendmode.cpp" />
     <ClCompile Include="$(SDLpp)\src\error.cpp" />
-    <ClCompile Include="$(SDLpp)\src\image.cpp" />
     <ClCompile Include="$(SDLpp)\src\input.cpp" />
     <ClCompile Include="$(SDLpp)\src\mouse.cpp" />
     <ClCompile Include="$(SDLpp)\src\pixels.cpp" />
     <ClCompile Include="$(SDLpp)\src\ray.cpp" />
     <ClCompile Include="$(SDLpp)\src\rect.cpp" />
     <ClCompile Include="$(SDLpp)\src\render.cpp" />
+    <ClCompile Include="$(SDLpp)\src\SDL_image.cpp" />
     <ClCompile Include="$(SDLpp)\src\SDL_ttf.cpp" />
     <ClCompile Include="$(SDLpp)\src\version.cpp" />
     <ClCompile Include="src\Assembler.cpp" />
@@ -180,7 +180,6 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="src\ComputerInfo.cpp" />
     <ClCompile Include="src\Core.cpp" />
     <ClCompile Include="src\DebugCore.cpp" />
-    <ClCompile Include="src\GUIButton.cpp" />
     <ClCompile Include="src\KeyboardDevice.cpp" />
     <ClCompile Include="src\LoadPalettes.cpp" />
     <ClCompile Include="src\PickFile.cpp" />
@@ -188,7 +187,6 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="src\RISCCore.cpp" />
     <ClCompile Include="src\ROM.cpp" />
     <ClCompile Include="src\Source.cpp" />
-    <ClCompile Include="src\Sprite.cpp" />
     <ClCompile Include="src\SR_String.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -277,6 +275,15 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <Image Include="assets\buttons\step.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="scripts\gravity.asm">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Script</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </Text>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

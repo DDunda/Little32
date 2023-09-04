@@ -7,9 +7,6 @@
     <ClCompile Include="$(SDLpp)\src\error.cpp">
       <Filter>SDL++</Filter>
     </ClCompile>
-    <ClCompile Include="$(SDLpp)\src\image.cpp">
-      <Filter>SDL++</Filter>
-    </ClCompile>
     <ClCompile Include="$(SDLpp)\src\input.cpp">
       <Filter>SDL++</Filter>
     </ClCompile>
@@ -26,6 +23,9 @@
       <Filter>SDL++</Filter>
     </ClCompile>
     <ClCompile Include="$(SDLpp)\src\render.cpp">
+      <Filter>SDL++</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SDLpp)\src\SDL_image.cpp">
       <Filter>SDL++</Filter>
     </ClCompile>
     <ClCompile Include="$(SDLpp)\src\SDL_ttf.cpp">
@@ -76,12 +76,6 @@
     <ClCompile Include="src\PickFile.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="src\GUIButton.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Sprite.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="src\LoadPalettes.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -98,6 +92,12 @@
     </Filter>
     <Filter Include="Assembly">
       <UniqueIdentifier>{0bede24c-eafb-4b55-9d75-09142f9467f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets">
+      <UniqueIdentifier>{ef8fa26f-d80a-4c8c-90db-1796ec78f872}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets\buttons">
+      <UniqueIdentifier>{c82353c3-60a4-4718-8f31-4063ef661440}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -169,14 +169,30 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="assets\char set.png" />
-    <Image Include="assets\palette.png" />
-    <Image Include="assets\buttons\folder.png" />
-    <Image Include="assets\buttons\pause.png" />
-    <Image Include="assets\buttons\play.png" />
-    <Image Include="assets\buttons\p_button.png" />
-    <Image Include="assets\buttons\reload.png" />
-    <Image Include="assets\buttons\step.png" />
+    <Image Include="assets\char set.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="assets\buttons\step.png">
+      <Filter>assets\buttons</Filter>
+    </Image>
+    <Image Include="assets\buttons\folder.png">
+      <Filter>assets\buttons</Filter>
+    </Image>
+    <Image Include="assets\buttons\palette.png">
+      <Filter>assets\buttons</Filter>
+    </Image>
+    <Image Include="assets\buttons\pause.png">
+      <Filter>assets\buttons</Filter>
+    </Image>
+    <Image Include="assets\buttons\play.png">
+      <Filter>assets\buttons</Filter>
+    </Image>
+    <Image Include="assets\buttons\reload.png">
+      <Filter>assets\buttons</Filter>
+    </Image>
+    <Image Include="assets\palette.png">
+      <Filter>assets</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Scripts\ascii.asm">
@@ -201,6 +217,9 @@
       <Filter>Assembly</Filter>
     </Text>
     <Text Include="Scripts\random.asm">
+      <Filter>Assembly</Filter>
+    </Text>
+    <Text Include="scripts\gravity.asm">
       <Filter>Assembly</Filter>
     </Text>
   </ItemGroup>

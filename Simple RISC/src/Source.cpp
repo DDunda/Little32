@@ -1,9 +1,9 @@
 ﻿#include <SDL.hpp>
-#include <iostream>
-#include <filesystem>
+#include <SDL_image.hpp>
 
 #include <array>
 #include <bit>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdint.h>
@@ -46,18 +46,14 @@ constexpr Rect button_area = { { 0, text_size.y * char_size.y * scale.y }, { tex
 constexpr word default_frame_delay = 16;
 constexpr word default_clock_count = 1000;
 
-int main(int argc, char* argv[])
+void Program(int argc, char* argv[])
 {
-	Init();
-	IMG::Init(IMG_INIT_PNG);
-	Input::Init();
-
 	bool running = true;
+	bool manually_clocked = false;
 	word frame_delay = default_frame_delay;
 	word clock_count = default_clock_count;
-	bool manually_clocked = false;
+	word clocks = 0;
 	size_t selected_palette = 0;
-	int clocks = 0;
 
 	Window w;
 	Renderer r;
@@ -72,117 +68,136 @@ int main(int argc, char* argv[])
 	std::vector<std::array<Colour, 16>> palettes = {};
 	LoadPalettes(palettes, "assets/palette.png");
 
-	GUIButton reload_button(
-		Button::LEFT,
-		wID,
-		Rect(
-			button_area.pos,
-			Point(lround(( button_area.w * 1 ) / 5.f), button_area.h)
-		),
-		neutral_colour,
-		hover_colour,
-		click_colour
-	);
-
-	GUIButton pause_button(
-		Button::LEFT,
-		wID,
-		Rect(
-			button_area.pos + Point(lround(( button_area.w * 1 ) / 5.f), 0),
-			Point(lround(( button_area.w * 2 ) / 5.f) - lround(( button_area.w * 1 ) / 5.f), button_area.h)
-		),
-		neutral_colour,
-		hover_colour,
-		click_colour
-	);
-
-	GUIButton step_button(
-		Button::LEFT,
-		wID,
-		Rect(
-			button_area.pos + Point(lround(( button_area.w * 2 ) / 5.f), 0),
-			Point(lround(( button_area.w * 3 ) / 5.f) - lround(( button_area.w * 2 ) / 5.f), button_area.h)
-		),
-		neutral_colour,
-		hover_colour,
-		click_colour
-	);
-
-	GUIButton palette_button(
-		Button::LEFT,
-		wID,
-		Rect(
-			button_area.pos + Point(lround(( button_area.w * 3 ) / 5.f),0),
-			Point(lround(( button_area.w * 4 ) / 5.f) - lround(( button_area.w * 3 ) / 5.f), button_area.h)
-		),
-		neutral_colour,
-		hover_colour,
-		click_colour
-	);
-
-	GUIButton file_button(
-		Button::LEFT,
-		wID,
-		Rect(
-			button_area.pos + Point(lround(( button_area.w * 4 ) / 5.f), 0),
-			Point(lround(( button_area.w * 5 ) / 5.f) - lround(( button_area.w * 4 ) / 5.f), button_area.h)
-		),
-		neutral_colour,
-		hover_colour,
-		click_colour
-	);
+	GUIButtonGroup buttons {
+		{
+			{
+				Button::LEFT,
+				wID,
+				Rect(
+					button_area.pos,
+					Point(lround((button_area.w * 1) / 5.f), button_area.h)
+				),
+				neutral_colour,
+				hover_colour,
+				click_colour
+			}, // Reload
+			{
+				Button::LEFT,
+				wID,
+				Rect(
+					button_area.pos + Point(lround((button_area.w * 1) / 5.f), 0),
+					Point(lround((button_area.w * 2) / 5.f) - lround((button_area.w * 1) / 5.f), button_area.h)
+				),
+				neutral_colour,
+				hover_colour,
+				click_colour
+			}, // Pause / play
+			{
+				Button::LEFT,
+				wID,
+				Rect(
+					button_area.pos + Point(lround(( button_area.w * 2 ) / 5.f), 0),
+					Point(lround(( button_area.w * 3 ) / 5.f) - lround(( button_area.w * 2 ) / 5.f), button_area.h)
+				),
+				neutral_colour,
+				hover_colour,
+				click_colour
+			}, // Step
+			{
+				Button::LEFT,
+				wID,
+				Rect(
+					button_area.pos + Point(lround(( button_area.w * 3 ) / 5.f),0),
+					Point(lround(( button_area.w * 4 ) / 5.f) - lround(( button_area.w * 3 ) / 5.f), button_area.h)
+				),
+				neutral_colour,
+				hover_colour,
+				click_colour
+			}, // Palette
+			{
+				Button::LEFT,
+				wID,
+				Rect(
+					button_area.pos + Point(lround((button_area.w * 4) / 5.f), 0),
+					Point(lround((button_area.w * 5) / 5.f) - lround((button_area.w * 4) / 5.f), button_area.h)
+				),
+				neutral_colour,
+				hover_colour,
+				click_colour
+			}, // File
+		}
+	};
 
 	Texture char_set = IMG::LoadTexture(r, "assets/char set.png");
 
 	constexpr float multiple = 0.7f;
 
-	Sprite reload {
-		IMG::LoadTexture(r, "assets/buttons/reload.png"),
-		{
-			reload_button.area.x + ( reload_button.area.w - reload_button.area.h * multiple ) / 2.f,
-			reload_button.area.y + reload_button.area.h * (1.f - multiple) / 2.f,
-			reload_button.area.h * multiple,
-			reload_button.area.h * multiple
-		}
+	std::map<const char* const, SDL::Texture> textures {
+		{ "reload", IMG::LoadTexture(r, "assets/buttons/reload.png") },
+		{ "play", IMG::LoadTexture(r, "assets/buttons/play.png") },
+		{ "pause", IMG::LoadTexture(r, "assets/buttons/pause.png") },
+		{ "step", IMG::LoadTexture(r, "assets/buttons/step.png") },
+		{ "palette", IMG::LoadTexture(r, "assets/buttons/palette.png") },
+		{ "folder", IMG::LoadTexture(r, "assets/buttons/folder.png") },
 	};
-	Sprite play {
-		IMG::LoadTexture(r, "assets/buttons/play.png"),
+
+	SpriteGroup sprites {
 		{
-			pause_button.area.x + ( pause_button.area.w - pause_button.area.h * multiple ) / 2.f,
-			pause_button.area.y + pause_button.area.h * (1.f - multiple) / 2.f,
-			pause_button.area.h * multiple,
-			pause_button.area.h * multiple
-		}
-	};
-	Sprite pause {
-		IMG::LoadTexture(r, "assets/buttons/pause.png"),
-		play.shape
-	};
-	Sprite step {
-		IMG::LoadTexture(r, "assets/buttons/step.png"),
-		{
-			step_button.area.x + ( step_button.area.w - step_button.area.h * multiple ) / 2.f,
-			step_button.area.y + step_button.area.h * ( 1.f - multiple ) / 2.f,
-			step_button.area.h * multiple,
-			step_button.area.h * multiple
-		}
-	};
-	Sprite palette {
-		IMG::LoadTexture(r, "assets/buttons/palette.png"),
-		{
-			palette_button.area.x + ( palette_button.area.w - palette_button.area.h * multiple ) / 2.f,
-			palette_button.area.y + palette_button.area.h * ( 1.f - multiple ) / 2.f,
-			palette_button.area.h * multiple,
-			palette_button.area.h * multiple
-		}
-	};
-	Sprite folder{
-		IMG::LoadTexture(r, "assets/buttons/folder.png"),
-		{
-			file_button.area.x + (file_button.area.w - file_button.area.h * multiple) / 2.f,
-			file_button.area.y + file_button.area.h * (1.f - multiple) / 2.f,
-			file_button.area.h * multiple,
-			file_button.area.h * multiple
+			{
+				textures["reload"],
+				{
+					buttons.buttons[0].area.x + (buttons.buttons[0].area.w - buttons.buttons[0].area.h * multiple) / 2.f,
+					buttons.buttons[0].area.y + buttons.buttons[0].area.h * (1.f - multiple) / 2.f,
+					buttons.buttons[0].area.h * multiple,
+					buttons.buttons[0].area.h * multiple
+				}
+			}, // Reload
+			{
+				textures["play"],
+				{
+					buttons.buttons[1].area.x + (buttons.buttons[1].area.w - buttons.buttons[1].area.h * multiple) / 2.f,
+					buttons.buttons[1].area.y + buttons.buttons[1].area.h * (1.f - multiple) / 2.f,
+					buttons.buttons[1].area.h * multiple,
+					buttons.buttons[1].area.h * multiple
+				},
+				false
+			}, // Play
+			{
+				textures["pause"],
+				{
+					buttons.buttons[1].area.x + (buttons.buttons[1].area.w - buttons.buttons[1].area.h * multiple) / 2.f,
+					buttons.buttons[1].area.y + buttons.buttons[1].area.h * (1.f - multiple) / 2.f,
+					buttons.buttons[1].area.h * multiple,
+					buttons.buttons[1].area.h * multiple
+				}
+			}, // Pause
+			{
+				textures["step"],
+				{
+					buttons.buttons[2].area.x + (buttons.buttons[2].area.w - buttons.buttons[2].area.h * multiple) / 2.f,
+					buttons.buttons[2].area.y + buttons.buttons[2].area.h * (1.f - multiple) / 2.f,
+					buttons.buttons[2].area.h * multiple,
+					buttons.buttons[2].area.h * multiple
+				}
+			}, // Step
+			{
+				textures["palette"],
+				{
+					buttons.buttons[3].area.x + (buttons.buttons[3].area.w - buttons.buttons[3].area.h * multiple) / 2.f,
+					buttons.buttons[3].area.y + buttons.buttons[3].area.h * (1.f - multiple) / 2.f,
+					buttons.buttons[3].area.h * multiple,
+					buttons.buttons[3].area.h * multiple
+				}
+			}, // Palette
+			Sprite(
+				textures["folder"],
+				{
+					buttons.buttons[4].area.x + (buttons.buttons[4].area.w - buttons.buttons[4].area.h * multiple) / 2.f,
+					buttons.buttons[4].area.y + buttons.buttons[4].area.h * (1.f - multiple) / 2.f,
+					buttons.buttons[4].area.h * multiple,
+					buttons.buttons[4].area.h * multiple
+				}
+			) // Folder
 		}
 	};
 
@@ -307,7 +322,7 @@ int main(int argc, char* argv[])
 				frame_delay = default_frame_delay;
 			}
 		},
-		reload_button
+		buttons.buttons[0]
 	);
 
 	Listener<const Point, const Uint32> pause_toggler(
@@ -315,8 +330,10 @@ int main(int argc, char* argv[])
 		{
 			manually_clocked = !manually_clocked;
 			clocks = 0;
+			sprites.sprites[1].enabled = !sprites.sprites[1].enabled;
+			sprites.sprites[2].enabled = !sprites.sprites[2].enabled;
 		},
-		pause_button
+		buttons.buttons[1]
 	);
 
 	Listener<const Point, const Uint32> stepper(
@@ -340,7 +357,7 @@ int main(int argc, char* argv[])
 			computer.Clock(1);
 			cram.Render(clocks == 0);
 		},
-		step_button
+		buttons.buttons[2]
 	);
 
 	Listener<const Point, const Uint32> palette_swapper(
@@ -350,7 +367,7 @@ int main(int argc, char* argv[])
 			memcpy(cram.colours, palettes[selected_palette].data(), sizeof(SDL::Colour) * 16);
 			cram.Render(false);
 		},
-		palette_button
+		buttons.buttons[3]
 	);
 
 	Listener<const Point, const Uint32> file_picker(
@@ -422,35 +439,20 @@ int main(int argc, char* argv[])
 
 			file_provided = true;
 		},
-		file_button
+		buttons.buttons[4]
 	);
 
-	reload.txt.SetScaleMode(Texture::ScaleMode::Best);
-	step.txt.SetScaleMode(Texture::ScaleMode::Best);
-	palette.txt.SetScaleMode(Texture::ScaleMode::Best);
-	folder.txt.SetScaleMode(Texture::ScaleMode::Best);
-	pause.txt.SetScaleMode(Texture::ScaleMode::Best);
-	play.txt.SetScaleMode(Texture::ScaleMode::Best);
+	sprites.SetScaleMode(Texture::ScaleMode::Best);
 
 	for (int frame = 0; running; frame++)
 	{
 		Input::Update();
 
-		reload_button.Render(r);
-		pause_button.Render(r);
-		step_button.Render(r);
-		palette_button.Render(r);
-		file_button.Render(r);
-
-		reload.Render(r);
-		step.Render(r);
-		palette.Render(r);
-		folder.Render(r);
+		buttons.Render(r);
+		sprites.Render(r);
 		
 		if (!manually_clocked)
 		{
-			pause.Render(r);
-
 			computer.Clock(clock_count);
 			cram.Render();
 
@@ -460,12 +462,19 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			play.Render(r);
-
 			r.Present();
 			Delay(10);
 		}
 	}
+}
+
+int main(int argc, char* argv[])
+{
+	Init();
+	IMG::Init(IMG_INIT_JPG | IMG_INIT_PNG);
+	Input::Init();
+
+	Program(argc, argv);
 
 	Input::Quit();
 	IMG::Quit();
