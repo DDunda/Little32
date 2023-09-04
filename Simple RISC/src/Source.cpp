@@ -43,6 +43,9 @@ constexpr Point char_size{ 8,8 };
 
 constexpr Rect button_area = { { 0, text_size.y * char_size.y * scale.y }, { text_size.x * char_size.x * scale.x, 80 } };
 
+constexpr word default_frame_delay = 16;
+constexpr word default_clock_count = 1000;
+
 int main(int argc, char* argv[])
 {
 	Init();
@@ -50,8 +53,8 @@ int main(int argc, char* argv[])
 	Input::Init();
 
 	bool running = true;
-	int frame_delay = 16;
-	int clock_count = 1000;
+	word frame_delay = default_frame_delay;
+	word clock_count = default_clock_count;
 	bool manually_clocked = false;
 	size_t selected_palette = 0;
 	int clocks = 0;
@@ -214,9 +217,7 @@ int main(int argc, char* argv[])
 		address
 	);
 
-	Input::RegisterUntyped(keyboard);
-
-	address += cram.GetRange();
+	address += keyboard.GetRange();
 
 	computer.AddMapping(info);
 	computer.AddMappedDevice(ram);
@@ -292,10 +293,18 @@ int main(int argc, char* argv[])
 			{
 				clock_count = stoul(var_out.front().token);
 			}
+			else
+			{
+				clock_count = default_clock_count;
+			}
 
 			if (assembler.GetVariable("frame_delay", var_out) && var_out.size() > 0 && var_out.front().type == Assembler::TokenType::INTEGER)
 			{
 				frame_delay = stoul(var_out.front().token);
+			}
+			else
+			{
+				frame_delay = default_frame_delay;
 			}
 		},
 		reload_button
@@ -313,16 +322,16 @@ int main(int argc, char* argv[])
 	Listener<const Point, const Uint32> stepper(
 		[&](const Point, const Uint32)
 		{
-			printf("PC: 0x%08X  SP: 0x%08X  LR: 0x%08X\n", core.registers[PC], core.registers[SP], core.registers[LR]);
-			printf(" R0: % 10i  R1: % 10i  R2: % 10i  R3: % 10i\n", core.registers[R0], core.registers[R1], core.registers[R2], core.registers[R3]);
-			printf(" R4: % 10i  R5: % 10i  R6: % 10i  R7: % 10i\n", core.registers[R4], core.registers[R5], core.registers[R6], core.registers[R7]);
-			printf(" R8: % 10i  R9: % 10i R10: % 10i R11: % 10i\n", core.registers[R8], core.registers[R9], core.registers[R10], core.registers[R11]);
-			printf("R12: % 10i NZCV: %i%i%i%i \n", core.registers[R12], core.N, core.Z, core.C, core.V);
+			printf("PC: 0x%08X  SP: 0x%08X  LR: 0x%08X\n", core.PC, core.SP, core.LR);
+			printf(" R0: % 10i  R1: % 10i  R2: % 10i  R3: % 10i\n", core.R0, core.R1, core.R2, core.R3);
+			printf(" R4: % 10i  R5: % 10i  R6: % 10i  R7: % 10i\n", core.R4, core.R5, core.R6, core.R7);
+			printf(" R8: % 10i  R9: % 10i R10: % 10i R11: % 10i\n", core.R8, core.R9, core.R10, core.R11);
+			printf("R12: % 10i NZCV: %i%i%i%i \n", core.R12, core.N, core.Z, core.C, core.V);
 
-			printf("0x%08X: %s\n\n", core.registers[PC], core.Disassemble(computer.Read(core.registers[PC])).c_str());
+			printf("0x%08X: %s\n\n", core.PC, core.Disassemble(computer.Read(core.PC)).c_str());
 
-			//printf("0x%08X: ", core.registers[PC]);
-			//word op = computer.Read(core.registers[PC]);
+			//printf("0x%08X: ", core.PC);
+			//word op = computer.Read(core.PC);
 			//std::string diss = core.Disassemble(op);
 			//printf("%s\n\n", diss.c_str());
 
@@ -386,10 +395,18 @@ int main(int argc, char* argv[])
 			{
 				clock_count = stoul(var_out.front().token);
 			}
+			else
+			{
+				clock_count = default_clock_count;
+			}
 
 			if (assembler.GetVariable("frame_delay", var_out) && var_out.size() > 0 && var_out.front().type == Assembler::TokenType::INTEGER)
 			{
 				frame_delay = stoul(var_out.front().token);
+			}
+			else
+			{
+				frame_delay = default_frame_delay;
 			}
 
 			computer.start_PC = assembler.entry_point;

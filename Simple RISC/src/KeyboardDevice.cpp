@@ -5,7 +5,10 @@
 #include "Core.h"
 
 namespace SimpleRISC {
-	KeyboardDevice::KeyboardDevice(Computer& computer, word address) : computer(computer), address_start(address) {}
+	KeyboardDevice::KeyboardDevice(Computer& computer, word address) : computer(computer), address_start(address) {
+		SDL::Input::RegisterEventType(SDL::Event::Type::KEYUP, *this);
+		SDL::Input::RegisterEventType(SDL::Event::Type::KEYDOWN, *this);
+	}
 
 	void KeyboardDevice::PushKeyDown(word key)
 	{
@@ -103,11 +106,6 @@ namespace SimpleRISC {
 		return Read(address & ~3) >> x;
 	}
 
-	word KeyboardDevice::GetAddress() const { return address_start; }
-	word KeyboardDevice::GetRange() const { return 6 * sizeof(word); }
-
-	const Device_ID KeyboardDevice::GetID() const { return Device_ID::Keyboard; }
-
 	void KeyboardDevice::Notify(const SDL::Event& input_event)
 	{
 		if (input_event.type == SDL::Event::Type::KEYDOWN)
@@ -118,17 +116,5 @@ namespace SimpleRISC {
 		{
 			PushKeyUp(input_event.key.keysym.scancode);
 		}
-	}
-
-	void KeyboardDevice::Reset()
-	{
-		down_count = 0;
-		down_head = BUFFER_SIZE - 1;
-
-		up_count = 0;
-		up_head = BUFFER_SIZE - 1;
-
-		keydown_interrupt = 0;
-		keyup_interrupt = 0;
 	}
 }

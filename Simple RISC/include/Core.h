@@ -13,7 +13,7 @@ namespace SimpleRISC {
 	public:
 		Computer& computer;
 
-		Core(Computer& computer);
+		constexpr Core(Computer& computer) : computer(computer) {}
 
 		virtual void Clock() = 0;
 		virtual void Reset() = 0;

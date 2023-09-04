@@ -89,11 +89,7 @@ namespace SimpleRISC {
 		return _ReadByteUnsafe(address);
 	}
 
-	word CharDisplay::GetAddress() const { return address_start; }
-	word CharDisplay::GetRange() const { return address_size + 4; }
-	const Device_ID CharDisplay::GetID() const { return Device_ID::CharDisplay; }
-
-	void CharDisplay::Render(bool doInterrupt) {
+	void CharDisplay::Render(bool do_interrupt) {
 		if (address_size == 0) return;
 		for (int i = 0, y = 0; y < textSize.h; y++) {
 			for (int x = 0; x < textSize.w; x++) {
@@ -101,7 +97,7 @@ namespace SimpleRISC {
 				r.Copy(txt, { SDL::Point(c % span, c / span) * charSize, charSize }, { SDL::Point(x, y) * dstCharSize, dstCharSize });
 			}
 		}
-		if (interrupt_address != 0 && doInterrupt) {
+		if (interrupt_address != 0 && do_interrupt) {
 			computer.core->Interrupt(interrupt_address);
 		}
 	}

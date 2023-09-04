@@ -27,9 +27,4 @@ namespace SimpleRISC {
 
 		return _ReadByteUnsafe(address);
 	}
-
-	word ROM::GetAddress() const { return address_start; }
-	word ROM::GetRange() const { return address_size; }
-
-	const Device_ID ROM::GetID() const { return Device_ID::ROM; }
 }

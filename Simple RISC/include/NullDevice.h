@@ -7,9 +7,9 @@
 
 namespace SimpleRISC {
 	class NullDevice : public MemoryMapped {
-		word GetAddress() const { return 0; }
-		word GetRange() const { return 0; }
-		const Device_ID GetID() const { return Device_ID::Null; }
+		inline word GetAddress() const { return 0; }
+		inline word GetRange() const { return 0; }
+		constexpr const Device_ID GetID() const { return Device_ID::Null; }
 	};
 }
 

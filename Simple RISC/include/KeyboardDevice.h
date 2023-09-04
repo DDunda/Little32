@@ -44,14 +44,24 @@ namespace SimpleRISC {
 		word Read(word address);
 		byte ReadByte(word address);
 
-		word GetAddress() const;
-		word GetRange() const;
+		inline word GetAddress() const { return address_start; }
+		inline word GetRange() const { return 6 * sizeof(word); }
 
-		const Device_ID GetID() const;
+		constexpr const Device_ID GetID() const { return Device_ID::Keyboard; }
 
 		void Notify(const SDL::Event& input_event);
 
-		void Reset();
+		inline void Reset()
+		{
+			down_count = 0;
+			down_head = BUFFER_SIZE - 1;
+
+			up_count = 0;
+			up_head = BUFFER_SIZE - 1;
+
+			keydown_interrupt = 0;
+			keyup_interrupt = 0;
+		}
 	};
 }
 

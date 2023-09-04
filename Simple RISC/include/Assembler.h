@@ -107,7 +107,7 @@ namespace SimpleRISC {
 		word data_start = 0;
 		word data_end = 0;
 
-		static const char valid_text_chars[];
+		static constexpr const char valid_text_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 		void SetRAM(const RAM& ram);
 		constexpr void SetRAM(word* memory, word start_address, word range) {
@@ -115,6 +115,15 @@ namespace SimpleRISC {
 			ram_start = start_address;
 			ram_range = range;
 			ram_current_address = 0;
+		}
+
+		void SetROM(const ROM& rom);
+		constexpr void SetROM(word* memory, word start_address, word range)
+		{
+			rom = memory;
+			rom_start = start_address;
+			rom_range = range;
+			rom_current_address = 0;
 		}
 
 		void AddLabel(const std::string& label, word address);
@@ -128,6 +137,14 @@ namespace SimpleRISC {
 			ram_start = 0;
 			ram_range = 0;
 			ram_current_address = 0;
+		}
+
+		constexpr void ClearROM() noexcept
+		{
+			rom = nullptr;
+			rom_start = 0;
+			rom_range = 0;
+			rom_current_address = 0;
 		}
 
 		void ClearLabels() noexcept;
@@ -162,6 +179,11 @@ namespace SimpleRISC {
 		word ram_start = 0;
 		word ram_range = 0;
 		word ram_current_address = 0;
+
+		word* rom = nullptr;
+		word rom_start = 0;
+		word rom_range = 0;
+		word rom_current_address = 0;
 
 		std::unordered_map<std::string, word> constant_addresses = {};
 

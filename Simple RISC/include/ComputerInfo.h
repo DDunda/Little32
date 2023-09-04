@@ -16,14 +16,14 @@ namespace SimpleRISC {
 	public:
 		Computer& computer;
 
-		ComputerInfo(Computer& computer);
+		constexpr ComputerInfo(Computer& computer) : computer(computer) {}
 
 		word Read(word address);
 		byte ReadByte(word address);
 
-		word GetAddress() const;
+		inline word GetAddress() const { return 0; }
 		word GetRange() const;
-		const Device_ID GetID() const;
+		constexpr const Device_ID GetID() const { return Device_ID::ComputerInfo; }
 	};
 }
 

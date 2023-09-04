@@ -53,11 +53,12 @@ namespace SimpleRISC {
 		word Read(word address);
 		byte ReadByte(word address);
 
-		word GetAddress() const;
-		word GetRange() const;
-		const Device_ID GetID() const;
+		inline word GetAddress() const { return address_start; }
+		inline word GetRange() const { return address_size + sizeof(word); }
 
-		void Render(bool doInterrupt = true);
+		constexpr const Device_ID GetID() const { return Device_ID::CharDisplay; }
+
+		void Render(bool do_interrupt = true);
 
 		void Reset();
 	};

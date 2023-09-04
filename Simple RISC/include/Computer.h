@@ -21,6 +21,8 @@ namespace SimpleRISC {
 		word start_PC = 0;
 		word start_SP = 0;
 
+		constexpr Computer() : devices(), mappings() {}
+
 		/// <summary> Clocks the computer a number of times </summary>
 		/// <param name="clocks">Number of times to clock the computer</param>
 		void Clock(unsigned clocks);

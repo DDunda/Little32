@@ -8,9 +8,10 @@ $char_mem R5
 $key R6
 
 #ENTRY
-MOV $keyboard, KEYBOARD
 MOV $char_mem, CHAR_MEM
 
+MOV $keyboard, keyboard
+RRW $keyboard, [$keyboard]
 MOV R0, on_down
 RWW R0, [$keyboard]
 
@@ -59,9 +60,12 @@ on_down:
 	RWB R0, [$char_mem+7]
 
 	RFE
-	
+
+#DATA
+keyboard: KEYBOARD
+
 #BYTE
+#ASCII
 chars:
-	48 49 50 51 52 53 54 55 56 57 // 0 1 2 3 4 5 6 7 8 9
-	65 66 67 68 69 70 // A B C D E F
+	"0123456789ABCDEF"
 }:}$

@@ -23,5 +23,6 @@ BZC .start
 HALT
 
 #DATA
+#ASCIZ
 hello_world:
 	"Hello, World! Lorem ipsum dolor innit........................ :)\0 Secret text secret text!"

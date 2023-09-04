@@ -13,6 +13,7 @@ $empty R7
 $col1 R8
 $col2 R9
 $tmp R10
+$tmp2 R11
 
 #ENTRY
 MOV $x, 16
@@ -27,8 +28,9 @@ MOV $empty, 0xfa        // char empty = '·';
 MOV $col1, 0x0F
 MOV $col2, 0x07
 
+MOV R11, RENDER_INT
 MOV $tmp, frame_int
-RWW $tmp, [$out+512]      // set_frame_callback(frame_int);
+RWW $tmp, [R11]         // set_frame_callback(frame_int);
 
 HALT                    // while(true) {}
 

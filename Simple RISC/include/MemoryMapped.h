@@ -33,7 +33,7 @@ namespace SimpleRISC {
 		virtual word GetRange() const = 0;
 
 		/// <summary> Returns an type identifier for this device </summary>
-		virtual const Device_ID GetID() const = 0;
+		virtual constexpr const Device_ID GetID() const = 0;
 	};
 }
 

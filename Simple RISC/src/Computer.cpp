@@ -34,7 +34,7 @@ namespace SimpleRISC {
 	}
 
 	byte Computer::ReadByte(word addr) {
-		word value = 0;
+		byte value = 0;
 		for (int i = 0; i < mappings.size(); i++) {
 			word start = mappings[i]->GetAddress();
 			if (addr < start) continue;

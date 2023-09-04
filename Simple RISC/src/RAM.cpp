@@ -53,11 +53,6 @@ namespace SimpleRISC {
 		return _ReadByteUnsafe(address);
 	}
 
-	word RAM::GetAddress() const { return address_start; }
-
-	word RAM::GetRange() const { return address_size; }
-
-	const Device_ID RAM::GetID() const { return Device_ID::RAM; }
 
 	void RAM::Reset() {
 		if (defaultMemory) memcpy(memory.get(), defaultMemory.get(), address_size);

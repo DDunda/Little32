@@ -3,5 +3,4 @@
 #include "Core.h"
 
 namespace SimpleRISC {
-	Core::Core(Computer& computer) : computer(computer) {}
 }

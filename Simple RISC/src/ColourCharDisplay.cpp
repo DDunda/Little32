@@ -57,7 +57,7 @@ namespace SimpleRISC {
 		pixel_area(text_size.w * text_size.h),
 		colour_position(text_size.w * text_size.h + ((sizeof(word) - (( text_size.w * text_size.h ) % sizeof(word))) % sizeof(word))),
 		interrupt_position(2 * colour_position),
-		address_size(2 * text_size.w * text_size.h + sizeof(word)),
+		address_size(2 * (text_size.w * text_size.h + ((sizeof(word) - (( text_size.w * text_size.h ) % sizeof(word))) % sizeof(word)))+sizeof(word)),
 		interrupt_address(0),
 		default_text_memory(text_memory),
 		default_colour_memory(colour_memory),
@@ -83,7 +83,7 @@ namespace SimpleRISC {
 		pixel_area(text_size.w * text_size.h),
 		colour_position(text_size.w * text_size.h + ((sizeof(word) - (( text_size.w * text_size.h ) % sizeof(word))) % sizeof(word))),
 		interrupt_position(2 * colour_position),
-		address_size(2 * text_size.w * text_size.h + sizeof(word)),
+		address_size(2 * (text_size.w * text_size.h + ((sizeof(word) - (( text_size.w * text_size.h ) % sizeof(word))) % sizeof(word)))+sizeof(word)),
 		interrupt_address(0),
 		default_text_memory(new byte[pixel_area](0)),
 		default_colour_memory(new byte[pixel_area](0)),
@@ -110,7 +110,7 @@ namespace SimpleRISC {
 		pixel_area(text_size.w * text_size.h),
 		colour_position(text_size.w * text_size.h + ((sizeof(word) - (( text_size.w * text_size.h ) % sizeof(word))) % sizeof(word))),
 		interrupt_position(2 * colour_position),
-		address_size(2 * text_size.w * text_size.h + sizeof(word)),
+		address_size(2 * (text_size.w * text_size.h + ((sizeof(word) - (( text_size.w * text_size.h ) % sizeof(word))) % sizeof(word)))+sizeof(word)),
 		interrupt_address(0),
 		text_memory(new byte[pixel_area](0)),
 		colour_memory(new byte[pixel_area](0)) {
@@ -191,10 +191,6 @@ namespace SimpleRISC {
 			return _ReadTextByteUnsafe(address);
 		}
 	}
-
-	word ColourCharDisplay::GetAddress() const { return address_start; }
-	word ColourCharDisplay::GetRange() const { return address_size; }
-	const Device_ID ColourCharDisplay::GetID() const { return Device_ID::ColourCharDisplay; }
 
 	void ColourCharDisplay::Render(bool doInterrupt) {
 		if (address_size == 0) return;

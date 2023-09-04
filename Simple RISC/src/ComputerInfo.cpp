@@ -15,8 +15,6 @@ namespace SimpleRISC {
 	}
 	byte ComputerInfo::_ReadByteUnsafe(word address) { return _ReadWordUnsafe(address) >> ((sizeof(word) - 1 - (address % sizeof(word))) * 8); }
 
-	ComputerInfo::ComputerInfo(Computer& computer) : computer(computer) {}
-
 	word ComputerInfo::Read(word address) {
 		if (address >= GetRange()) return 0;
 
@@ -27,8 +25,5 @@ namespace SimpleRISC {
 
 		return _ReadByteUnsafe(address);
 	}
-
-	word ComputerInfo::GetAddress() const { return 0; }
 	word ComputerInfo::GetRange() const { return (word)computer.mappings.size() * 3 * sizeof(word); }
-	const Device_ID ComputerInfo::GetID() const { return Device_ID::ComputerInfo; }
 }

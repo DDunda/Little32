@@ -8,9 +8,8 @@
 #include "RAM.h"
 #include "ROM.h"
 
-namespace SimpleRISC {
-	constexpr char Assembler::valid_text_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-
+namespace SimpleRISC
+{
 	Assembler::FormatException::FormatException(const std::string_view line, const Token& token, const char* const message) :
 		line_no(token.line_no),
 		line(line),
@@ -945,6 +944,13 @@ namespace SimpleRISC {
 		ram_current_address = 0;
 	}
 
+	void Assembler::SetROM(const ROM& rom) {
+		this->rom = rom.memory.get();
+		ram_start = rom.GetAddress();
+		ram_range = rom.GetRange();
+		ram_current_address = 0;
+	}
+
 	void Assembler::ClearLabels() noexcept {
 		constant_addresses.clear();
 	}
@@ -1006,12 +1012,100 @@ namespace SimpleRISC {
 			code.seekg(0);
 		}
 
+		enum pack
+		{
+			None,
+			BranchOffset,
+			Reg3,
+			Flex3,
+			Flex3i,
+			Flex2,
+			Flex2i,
+			Reg2,
+			Reg2ns,
+			RegList
+		};
+
+		struct InstructionDefinition
+		{
+			word code = 0;
+			pack packing = None;
+			bool allow_N = false;
+			bool allow_S = false;
+			bool allow_shift = true;
+		};
+
+		static const unordered_map<pack, size_t> pack_args = {
+			{None, 0},
+			{BranchOffset, 1},
+			{RegList, 2},
+			{Reg2, 2},
+			{Flex2, 2},
+			{Flex2i, 2},
+			{Flex3, 3},
+			{Flex3i, 3},
+			{Reg3, 3},
+		};
+
+		static const unordered_map<string, InstructionDefinition> definitions
+		{
+			//          N1ppppSi   ,   .   ,   .   ,
+			{"ADD",  {0b0100000000000000000000000000, Flex3i,  true,  true  }},
+			{"SUB",  {0b0100010000000000000000000000, Flex3i,  true,  true  }},
+			{"ADC",  {0b0100100000000000000000000000, Flex3,   true,  true  }},
+			{"SBB",  {0b0100110000000000000000000000, Flex3,   true,  true  }},
+			{"ASL",  {0b0101000000000000000000000000, Flex3,   true,  true  }},
+			{"ASR",  {0b0101010000000000000000000000, Flex3,   true,  true  }},
+			{"CMP",  {0b0101100000000000000000000000, Flex2i,  true,  false }},
+			{"CMN",  {0b0101110000000000000000000000, Flex2i,  true,  false }},
+
+			{"ORR",  {0b0110000000000000000000000000, Flex3,   true,  true  }},
+			{"AND",  {0b0110010000000000000000000000, Flex3,   true,  true  }},
+			{"XOR",  {0b0110100000000000000000000000, Flex3,   true,  true  }},
+			{"TST",  {0b0110110000000000000000000000, Flex2,   true         }},
+			{"LSL",  {0b0111000000000000000000000000, Flex3,   true,  true  }},
+			{"LSR",  {0b0111010000000000000000000000, Flex3,   true,  true  }},
+			{"MOV",  {0b0111100000000000000000000000, Flex2i,  true,  true  }},
+			{"INV",  {0b0111110000000000000000000000, Flex2i,  true,  true  }},
+			//          N01L   .   ,   .   ,   .   ,
+			{"B"  ,  {0b0010000000000000000000000000, BranchOffset          }},
+			{"BL" ,  {0b0011000000000000000000000000, BranchOffset          }},
+			{"RFE",  {0b1010000000000000000000000000, None                  }},
+			{"RET",  {0b1011000000000000000000000000, None                  }},
+			//          N0011BWx   ,   .   ,   .   ,
+			{"RRW",  {0b0001100000000000000000000000, Flex3,   true         }},
+			{"RWW",  {0b0001101000000000000000000000, Flex3,   true         }},
+			{"RRB",  {0b0001110000000000000000000000, Flex3,   true         }},
+			{"RWB",  {0b0001111000000000000000000000, Flex3,   true         }},
+			//          N001010W   ,   .   ,   .   ,
+			{"SRR",  {0b0001010000000000000000000000, RegList, true         }},
+			{"SWR",  {0b0001010100000000000000000000, RegList, true         }},
+			//          N001011p   ,   .   ,   .   ,
+			{"MVM",  {0b0001011000000000000000000000, RegList, true         }},
+			{"SWP",  {0b0001011100000000000000000000, Reg2,    true         }},
+			//          N0001ppp   ,   .   ,   .   ,
+			{"ADDF", {0b0000100000000000000000000000, Reg3,   true,  false, false  }},
+			{"SUBF", {0b0000100100000000000000000000, Reg3,   true,  false, false  }},
+			{"MULF", {0b0000101000000000000000000000, Reg3,   true,  false, false  }},
+			{"DIVF", {0b0000101100000000000000000000, Reg3,   true,  false, false  }},
+			{"ITOF", {0b0000110000000000000000000000, Reg2,   true,  false, false  }},
+			{"FTOI", {0b0000110100000000000000000000, Reg2,   true,  false, false  }},
+			{"CMPF", {0b0000111000000000000000000000, Reg2,   true,  false, false  }},
+			{"CMPFI",{0b0000111100000000000000000000, Reg2,   true,  false, false  }},
+		};
+
 		word* memory = nullptr;
 		word memory_start = 0;
 		word memory_range = 0;
 		word* current_address = 0;
 
-		if (ram != nullptr) {
+		if (rom != nullptr) { // Prefer ROM - lends memory safety to code
+			memory = rom;
+			memory_start = rom_start;
+			memory_range = rom_range;
+			current_address = &rom_current_address;
+		}
+		else if (ram != nullptr) {
 			memory = ram;
 			memory_start = ram_start;
 			memory_range = ram_range;
@@ -1039,6 +1133,14 @@ namespace SimpleRISC {
 
 		list<list<Token*>> pendingLabels = { {} };
 		size_t label_depth = 0;
+
+		struct MemoryLabel
+		{
+			word* address;
+			Token token;
+		};
+
+		list<list<MemoryLabel>> pending_memory_labels = { {} };
 
 		Token token;
 		bool byte_mode = false;
@@ -1148,6 +1250,20 @@ namespace SimpleRISC {
 						lit++;
 					}
 				}
+
+				auto lmit = pending_memory_labels.back().begin();
+				while (lmit != pending_memory_labels.back().end())
+				{
+					if (lmit->token.token == token.token)
+					{ // Resolve this label
+						*(lmit->address) = label_scopes.back()[token.token];
+						lmit = pending_memory_labels.back().erase(lmit);
+					}
+					else
+					{ // Needs another label
+						lmit++;
+					}
+				}
 			}
 			else if (token.type == TokenType::MARKER_PREPROCESSOR) {
 				if (!TryConsumeFront(file_tokens, token) || token.type != TokenType::TEXT) ThrowException("Preprocessor directive not provided", token);
@@ -1185,7 +1301,7 @@ namespace SimpleRISC {
 					*current_address += width;
 				}
 				else if (token.token == "DATA") {
-					if (ram != nullptr) {
+					if (ram != nullptr && memory != ram) {
 						memory = ram;
 						memory_start = ram_start;
 						memory_range = ram_range;
@@ -1196,6 +1312,14 @@ namespace SimpleRISC {
 				else if (token.token == "ENTRY") {
 					if(entry_defined) ThrowException("Multiple entry points defined", token);
 					if((*current_address + memory_start) % 4) ThrowException("Entry point is not word-aligned", token);
+
+					if (rom != nullptr && memory != rom)
+					{
+						memory = rom;
+						memory_start = rom_start;
+						memory_range = rom_range;
+						current_address = &rom_current_address;
+					}
 
 					entry_defined = true;
 					entry_point = *current_address + memory_start;
@@ -1364,6 +1488,7 @@ namespace SimpleRISC {
 				label_depth++;
 				label_scopes.push_back({});
 				pendingLabels.push_back({});
+				pending_memory_labels.push_back({});
 			}
 			else if (token.type == TokenType::SCOPE_LABEL_CLOSE) {
 				if (label_depth == 0) ThrowException("Too many closing label scopes", token);
@@ -1375,6 +1500,15 @@ namespace SimpleRISC {
 				if (cur_scope.size() > 0) {
 					std::list<Token*>& lower_list = pendingLabels.back(); // Get second last list
 					lower_list.splice(lower_list.end(), cur_scope);  // Move labels down to second last list
+				}
+
+				std::list<MemoryLabel> cur_mem_scope = pending_memory_labels.back();
+				pending_memory_labels.pop_back();
+
+				if (cur_mem_scope.size() > 0)
+				{
+					std::list<MemoryLabel>& lower_list = pending_memory_labels.back(); // Get second last list
+					lower_list.splice(lower_list.end(), cur_mem_scope);  // Move labels down to second last list
 				}
 
 				label_scopes.pop_back();
@@ -1396,222 +1530,297 @@ namespace SimpleRISC {
 					variable_scopes.back()[var_name].push_back(token);
 				}
 			}
-			else if (token.type == TokenType::TEXT) { // This is an instruction
-				if ((*current_address) & 3) ThrowException("Instruction not aligned", token);
-				if (!IsUpper(token.token)) ThrowException("Invalid characters in instruction code", token);
-
-				assemblyLines.push_back({
-					_current_line,
-					memory_start + *current_address,
-					memory + ((*current_address) >> 2),
-					token
-				});
-				AssemblyLine& instruction = assemblyLines.back();
-				if (instruction.code.token.length() == 0) ThrowException("Instruction name is empty", token);
-
-				if (instruction.code.token == "N") ThrowException("Instruction is only N flag", token);
-				if (instruction.code.token == "S") ThrowException("Instruction is only S flag", token);
-				if (instruction.code.token == "NS") ThrowException("Instruction is only flags", token);
-
-				if (instruction.code.token.front() == 'N') {
-					instruction.code.token = instruction.code.token.substr(1);
-					instruction.N = true;
-				}
-
-				if (instruction.code.token.back() == 'S') {
-					instruction.code.token = instruction.code.token.substr(0, instruction.code.token.length() - 1);
-					instruction.S = true;
-				}
-
-				instruction.has_cond = GetCond(file_tokens, instruction.cond);
-				instruction.has_shift = GetShift(file_tokens, instruction.shift);
-
-				total_variables_replaced += ResolveVariables(file_tokens);
-				SplitSquareBrackets(file_tokens);
-				ResolveRegLists(file_tokens);
-
-				if (TryConsumeFront(file_tokens, token)) {
-					instruction.args.push_back({});
-					token_list* tokens = &instruction.args.back();
-
-					do
-					{
-						if (token.type == TokenType::COMMA)
-						{
-							if (tokens->empty() || file_tokens.front().type == TokenType::EOL) ThrowException("Empty instruction parameter", token);
-
-							instruction.args.push_back({});
-							tokens = &instruction.args.back();
-						}
-						else
-						{
-							tokens->push_back(token);
-						}
-					} while (TryConsumeFront(file_tokens, token));
-				}
-
-
-				OpReplace* op = nullptr;
-
-				unordered_set<OpReplace*> used_replacements = {};
-
-				// Replace instruction with preprocessor instruction
-				do {
-					op = nullptr;
-					for (auto scope_it = func_scopes.rbegin(); scope_it != func_scopes.rend(); scope_it++) {
-						for (auto& op_it : *scope_it) {
-							if (op_it.op != instruction.code.token) continue;
-							if (op_it.requiredArgs == -1) {
-								if (op == nullptr) op = &op_it;
-								continue;
+			else if (token.type == TokenType::TEXT)
+			{
+				if (!IsUpper(token.token) || //ThrowException("Invalid characters in instruction code", token);
+					(
+						std::find_if(definitions.begin(), definitions.end(),
+							[token](const std::pair<const std::string, InstructionDefinition>& def) -> bool {
+								return def.first == token.token ||
+									("N" + def.first == token.token && def.second.allow_N) ||
+									(def.first + "S" == token.token && def.second.allow_S) ||
+									("N" + def.first + "S" == token.token && def.second.allow_N && def.second.allow_S );
 							}
-							if (op_it.requiredArgs != instruction.args.size()) continue;
+						) == definitions.end() &&
+						std::find_if(func_scopes.rbegin(), func_scopes.rend(), 
+							[token](std::list<OpReplace>& l) -> bool {
+								return std::find_if(l.begin(), l.end(), [token](OpReplace& op) -> bool {
+									return op.op == token.token || "N" + op.op == token.token || op.op + "S" == token.token || "N" + op.op + "S" == token.token;
+								}) != l.end();
+							}) == func_scopes.rend()
+						)
+					)
+				{
+					if (( *current_address ) & 3) ThrowException("Label word not aligned", token);
+					if (data_start == program_start) data_start = *current_address + memory_start;
 
-							op = &op_it;
-							break;
-						}
-						if (op == nullptr) continue;
-						if (op->requiredArgs != instruction.args.size()) continue;
+					auto it = label_scopes.rbegin();
+
+					for (; it != label_scopes.rend(); it++)
+					{
+						if (!it->contains(token.token)) continue;
+
+						memory[(*current_address) >> 2] = it->at(token.token);
 						break;
 					}
 
-					if (op == nullptr) break;
-
-					if (used_replacements.contains(op)) ThrowException("This function is recursive", token);
-					instruction.code.token = op->newop; // Replace instruction name
-					used_replacements.insert(op);
-
-					if (op->has_cond) { // Replace condition
-						if (instruction.has_cond) ThrowException("Function overwrites condition", token);
-						instruction.cond = op->new_cond;
-						instruction.has_cond = true;
+					if (it == label_scopes.rend())
+					{
+						pending_memory_labels.back().push_back(
+							{
+								memory + (( *current_address ) >> 2),
+								token
+							}
+						);
 					}
 
-					if (op->has_shift) {
-						if (instruction.has_shift) ThrowException("Function overwrites shift", token);
-						instruction.shift = op->new_shift;
-						instruction.has_shift = true;
+					*current_address += 4;
+					data_end = *current_address + memory_start;
+				}
+				else // This is an instruction
+				{
+					if (( *current_address ) & 3) ThrowException("Instruction not aligned", token);
+
+					assemblyLines.push_back({
+						_current_line,
+						memory_start + *current_address,
+						memory + ( ( *current_address ) >> 2 ),
+						token
+						});
+					AssemblyLine& instruction = assemblyLines.back();
+					if (instruction.code.token.length() == 0) ThrowException("Instruction name is empty", token);
+
+					if (instruction.code.token == "N") ThrowException("Instruction is only N flag", token);
+					if (instruction.code.token == "S") ThrowException("Instruction is only S flag", token);
+					if (instruction.code.token == "NS") ThrowException("Instruction is only flags", token);
+
+					if (instruction.code.token.front() == 'N')
+					{
+						instruction.code.token = instruction.code.token.substr(1);
+						instruction.N = true;
 					}
 
-					vector<token_list> old_args = {};
-					old_args.insert(old_args.begin(), instruction.args.begin(), instruction.args.end());
+					if (instruction.code.token.back() == 'S')
+					{
+						instruction.code.token = instruction.code.token.substr(0, instruction.code.token.length() - 1);
+						instruction.S = true;
+					}
 
-					instruction.args = {};
+					instruction.has_cond = GetCond(file_tokens, instruction.cond);
+					instruction.has_shift = GetShift(file_tokens, instruction.shift);
 
-					token_list op_tokens = op->tokens;
-					total_variables_replaced += ResolveVariables(op_tokens);
-					SplitSquareBrackets(op_tokens);
-					ResolveRegLists(op_tokens);
+					total_variables_replaced += ResolveVariables(file_tokens);
+					SplitSquareBrackets(file_tokens);
+					ResolveRegLists(file_tokens);
 
-					if (op_tokens.empty()) continue;
+					if (TryConsumeFront(file_tokens, token))
+					{
+						instruction.args.push_back({});
+						token_list* tokens = &instruction.args.back();
 
-					instruction.args.push_back({});
-					token_list* tokens = &instruction.args.back();
-					do {
-						if (op_tokens.front().type == TokenType::COMMA) {
-							op_tokens.pop_front(); // Erase ','
+						do
+						{
+							if (token.type == TokenType::COMMA)
+							{
+								if (tokens->empty() || file_tokens.front().type == TokenType::EOL) ThrowException("Empty instruction parameter", token);
 
-							if (tokens->empty() || op_tokens.empty()) ThrowException("Function parameter resolved as empty", token);
+								instruction.args.push_back({});
+								tokens = &instruction.args.back();
+							}
+							else
+							{
+								tokens->push_back(token);
+							}
+						} while (TryConsumeFront(file_tokens, token));
+					}
 
-							instruction.args.push_back({});
-							tokens = &instruction.args.back();
-						}
-						else {
-							tokens->push_back(op_tokens.front());
-							op_tokens.pop_front();
-						}
-					} while (!op_tokens.empty());
 
-					if (op->requiredArgs > 0) {
-						for (auto& a : instruction.args) {
-							auto b_it = a.begin();
-							while (TryGet(a, b_it, token)) {
-								if (token.type != TokenType::MARKER_FUNCTION) {
-									b_it++;
+					OpReplace* op = nullptr;
+
+					unordered_set<OpReplace*> used_replacements = {};
+
+					// Replace instruction with preprocessor instruction
+					do
+					{
+						op = nullptr;
+						for (auto scope_it = func_scopes.rbegin(); scope_it != func_scopes.rend(); scope_it++)
+						{
+							for (auto& op_it : *scope_it)
+							{
+								if (op_it.op != instruction.code.token) continue;
+								if (op_it.requiredArgs == -1)
+								{
+									if (op == nullptr) op = &op_it;
 									continue;
 								}
+								if (op_it.requiredArgs != instruction.args.size()) continue;
 
-								b_it = a.erase(b_it);  // Erase '@'
-								int arg_num = stoi(b_it->token); // String was verified as numeric earlier
-								b_it = a.erase(b_it);  // Erase number
-								a.insert(b_it, old_args[arg_num].begin(), old_args[arg_num].end()); // Number was verified as in range earlier
+								op = &op_it;
+								break;
 							}
-						}
-					}
-					else if (op->requiredArgs == -1) {
-						auto a_it = instruction.args.begin();
-						while (a_it != instruction.args.end()) {
-							token_list arg = {};
-							arg.splice(arg.begin(), *a_it);
-							auto b_it = arg.begin();
-							while (TryConsume(arg, b_it, token)) {
-								if (token.type != TokenType::VARGS){
-									a_it->push_back(token);
-									continue;
-								}
-
-								if (old_args.empty()) continue;
-
-								auto c_it = old_args.begin();
-								a_it->insert(a_it->end(), c_it->begin(), c_it->end());
-								c_it++;
-
-								while (c_it != old_args.end()) {
-									a_it++;
-									a_it = instruction.args.insert(a_it, *c_it);
-									c_it++;
-								}
-							}
-							if (a_it->empty()) ThrowException("Function parameter resolved as empty",token);
-							a_it++;
-						}
-					}
-				} while (op != nullptr);
-
-				if (instruction.has_cond) {
-					if (cond_scopes.back().has_cond) ThrowException("Instruction overwrites the scope condition",token);
-				}
-				else {
-					instruction.cond = cond_scopes.back().cond;
-					instruction.has_cond = cond_scopes.back().has_cond;
-				}
-
-				for (auto& a : instruction.args) {
-					if (a.empty()) ThrowException("Argument cannot be empty",token);
-
-					if (a.front().type == TokenType::LSHIFT || a.front().type == TokenType::RSHIFT) ThrowException("Expected '" + a.front().token + "' to follow a value", a.front());
-					if (a.back().type == TokenType::LSHIFT || a.back().type == TokenType::RSHIFT || a.back().type == TokenType::MINUS || a.back().type == TokenType::MARKER_RELATIVE) ThrowException("Expected '" + a.front().token + "' to follow a value", a.back());
-
-					for (auto& t : a) {
-						if (
-							t.type == TokenType::LSHIFT ||
-							t.type == TokenType::RSHIFT ||
-							t.type == TokenType::MINUS ||
-							t.type == TokenType::MARKER_RELATIVE ||
-							t.type == TokenType::INTEGER ||
-							(t.type == TokenType::TEXT && IsReg(t.token))
-						) {
-							continue;
-						}
-						if (t.type != TokenType::TEXT) ThrowException("Unexpected token '" + t.token + "' in argument", t);
-
-						pendingLabels.back().push_back(&t);
-
-						for (auto it = label_scopes.rbegin(); it != label_scopes.rend(); it++) {
-							if (!it->contains(t.token)) continue;
-
-							t.token = to_string((*it)[t.token]);
-							t.type = TokenType::INTEGER;
-							pendingLabels.back().pop_back();
+							if (op == nullptr) continue;
+							if (op->requiredArgs != instruction.args.size()) continue;
 							break;
 						}
-					}
-				}
 
-				*current_address += 4;
-				program_end = *current_address + memory_start;
+						if (op == nullptr) break;
+
+						if (used_replacements.contains(op)) ThrowException("This function is recursive", token);
+						instruction.code.token = op->newop; // Replace instruction name
+						used_replacements.insert(op);
+
+						if (op->has_cond)
+						{ // Replace condition
+							if (instruction.has_cond) ThrowException("Function overwrites condition", token);
+							instruction.cond = op->new_cond;
+							instruction.has_cond = true;
+						}
+
+						if (op->has_shift)
+						{
+							if (instruction.has_shift) ThrowException("Function overwrites shift", token);
+							instruction.shift = op->new_shift;
+							instruction.has_shift = true;
+						}
+
+						vector<token_list> old_args = {};
+						old_args.insert(old_args.begin(), instruction.args.begin(), instruction.args.end());
+
+						instruction.args = {};
+
+						token_list op_tokens = op->tokens;
+						total_variables_replaced += ResolveVariables(op_tokens);
+						SplitSquareBrackets(op_tokens);
+						ResolveRegLists(op_tokens);
+
+						if (op_tokens.empty()) continue;
+
+						instruction.args.push_back({});
+						token_list* tokens = &instruction.args.back();
+						do
+						{
+							if (op_tokens.front().type == TokenType::COMMA)
+							{
+								op_tokens.pop_front(); // Erase ','
+
+								if (tokens->empty() || op_tokens.empty()) ThrowException("Function parameter resolved as empty", token);
+
+								instruction.args.push_back({});
+								tokens = &instruction.args.back();
+							}
+							else
+							{
+								tokens->push_back(op_tokens.front());
+								op_tokens.pop_front();
+							}
+						} while (!op_tokens.empty());
+
+						if (op->requiredArgs > 0)
+						{
+							for (auto& a : instruction.args)
+							{
+								auto b_it = a.begin();
+								while (TryGet(a, b_it, token))
+								{
+									if (token.type != TokenType::MARKER_FUNCTION)
+									{
+										b_it++;
+										continue;
+									}
+
+									b_it = a.erase(b_it);  // Erase '@'
+									int arg_num = stoi(b_it->token); // String was verified as numeric earlier
+									b_it = a.erase(b_it);  // Erase number
+									a.insert(b_it, old_args[arg_num].begin(), old_args[arg_num].end()); // Number was verified as in range earlier
+								}
+							}
+						}
+						else if (op->requiredArgs == -1)
+						{
+							auto a_it = instruction.args.begin();
+							while (a_it != instruction.args.end())
+							{
+								token_list arg = {};
+								arg.splice(arg.begin(), *a_it);
+								auto b_it = arg.begin();
+								while (TryConsume(arg, b_it, token))
+								{
+									if (token.type != TokenType::VARGS)
+									{
+										a_it->push_back(token);
+										continue;
+									}
+
+									if (old_args.empty()) continue;
+
+									auto c_it = old_args.begin();
+									a_it->insert(a_it->end(), c_it->begin(), c_it->end());
+									c_it++;
+
+									while (c_it != old_args.end())
+									{
+										a_it++;
+										a_it = instruction.args.insert(a_it, *c_it);
+										c_it++;
+									}
+								}
+								if (a_it->empty()) ThrowException("Function parameter resolved as empty", token);
+								a_it++;
+							}
+						}
+					} while (op != nullptr);
+
+					if (instruction.has_cond)
+					{
+						if (cond_scopes.back().has_cond) ThrowException("Instruction overwrites the scope condition", token);
+					}
+					else
+					{
+						instruction.cond = cond_scopes.back().cond;
+						instruction.has_cond = cond_scopes.back().has_cond;
+					}
+
+					for (auto& a : instruction.args)
+					{
+						if (a.empty()) ThrowException("Argument cannot be empty", token);
+
+						if (a.front().type == TokenType::LSHIFT || a.front().type == TokenType::RSHIFT) ThrowException("Expected '" + a.front().token + "' to follow a value", a.front());
+						if (a.back().type == TokenType::LSHIFT || a.back().type == TokenType::RSHIFT || a.back().type == TokenType::MINUS || a.back().type == TokenType::MARKER_RELATIVE) ThrowException("Expected '" + a.front().token + "' to follow a value", a.back());
+
+						for (auto& t : a)
+						{
+							if (
+								t.type == TokenType::LSHIFT ||
+								t.type == TokenType::RSHIFT ||
+								t.type == TokenType::MINUS ||
+								t.type == TokenType::MARKER_RELATIVE ||
+								t.type == TokenType::INTEGER ||
+								( t.type == TokenType::TEXT && IsReg(t.token) )
+								)
+							{
+								continue;
+							}
+							if (t.type != TokenType::TEXT) ThrowException("Unexpected token '" + t.token + "' in argument", t);
+
+							pendingLabels.back().push_back(&t);
+
+							for (auto it = label_scopes.rbegin(); it != label_scopes.rend(); it++)
+							{
+								if (!it->contains(t.token)) continue;
+
+								t.token = to_string(( *it )[t.token]);
+								t.type = TokenType::INTEGER;
+								pendingLabels.back().pop_back();
+								break;
+							}
+						}
+					}
+
+					*current_address += 4;
+					program_end = *current_address + memory_start;
+				}
 			}
-			else ThrowException("Unregognised token", token);
+			else ThrowException("Unrecognised token", token);
 		}
 
 		if (!file_tokens.empty()) ThrowException("Unexpected token/s in file", file_tokens.front());
@@ -1635,8 +1844,10 @@ namespace SimpleRISC {
 			ThrowException("Did not close every function scope", { TokenType::EOL,{file_contents.end(),file_contents.end()},"", _current_line.line.length(), _current_line.line_no });
 		}
 
-		if (!pendingLabels.front().empty()) {
-			string err = "Could not resolve all labels (";
+		if (!pendingLabels.front().empty())
+		{
+			ThrowException("Could not resolve label", *pendingLabels.front().front());
+			/*string err = "Could not resolve all labels (";
 			unordered_set<string> labels;
 			for (auto& label : pendingLabels.front()) {
 				labels.insert(label->token);
@@ -1648,7 +1859,12 @@ namespace SimpleRISC {
 				err += ", ";
 			}
 			err += ")";
-			ThrowException(err, { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line.length(),_current_line.line_no});
+			ThrowException(err, { TokenType::EOL,{file_contents.end(),file_contents.end()},"",_current_line.line.length(),_current_line.line_no});*/
+		}
+
+		if (!pending_memory_labels.front().empty())
+		{
+			ThrowException("Could not resolve label", pending_memory_labels.front().front().token);
 		}
 
 		if (print_intermediate) {
@@ -1661,96 +1877,16 @@ namespace SimpleRISC {
 					}
 					if (&a != &(l.args.back())) printf(", ");
 				}
-				if (l.has_cond) printf(" ?%s", condNamesRegular[l.cond].c_str());
+				if (l.has_cond) printf(" ?%s", condNamesRegular[l.cond]);
 				printf("\n");
 			}
 			printf("\n");
 		}
 
-		enum pack {
-			None,
-			BranchOffset,
-			Reg3,
-			Flex3,
-			Flex3i,
-			Flex2,
-			Flex2i,
-			Reg2,
-			Reg2ns,
-			RegList
-		};
-
-		struct InstructionDefinition {
-			word code = 0;
-			pack packing = None;
-			bool allow_N = false;
-			bool allow_S = false;
-			bool allow_shift = true;
-		};
-
-		static const unordered_map<pack, size_t> pack_args = {
-			{None, 0},
-			{BranchOffset, 1},
-			{RegList, 2},
-			{Reg2, 2},
-			{Flex2, 2},
-			{Flex2i, 2},
-			{Flex3, 3},
-			{Flex3i, 3},
-			{Reg3, 3},
-		};
-
-		static const unordered_map<string, InstructionDefinition> definitions
-		{
-			//        N1ppppSi   ,   .   ,   .   ,
-			{"ADD",{0b0100000000000000000000000000, Flex3i,  true,  true  }},
-			{"SUB",{0b0100010000000000000000000000, Flex3i,  true,  true  }},
-			{"ADC",{0b0100100000000000000000000000, Flex3,   true,  true  }},
-			{"SBB",{0b0100110000000000000000000000, Flex3,   true,  true  }},
-			{"ASL",{0b0101000000000000000000000000, Flex3,   true,  true  }},
-			{"ASR",{0b0101010000000000000000000000, Flex3,   true,  true  }},
-			{"CMP",{0b0101100000000000000000000000, Flex2i,  true,  false }},
-			{"CMN",{0b0101110000000000000000000000, Flex2i,  true,  false }},
-
-			{"ORR",{0b0110000000000000000000000000, Flex3,   true,  true  }},
-			{"AND",{0b0110010000000000000000000000, Flex3,   true,  true  }},
-			{"XOR",{0b0110100000000000000000000000, Flex3,   true,  true  }},
-			{"TST",{0b0110110000000000000000000000, Flex2,   true         }},
-			{"LSL",{0b0111000000000000000000000000, Flex3,   true,  true  }},
-			{"LSR",{0b0111010000000000000000000000, Flex3,   true,  true  }},
-			{"MOV",{0b0111100000000000000000000000, Flex2i,  true,  true  }},
-			{"INV",{0b0111110000000000000000000000, Flex2i,  true,  true  }},
-			//        N01L   .   ,   .   ,   .   ,
-			{"B"  ,{0b0010000000000000000000000000, BranchOffset          }},
-			{"BL" ,{0b0011000000000000000000000000, BranchOffset          }},
-			{"RFE",{0b1010000000000000000000000000, None                  }},
-			{"RET",{0b1011000000000000000000000000, None                  }},
-			//        N0011BWx   ,   .   ,   .   ,
-			{"RRW",{0b0001100000000000000000000000, Flex3,   true         }},
-			{"RWW",{0b0001101000000000000000000000, Flex3,   true         }},
-			{"RRB",{0b0001110000000000000000000000, Flex3,   true         }},
-			{"RWB",{0b0001111000000000000000000000, Flex3,   true         }},
-			//        N00101Wx   ,   .   ,   .   ,
-			{"SRR",{0b0001010000000000000000000000, RegList, true         }},
-			{"SWR",{0b0001011000000000000000000000, RegList, true         }},
-			//        N00100px   ,   .   ,   .   ,
-			{"MVM",{0b0001000000000000000000000000, RegList, true         }},
-			{"SWP",{0b0001001000000000000000000000, Reg2,    true         }},
-			//         N0001ppp   ,   .   ,   .   ,
-			{"ADDF",{0b0000100000000000000000000000, Reg3,   true,  false, false  }},
-			{"SUBF",{0b0000100100000000000000000000, Reg3,   true,  false, false  }},
-			{"MULF",{0b0000101000000000000000000000, Reg3,   true,  false, false  }},
-			{"DIVF",{0b0000101100000000000000000000, Reg3,   true,  false, false  }},
-			{"ITOF",{0b0000110000000000000000000000, Reg2,   true,  false, false  }},
-			{"FTOI",{0b0000110100000000000000000000, Reg2,   true,  false, false  }},
-			{"CMPF",{0b0000111000000000000000000000, Reg2,   true,  false, false  }},
-			{"CMPFI",{0b0000111100000000000000000000,Reg2,   true,  false, false  }},
-		};
-
 		for (auto& l : assemblyLines) {
 			_current_line = l.rline;
 			ResolveRelatives(l);
-			if (!definitions.contains(l.code.token)) ThrowException("Unknown instruction '" + l.code.token + "'",l.code);
+			//if (!definitions.contains(l.code.token)) ThrowException("Unknown instruction '" + l.code.token + "'",l.code);
 
 			InstructionDefinition def = definitions.at(l.code.token);
 
