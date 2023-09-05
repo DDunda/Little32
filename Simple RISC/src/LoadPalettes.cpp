@@ -1,4 +1,4 @@
-#include <image.hpp>
+#include <SDL_image.hpp>
 
 #include "LoadPalettes.h"
 
