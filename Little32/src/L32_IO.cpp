@@ -121,7 +121,7 @@ namespace Little32
 
 		if (palette_image.surface->format->format != (Uint32)SDL::PixelFormatEnum::RGBA32)
 		{
-			palette_image = palette_image.ConvertSurfaceFormat((Uint32)SDL::PixelFormatEnum::RGBA32, 0);
+			palette_image = palette_image.ConvertSurfaceFormat((Uint32)SDL::PixelFormatEnum::RGBA32);
 		}
 
 		const bool is_locked = palette_image.MustLock();
