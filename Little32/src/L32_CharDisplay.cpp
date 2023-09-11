@@ -132,7 +132,7 @@ namespace Little32
 			for (int x = 0; x < textSize.w; x++)
 			{
 				byte c = _ReadByteUnsafe(i++);
-				r.Copy(txt, { SDL::Point(c % span, c / span) * charSize, charSize }, { SDL::Point(x, y) * dstCharSize, dstCharSize });
+				txt.Copy({ SDL::Point(c % span, c / span) * charSize, charSize }, { SDL::Point(x, y) * dstCharSize, dstCharSize });
 			}
 		}
 		if (interrupt_address != 0 && do_interrupt)

@@ -10,15 +10,19 @@
 using namespace SDL;
 using namespace Little32;
 
-constexpr Colour neutral_colour(255, 106, 0, 255);
-constexpr Colour hover_colour(242, 96, 0, 255);
-constexpr Colour click_colour(216, 86, 0, 255);
+constexpr Colour neutral_colour(255, 106,   0, 255);
+constexpr Colour hover_colour  (242,  96,   0, 255);
+constexpr Colour click_colour  (216,  86,   0, 255);
 
-constexpr Point scale{ 4,4 };
-constexpr Point text_size{ 16,16 };
-constexpr Point char_size{ 8,8 };
+constexpr Point scale { 4,4 };
+constexpr Point text_size { 16,16 };
+constexpr Point char_size { 8,8 };
 
-constexpr Rect button_area = { { 0, text_size.y * char_size.y * scale.y }, { text_size.x * char_size.x * scale.x, 80 } };
+constexpr Rect button_area
+{
+	{ 0, text_size.y * char_size.y * scale.y },
+	{ text_size.x * char_size.x * scale.x, 80 }
+};
 
 constexpr word default_frame_delay = 16;
 constexpr word default_clock_count = 1000;
@@ -45,15 +49,16 @@ void Program(int argc, char* argv[])
 	std::vector<std::array<Colour, 16>> palettes = {};
 	LoadPalettes(palettes, "assets/palette.png");
 
-	GUIButtonGroup buttons {
+	GUIButtonGroup buttons
+	{
 		{
 			{
 				Button::LEFT,
 				wID,
-				Rect(
+				{
 					button_area.pos,
 					Point(lround((button_area.w * 1) / 5.f), button_area.h)
-				),
+				},
 				neutral_colour,
 				hover_colour,
 				click_colour
@@ -61,10 +66,10 @@ void Program(int argc, char* argv[])
 			{
 				Button::LEFT,
 				wID,
-				Rect(
+				{
 					button_area.pos + Point(lround((button_area.w * 1) / 5.f), 0),
 					Point(lround((button_area.w * 2) / 5.f) - lround((button_area.w * 1) / 5.f), button_area.h)
-				),
+				},
 				neutral_colour,
 				hover_colour,
 				click_colour
@@ -72,10 +77,10 @@ void Program(int argc, char* argv[])
 			{
 				Button::LEFT,
 				wID,
-				Rect(
+				{
 					button_area.pos + Point(lround(( button_area.w * 2 ) / 5.f), 0),
 					Point(lround(( button_area.w * 3 ) / 5.f) - lround(( button_area.w * 2 ) / 5.f), button_area.h)
-				),
+				},
 				neutral_colour,
 				hover_colour,
 				click_colour
@@ -83,10 +88,10 @@ void Program(int argc, char* argv[])
 			{
 				Button::LEFT,
 				wID,
-				Rect(
+				{
 					button_area.pos + Point(lround(( button_area.w * 3 ) / 5.f),0),
 					Point(lround(( button_area.w * 4 ) / 5.f) - lround(( button_area.w * 3 ) / 5.f), button_area.h)
-				),
+				},
 				neutral_colour,
 				hover_colour,
 				click_colour
@@ -94,10 +99,10 @@ void Program(int argc, char* argv[])
 			{
 				Button::LEFT,
 				wID,
-				Rect(
+				{
 					button_area.pos + Point(lround((button_area.w * 4) / 5.f), 0),
 					Point(lround((button_area.w * 5) / 5.f) - lround((button_area.w * 4) / 5.f), button_area.h)
-				),
+				},
 				neutral_colour,
 				hover_colour,
 				click_colour
@@ -109,16 +114,18 @@ void Program(int argc, char* argv[])
 
 	constexpr float multiple = 0.7f;
 
-	std::map<const char* const, SDL::Texture> textures {
-		{ "reload", IMG::LoadTexture(r, "assets/buttons/reload.png") },
-		{ "play", IMG::LoadTexture(r, "assets/buttons/play.png") },
-		{ "pause", IMG::LoadTexture(r, "assets/buttons/pause.png") },
-		{ "step", IMG::LoadTexture(r, "assets/buttons/step.png") },
+	std::map<const char* const, SDL::Texture> textures
+	{
+		{ "reload",  IMG::LoadTexture(r, "assets/buttons/reload.png" ) },
+		{ "play",    IMG::LoadTexture(r, "assets/buttons/play.png"   ) },
+		{ "pause",   IMG::LoadTexture(r, "assets/buttons/pause.png"  ) },
+		{ "step",    IMG::LoadTexture(r, "assets/buttons/step.png"   ) },
 		{ "palette", IMG::LoadTexture(r, "assets/buttons/palette.png") },
-		{ "folder", IMG::LoadTexture(r, "assets/buttons/folder.png") },
+		{ "folder",  IMG::LoadTexture(r, "assets/buttons/folder.png" ) },
 	};
 
-	SpriteGroup sprites {
+	SpriteGroup sprites
+	{
 		{
 			{
 				textures["reload"],
@@ -166,7 +173,7 @@ void Program(int argc, char* argv[])
 					buttons.buttons[3].area.h * multiple
 				}
 			}, // Palette
-			Sprite(
+			{
 				textures["folder"],
 				{
 					buttons.buttons[4].area.x + (buttons.buttons[4].area.w - buttons.buttons[4].area.h * multiple) / 2.f,
@@ -174,7 +181,7 @@ void Program(int argc, char* argv[])
 					buttons.buttons[4].area.h * multiple,
 					buttons.buttons[4].area.h * multiple
 				}
-			) // Folder
+			} // Folder
 		}
 	};
 
@@ -188,7 +195,8 @@ void Program(int argc, char* argv[])
 
 	address += ram.GetRange();
 
-	ColourCharDisplay cram(
+	ColourCharDisplay cram
+	(
 		computer,
 		r,
 		char_set,
@@ -204,7 +212,8 @@ void Program(int argc, char* argv[])
 
 	address += cram.GetRange();
 
-	KeyboardDevice keyboard(
+	KeyboardDevice keyboard
+	(
 		computer,
 		address
 	);
@@ -234,12 +243,14 @@ void Program(int argc, char* argv[])
 	computer.start_SP = ram.address_start + ram.address_size;
 	computer.SoftReset();
 
-	Listener<const Event&> quitter(
+	Listener<const Event&> quitter
+	(
 		[&](const Event& e) { running = false; },
 		Input::GetTypedEventSubject(Event::Type::QUIT)
 	);
 
-	Listener<const Point, const Uint32> reloader(
+	Listener<const Point, const Uint32> reloader
+	(
 		[&](const Point, const Uint32)
 		{
 			if (!file_provided) return;
@@ -248,11 +259,11 @@ void Program(int argc, char* argv[])
 			assembler.SetRAM(ram);
 			assembler.FlushScopes();
 
-			assembler.entry_point = Little32Assembler::NULL_ADDRESS;
+			assembler.entry_point   = Little32Assembler::NULL_ADDRESS;
 			assembler.program_start = Little32Assembler::NULL_ADDRESS;
-			assembler.program_end = Little32Assembler::NULL_ADDRESS;
-			assembler.data_start = Little32Assembler::NULL_ADDRESS;
-			assembler.data_end = Little32Assembler::NULL_ADDRESS;
+			assembler.program_end   = Little32Assembler::NULL_ADDRESS;
+			assembler.data_start    = Little32Assembler::NULL_ADDRESS;
+			assembler.data_end      = Little32Assembler::NULL_ADDRESS;
 
 			std::ifstream program;
 
@@ -320,7 +331,8 @@ void Program(int argc, char* argv[])
 		buttons.buttons[0]
 	);
 
-	Listener<const Point, const Uint32> pause_toggler(
+	Listener<const Point, const Uint32> pause_toggler
+	(
 		[&](const Point, const Uint32)
 		{
 			manually_clocked = !manually_clocked;
@@ -331,7 +343,8 @@ void Program(int argc, char* argv[])
 		buttons.buttons[1]
 	);
 
-	Listener<const Point, const Uint32> stepper(
+	Listener<const Point, const Uint32> stepper
+	(
 		[&](const Point, const Uint32)
 		{
 			printf("PC: 0x%08X  SP: 0x%08X  LR: 0x%08X\n", core.PC, core.SP, core.LR);
@@ -355,7 +368,8 @@ void Program(int argc, char* argv[])
 		buttons.buttons[2]
 	);
 
-	Listener<const Point, const Uint32> palette_swapper(
+	Listener<const Point, const Uint32> palette_swapper
+	(
 		[&](const Point, const Uint32)
 		{
 			selected_palette = ( selected_palette + 1 ) % palettes.size();
@@ -365,7 +379,8 @@ void Program(int argc, char* argv[])
 		buttons.buttons[3]
 	);
 
-	Listener<const Point, const Uint32> file_picker(
+	Listener<const Point, const Uint32> file_picker
+	(
 		[&](const Point, const Uint32)
 		{
 			std::wstring file_name;
@@ -375,11 +390,11 @@ void Program(int argc, char* argv[])
 			assembler.SetRAM(ram);
 			assembler.FlushScopes();
 
-			assembler.entry_point = Little32Assembler::NULL_ADDRESS;
+			assembler.entry_point   = Little32Assembler::NULL_ADDRESS;
 			assembler.program_start = Little32Assembler::NULL_ADDRESS;
-			assembler.program_end = Little32Assembler::NULL_ADDRESS;
-			assembler.data_start = Little32Assembler::NULL_ADDRESS;
-			assembler.data_end = Little32Assembler::NULL_ADDRESS;
+			assembler.program_end   = Little32Assembler::NULL_ADDRESS;
+			assembler.data_start    = Little32Assembler::NULL_ADDRESS;
+			assembler.data_end      = Little32Assembler::NULL_ADDRESS;
 
 			std::ifstream program;
 			auto new_file_path = std::filesystem::path(file_name);
@@ -462,7 +477,7 @@ void Program(int argc, char* argv[])
 		Input::Update();
 
 		buttons.Render(r);
-		sprites.Render(r);
+		sprites.Render();
 		
 		if (!manually_clocked)
 		{

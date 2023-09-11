@@ -13,9 +13,6 @@
     <ClCompile Include="$(SDLpp)\src\rect.cpp">
       <Filter>SDL++</Filter>
     </ClCompile>
-    <ClCompile Include="$(SDLpp)\src\render.cpp">
-      <Filter>SDL++</Filter>
-    </ClCompile>
     <ClCompile Include="src\L32_CharDisplay.cpp">
       <Filter>Source</Filter>
     </ClCompile>

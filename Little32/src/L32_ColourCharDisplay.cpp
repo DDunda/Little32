@@ -226,10 +226,11 @@ namespace Little32
 
 				SDL::Rect target = { SDL::Point(x, y) * dst_char_size, dst_char_size };
 
-				r.SetDrawColour(bg).FillRect(target);
+				r.SetDrawColour(bg);
+				r.FillRect(target);
 
 				txt.SetColourMod(fg.r, fg.g, fg.b);
-				r.Copy(txt, { SDL::Point(c % span, c / span) * char_size, char_size }, target);
+				txt.Copy({ SDL::Point(c % span, c / span) * char_size, char_size }, target);
 			}
 		}
 

@@ -166,7 +166,6 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="$(SDLpp)\src\mouse.cpp" />
     <ClCompile Include="$(SDLpp)\src\pixels.cpp" />
     <ClCompile Include="$(SDLpp)\src\rect.cpp" />
-    <ClCompile Include="$(SDLpp)\src\render.cpp" />
     <ClCompile Include="src\L32_CharDisplay.cpp" />
     <ClCompile Include="src\L32_ColourCharDisplay.cpp" />
     <ClCompile Include="src\L32_Computer.cpp" />

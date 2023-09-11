@@ -7,6 +7,7 @@
 #include <istream>
 #include <pixels.hpp>
 #include <string>
+#include <vector>
 
 // We don't want to inherit the min and max macros from windows, it screws up SDL++
 #ifndef NOMINMAX
