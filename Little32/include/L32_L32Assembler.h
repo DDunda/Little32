@@ -2,6 +2,7 @@
 #define L32_L32Assembler_h_
 #pragma once
 
+#include <filesystem>
 #include <istream>
 #include <list>
 #include <string>
@@ -194,6 +195,9 @@ namespace Little32
 		word data_start = NULL_ADDRESS;
 		word data_end = NULL_ADDRESS;
 
+		word* cur_start = nullptr;
+		word* cur_end = nullptr;
+
 		static constexpr const char valid_text_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 		void SetRAM(const RAM& ram);
@@ -239,8 +243,8 @@ namespace Little32
 
 		void FlushScopes() noexcept;
 		
-		void Assemble(const std::string_view code, bool print_intermediate = false);
-		void Assemble(std::istream& code, bool print_intermediate = false);
+		void Assemble(const std::filesystem::path file_path, std::string_view file_contents, bool print_intermediate = false);
+		void Assemble(const std::filesystem::path file_path, std::istream& code, bool print_intermediate = false);
 
 	protected:
 		struct OpReplace
@@ -330,11 +334,11 @@ namespace Little32
 		bool GetShift(TokenList& l, byte& shift) const;
 		word GetBranchOffset(TokenList& l, const word shift, bool& isNegative) const;
 
-		inline std::list<AssemblyLine> ParseTokens(TokenList& tokens);
+		inline std::list<AssemblyLine> ParseTokens(const std::filesystem::path working_dir, TokenList& tokens, bool print_intermediate);
 		inline void ParseFunction(TokenList& tokens);
 		inline void ParseVariable(TokenList& tokens);
 		inline void ParseInstruction(TokenList& tokens, std::list<AssemblyLine>& assembly_lines, std::list<std::list<Token*>>& pending_labels);
-		inline void ParsePreprocessor(TokenList& tokens, bool& terminate_mode, bool& byte_mode);
+		inline void ParsePreprocessor(const std::filesystem::path working_dir, TokenList& tokens, bool& terminate_mode, bool& byte_mode, bool print_intermediate);
 		size_t ConvertNumbers(TokenList& tokens) const;
 		size_t SplitSquareBrackets(TokenList& l) const;
 		size_t ResolveVariables(TokenList& l) const;

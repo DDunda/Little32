@@ -7,6 +7,8 @@
 
 #include <bit>
 #include <cstdint>
+#include <fstream>
+#include <iostream>
 #include <sstream>
 #include <unordered_set>
 
@@ -1013,7 +1015,7 @@ namespace Little32
 		label_scopes = { constant_addresses };
 	}
 
-	inline std::list<Little32Assembler::AssemblyLine> Little32Assembler::ParseTokens(TokenList& tokens)
+	inline std::list<Little32Assembler::AssemblyLine> Little32Assembler::ParseTokens(const std::filesystem::path working_dir, TokenList& tokens, bool print_intermediate)
 	{
 		using namespace std;
 
@@ -1125,10 +1127,16 @@ namespace Little32
 				{
 					if (*current_address & 3) ThrowException("Label word not aligned", token);
 
-					if (data_start == NO_ADDRESS)
+					if (cur_start == nullptr)
 					{
-						data_start = *current_address + memory_start;
-						data_end = data_start;
+						cur_start = &data_start;
+						cur_end = &data_end;
+					}
+
+					if (*cur_start == NO_ADDRESS)
+					{
+						*cur_start = *current_address + memory_start;
+						*cur_end = *cur_start;
 					}
 
 					tokens.pop_front();
@@ -1154,9 +1162,9 @@ namespace Little32
 
 					(*current_address) += 4;
 
-					if (*current_address + memory_start > data_end)
+					if (*current_address + memory_start > *cur_end)
 					{
-						data_end = *current_address + memory_start;
+						*cur_end = *current_address + memory_start;
 					}
 				}
 			}
@@ -1171,10 +1179,16 @@ namespace Little32
 				const bool is_negative = token.type == TokenType::MINUS;
 				const bool is_sign = is_negative || token.type == TokenType::PLUS;
 
-				if (data_start == NULL_ADDRESS)
+				if (cur_start == nullptr)
 				{
-					data_start = *current_address + memory_start;
-					data_end = data_start;
+					cur_start = &data_start;
+					cur_end = &data_end;
+				}
+
+				if (*cur_start == NULL_ADDRESS)
+				{
+					*cur_start = *current_address + memory_start;
+					*cur_end = *cur_start;
 				}
 
 				if (byte_mode)
@@ -1245,9 +1259,9 @@ namespace Little32
 					(*current_address) += 4;
 				}
 
-				if (*current_address + memory_start > data_end)
+				if (*current_address + memory_start > *cur_end)
 				{
-					data_end = *current_address + memory_start;
+					*cur_end = *current_address + memory_start;
 				}
 			}
 				break;
@@ -1256,10 +1270,16 @@ namespace Little32
 			{
 				tokens.pop_front();
 
-				if (data_start == NULL_ADDRESS)
+				if (cur_start == nullptr)
 				{
-					data_start = *current_address + memory_start;
-					data_end = data_start;
+					cur_start = &data_start;
+					cur_end = &data_end;
+				}
+
+				if (*cur_start == NULL_ADDRESS)
+				{
+					*cur_start = *current_address + memory_start;
+					*cur_end = *cur_start;
 				}
 
 				if (*current_address + token.token.size() + terminate_mode >= memory_range) ThrowException("String exceeds memory", token);
@@ -1276,15 +1296,15 @@ namespace Little32
 					(*current_address)++;
 				}
 
-				if (*current_address + memory_start > data_end)
+				if (*current_address + memory_start > *cur_end)
 				{
-					data_end = *current_address + memory_start;
+					*cur_end = *current_address + memory_start;
 				}
 			}
 				break;
 
 			case TokenType::MARKER_PREPROCESSOR: // #
-				ParsePreprocessor(tokens, terminate_mode, byte_mode);
+				ParsePreprocessor(working_dir, tokens, terminate_mode, byte_mode, print_intermediate);
 				break;
 
 			case TokenType::MARKER_FUNCTION: // @
@@ -1415,7 +1435,7 @@ namespace Little32
 				ThrowException("Unexpected token", token);
 			}
 		}
-
+		 
 		if (!label_scope_openings.empty())
 		{
 			FlushScopes();
@@ -1819,7 +1839,7 @@ namespace Little32
 		}
 	}
 
-	inline void Little32Assembler::ParsePreprocessor(TokenList& tokens, bool& terminate_mode, bool& byte_mode)
+	inline void Little32Assembler::ParsePreprocessor(const std::filesystem::path working_dir, TokenList& tokens, bool& terminate_mode, bool& byte_mode, bool print_intermediate)
 	{
 		Token token;
 		//if (!TryGetFront(tokens, token) || token.type != TokenType::MARKER_PREPROCESSOR) return;
@@ -1845,6 +1865,20 @@ namespace Little32
 		{
 			terminate_mode = true;
 		}
+		else if (token.token == "ASSEMBLE")
+		{
+			if (!TryConsumeFront(tokens, token) || token.type != TokenType::STRING) ThrowException("Expected file name", token);
+
+			auto file_path = (working_dir / token.token).lexically_normal();
+
+			std::ifstream file;
+
+			file.open(file_path);
+
+			if (!file.is_open()) ThrowException("Could not read assembly from file", token);
+
+			Assemble(file_path, file, print_intermediate);
+		}
 		else if (token.token == "BLOCK")
 		{
 			if (!TryConsumeFront(tokens, token) || token.type != TokenType::INTEGER) ThrowException("Expected block size", token);
@@ -1853,10 +1887,16 @@ namespace Little32
 			if (size == 0) ThrowException("Expected nonzero memory block", token);
 			if (*current_address + size >= memory_range) ThrowException("Block exceeds memory", token);
 
-			if (data_start == NULL_ADDRESS)
+			if (cur_start == nullptr)
 			{
-				data_start = *current_address + memory_start;
-				data_end = data_start;
+				cur_start = &data_start;
+				cur_end = &data_end;
+			}
+
+			if (*cur_start == NULL_ADDRESS)
+			{
+				*cur_start = *current_address + memory_start;
+				*cur_end = *cur_start;
 			}
 
 			for (word i = 0; i < size; i++)
@@ -1866,9 +1906,9 @@ namespace Little32
 
 			(*current_address) += size;
 
-			if (*current_address + memory_start > data_end)
+			if (*current_address + memory_start > *cur_end)
 			{
-				data_end = *current_address + memory_start;
+				*cur_end = *current_address + memory_start;
 			}
 		}
 		else if (token.token == "BYTE")
@@ -1883,6 +1923,9 @@ namespace Little32
 			{
 				data_end = *current_address + memory_start;
 			}
+
+			cur_start = &data_start;
+			cur_end = &data_end;
 		}
 		else if (token.token == "ENTRY")
 		{
@@ -1890,6 +1933,110 @@ namespace Little32
 			if ((*current_address + memory_start) % 4) ThrowException("Entry point is not word-aligned", token);
 
 			entry_point = *current_address + memory_start;
+		}
+		else if (token.token == "FILE")
+		{
+			if (cur_start == nullptr)
+			{
+				cur_start = &data_start;
+				cur_end = &data_end;
+			}
+
+			if (*cur_start == NULL_ADDRESS)
+			{
+				*cur_end = *cur_start = *current_address + memory_start;
+			}
+
+			if (*current_address & 3) ThrowException("File not word aligned", token);
+			if (!TryConsumeFront(tokens, token) || token.type != TokenType::STRING) ThrowException("Expected file name", token);
+
+			auto file_path = (working_dir / token.token).lexically_normal();
+
+			std::ifstream file;
+			file.open(file_path);
+
+			if (!file.is_open()) ThrowException("Could not read from file", token);
+
+			std::string file_contents;
+			StreamToString(file, file_contents);
+
+			if (*current_address + 5 + file_contents.length() > memory_range) ThrowException("File is too long for memory", token);
+
+			memory[*current_address >> 2] = file_contents.length();
+			*current_address += 4;
+
+			for (const char c : file_contents)
+			{
+				PutByte(memory, (*current_address)++, c);
+			}
+
+			PutByte(memory, (*current_address)++, 0);
+
+			if (*current_address + memory_start > *cur_end)
+			{
+				*cur_end = *current_address + memory_start;
+			}
+		}
+		else if (token.token == "LINES")
+		{
+			if (cur_start == nullptr)
+			{
+				cur_start = &data_start;
+				cur_end = &data_end;
+			}
+
+			if (*cur_start == NULL_ADDRESS)
+			{
+				*cur_end = *cur_start = *current_address + memory_start;
+			}
+
+			if (*current_address & 3) ThrowException("File not word aligned", token);
+			if (!TryConsumeFront(tokens, token) || token.type != TokenType::STRING) ThrowException("Expected file name", token);
+
+			auto file_path = (working_dir / token.token).lexically_normal();
+
+			std::ifstream file;
+			file.open(file_path);
+
+			if (!file.is_open()) ThrowException("Could not read lines from file", token);
+
+			std::vector<std::string> lines;
+			std::string line;
+
+			size_t total_size = 0;
+
+			while (std::getline(file, line))
+			{
+				lines.push_back(line);
+				total_size += 4; // Pointer
+				total_size += line.length() + 1; // Length of line and null terminator
+			}
+
+			if (*current_address + 4 + total_size > memory_range) ThrowException("Lines are too long for memory", token);
+
+			memory[*current_address >> 2] = lines.size();
+			*current_address += 4;
+
+			word line_ptr = *current_address + 4 * lines.size();
+
+			for (auto& l : lines)
+			{
+				memory[*current_address >> 2] = memory_start + line_ptr;
+				*current_address += 4;
+
+				for (const char c : l)
+				{
+					PutByte(memory, line_ptr++, c);
+				}
+				PutByte(memory, line_ptr++, 0);
+			}
+
+			*current_address = line_ptr;
+
+			if (*current_address + memory_start > *cur_end)
+			{
+				*cur_end = *current_address + memory_start;
+			}
 		}
 		else if (token.token == "PROGRAM")
 		{
@@ -1899,6 +2046,9 @@ namespace Little32
 			{
 				program_end = *current_address + memory_start;
 			}
+
+			cur_start = &program_start;
+			cur_end = &program_end;
 		}
 		else if (token.token == "RAM")
 		{
@@ -1924,10 +2074,15 @@ namespace Little32
 			if (size == 0) ThrowException("Expected nonzero random size", token);
 			if (*current_address + size >= memory_range) ThrowException("Random data exceeds memory", token);
 
-			if (data_start == NULL_ADDRESS)
+			if (cur_start == nullptr)
 			{
-				data_start = *current_address + memory_start;
-				data_end = data_start;
+				cur_start = &data_start;
+				cur_end = &data_end;
+			}
+
+			if (*cur_start == NULL_ADDRESS)
+			{
+				*cur_end = *cur_start = *current_address + memory_start;
 			}
 
 			word bytes = sizeof(word);
@@ -1950,9 +2105,9 @@ namespace Little32
 				size--;
 			}
 
-			if (*current_address + memory_start > data_end)
+			if (*current_address + memory_start > *cur_end)
 			{
-				data_end = *current_address + memory_start;
+				*cur_end = *current_address + memory_start;
 			}
 		}
 		else if (token.token == "ROM")
@@ -1990,17 +2145,17 @@ namespace Little32
 		else ThrowException("Preprocessor directive not recognised", token);
 	}
 
-	void Little32Assembler::Assemble(std::istream& code, bool print_intermediate)
+	void Little32Assembler::Assemble(const std::filesystem::path file_path, std::istream& code, bool print_intermediate)
 	{
 		using namespace std;
 
 		string file_contents;
 		StreamToString(code, file_contents);
 
-		Assemble(file_contents, print_intermediate);
+		Assemble(file_path, file_contents, print_intermediate);
 	}
 
-	void Little32Assembler::Assemble(std::string_view file_contents, bool print_intermediate)
+	void Little32Assembler::Assemble(const std::filesystem::path file_path, std::string_view file_contents, bool print_intermediate)
 	{
 		using namespace std;
 
@@ -2090,7 +2245,7 @@ namespace Little32
 		file_tokens.push_back({ TokenType::END_FILE, file_contents.substr(file_contents.size(),0), "", line, pos });
 
 		ConvertNumbers(file_tokens);
-		list<AssemblyLine> assembly_lines = ParseTokens(file_tokens);
+		list<AssemblyLine> assembly_lines = ParseTokens(file_path.parent_path(), file_tokens, print_intermediate);
 
 		if (print_intermediate)
 		{

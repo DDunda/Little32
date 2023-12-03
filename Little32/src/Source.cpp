@@ -277,7 +277,7 @@ void Program(int argc, char* argv[])
 
 			try
 			{
-				assembler.Assemble(program);
+				assembler.Assemble(file_path, program);
 				program.close();
 			}
 			catch (const Little32Assembler::FormatException& e)
@@ -411,7 +411,7 @@ void Program(int argc, char* argv[])
 
 			try
 			{
-				assembler.Assemble(program);
+				assembler.Assemble(file_path, program);
 				program.close();
 			}
 			catch (const Little32Assembler::FormatException& e)
@@ -499,7 +499,7 @@ void Program(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	Init();
-	IMG::Init(IMG_INIT_JPG | IMG_INIT_PNG);
+	IMG::Init(IMG::InitFlags::JPG | IMG::InitFlags::PNG);
 	Input::Init();
 
 	Program(argc, argv);

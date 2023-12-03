@@ -164,7 +164,6 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
   <ItemGroup>
     <ClCompile Include="$(SDLpp)\src\input.cpp" />
     <ClCompile Include="$(SDLpp)\src\mouse.cpp" />
-    <ClCompile Include="$(SDLpp)\src\pixels.cpp" />
     <ClCompile Include="$(SDLpp)\src\rect.cpp" />
     <ClCompile Include="src\L32_CharDisplay.cpp" />
     <ClCompile Include="src\L32_ColourCharDisplay.cpp" />
@@ -236,6 +235,12 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
       <DeploymentContent>true</DeploymentContent>
       <FileType>Script</FileType>
     </Text>
+    <Text Include="scripts\test_contents.txt">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\buttons\palette.png">
@@ -270,6 +275,15 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <Text Include="scripts\gravity.asm">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
       <FileType>Script</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="scripts\lines.asm">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
