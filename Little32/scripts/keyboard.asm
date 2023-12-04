@@ -1,11 +1,11 @@
-$clock_count 27 // Enough to call on_down a single time
-$frame_delay 125 // 8 FPS
+$clock_count = 27 // Enough to call on_down a single time
+$frame_delay = 125 // 8 FPS
 
 ${:{
 
-$keyboard R4
-$char_mem R5
-$key R6
+$keyboard = R4
+$char_mem = R5
+$key      = R6
 
 #ENTRY
 MOV $char_mem, CHAR_MEM
@@ -27,35 +27,35 @@ on_down:
 
 	MOV R1, 15
 
-	AND R0, R1, $key >> 28
+	AND R0, R1, $key ROTR 28
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem]
 
-	AND R0, R1, $key >> 24
+	AND R0, R1, $key ROTR 24
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+1]
 	
-	AND R0, R1, $key >> 20
+	AND R0, R1, $key ROTR 20
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+2]
 
-	AND R0, R1, $key >> 16
+	AND R0, R1, $key ROTR 16
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+3]
 
-	AND R0, R1, $key >> 12
+	AND R0, R1, $key ROTR 12
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+4]
 
-	AND R0, R1, $key >> 8
+	AND R0, R1, $key ROTR 8
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+5]
 
-	AND R0, R1, $key >> 4
+	AND R0, R1, $key ROTR 4
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+6]
 
-	AND R0, R1, $key >> 0
+	AND R0, R1, $key ROTR 0
 	RRB R0, [R0+chars]
 	RWB R0, [$char_mem+7]
 

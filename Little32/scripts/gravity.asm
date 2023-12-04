@@ -1,14 +1,14 @@
-$char_mem R4
-$x R5
-$y R6
-$vx R7
-$vy R8
-$px R9
-$py R10
-$g R11
+$char_mem = R4
+$x        = R5
+$y        = R6
+$vx       = R7
+$vy       = R8
+$px       = R9
+$py       = R10
+$g        = R11
 
-$frame_delay 10
-$clock_count 1600
+$frame_delay = 10
+$clock_count = 1600
 
 MOV $char_mem, CHAR_MEM
 
@@ -52,7 +52,7 @@ frame_int:
     CMP R1, 15
     BGT .skip_draw_1
 
-    MOV R2, R1 << 4
+    MOV R2, R1 ROTL 4
     ADD R2, R0
     MOV R3, 0xFA // '·'
     RWB R3, [$char_mem+R2]
@@ -91,7 +91,7 @@ repeat:
     CMP R1, 15
     BGT .skip_draw_2
 
-    MOV R2, R1 << 4
+    MOV R2, R1 ROTL 4
     ADD R2, R2, R0
     MOV R3, 0xFE // '■'
     RWB R3, [$char_mem+R2]

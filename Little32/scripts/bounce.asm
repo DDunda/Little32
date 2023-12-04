@@ -1,19 +1,19 @@
-﻿$clock_count 26 // Enough to call frame_int a single time
-$frame_delay 16 // ~60 FPS
+﻿$clock_count = 26 // Enough to call frame_int a single time
+$frame_delay = 16 // ~60 FPS
 
 ${
-$x R0
-$y R1
-$vx R2
-$vy R3
-$out R4
-$cout R5
-$box R6
-$empty R7
-$col1 R8
-$col2 R9
-$tmp R10
-$tmp2 R11
+$x     = R0
+$y     = R1
+$vx    = R2
+$vy    = R3
+$out   = R4
+$cout  = R5
+$box   = R6
+$empty = R7
+$col1  = R8
+$col2  = R9
+$tmp   = R10
+$tmp2  = R11
 
 #ENTRY
 MOV $x, 16

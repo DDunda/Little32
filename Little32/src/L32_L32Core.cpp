@@ -425,8 +425,8 @@ namespace Little32
 		using namespace std;
 
 		const byte c = ( instruction & cond_bits ) >> 28;
-		const string cond = c == 0 ? " " : string(condNamesRegular[c]) + " ";
-		const string cond2 = c == 0 ? "" : " ?" + string(condNamesRegular[c]);
+		const string cond = c == 0 ? " " : string(cond_names_regular[c]) + " ";
+		const string cond2 = c == 0 ? "" : " ?" + string(cond_names_regular[c]);
 
 		const bool negative = ( instruction & negative_bit ) != 0;
 		const bool immediate = ( instruction & immediate_bit ) != 0;
@@ -448,9 +448,9 @@ namespace Little32
 		const word   b_off_v = ( instruction & offset_bits ) * sizeof(word);
 		const string b_off = sign + to_string(b_off_v);
 
-		const string r1 = regNames[( instruction & reg1_bits ) >> 16];
-		const string r2 = regNames[( instruction & reg2_bits ) >> 12];
-		const string r3 = regNames[( instruction & reg3_bits ) >> 8];
+		const string r1 = reg_names[( instruction & reg1_bits ) >> 16];
+		const string r2 = reg_names[( instruction & reg2_bits ) >> 12];
+		const string r3 = reg_names[( instruction & reg3_bits ) >> 8];
 
 		if (instruction & arithmetic_bit) // Arithmetic
 		{

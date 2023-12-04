@@ -196,4 +196,10 @@
       <Filter>Assembly</Filter>
     </Text>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="scripts\expression.asm">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="scripts\overflow.asm" />
+  </ItemGroup>
 </Project>

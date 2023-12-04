@@ -421,6 +421,12 @@ void Program(int argc, char* argv[])
 				printf("%s\n", e.message.c_str());
 				return;
 			}
+			catch (const std::exception& e)
+			{
+				program.close();
+				printf("%s\n", e.what());
+				return;
+			}
 
 			Little32Assembler::TokenList var_out;
 

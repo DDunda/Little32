@@ -12,13 +12,13 @@ namespace Little32
 	struct Computer;
 
 	// The readable names of registers by index
-	static constexpr const char* const regNames[16] { "R0","R1","R2","R3","R4","R5","R6","R7","R8","R9","R10","R11","R12","SP","LR","PC" };
+	static constexpr const char* const reg_names[16] { "R0","R1","R2","R3","R4","R5","R6","R7","R8","R9","R10","R11","R12","SP","LR","PC" };
 	// The readable names of conditions by index
-	static constexpr const char* const condNamesRegular[16]{ "AL","GT","GE","HI","HS","EQ","MI","VS","VC","PL","NE","LO","LS","LT","LE","NV" };
+	static constexpr const char* const cond_names_regular[16]{ "AL","GT","GE","HI","HS","EQ","MI","VS","VC","PL","NE","LO","LS","LT","LE","NV" };
 	// The variant names of conditions by index
-	static constexpr const char* const condNamesVariants[16]{ "","","","","CS","ZS","NS","","","NC","ZC","CC","","","","" };
+	static constexpr const char* const cond_names_variants[16]{ "","","","","CS","ZS","NS","","","NC","ZC","CC","","","","" };
 	// All condition names
-	static const std::unordered_map<std::string, byte> condNames{
+	static const std::unordered_map<std::string, byte> cond_names{
 		{"AL",0b0000},
 		{"GT",0b0001},
 		{"GE",0b0010},
@@ -80,7 +80,7 @@ namespace Little32
 			word start = regs[i];
 			word end = start;
 
-			str += regNames[start];
+			str += reg_names[start];
 
 			if ((i + 2 < rsize) && regs[i + 2] == end + 2)
 			{
@@ -94,7 +94,7 @@ namespace Little32
 				}
 
 				str += "-";
-				str += regNames[end];
+				str += reg_names[end];
 			}
 
 			if (++i == rsize) return "{" + str + "}";

@@ -5,6 +5,7 @@
 #include "L32_ROM.h"
 #include "L32_String.h"
 
+#include <cassert>
 #include <bit>
 #include <cstdint>
 #include <fstream>
@@ -181,14 +182,14 @@ namespace Little32
 	{
 		for (int i = 0; i < 16; i++)
 		{
-			if (t.token == regNames[i]) return i;
+			if (t.token == reg_names[i]) return i;
 		}
 
 		ThrowException("'" + std::string(t.token) + "' is not a register", t);
 		return -1;
 	}
 
-	constexpr bool IsAlpha(std::string_view str) noexcept
+	constexpr bool IsAlpha(const std::string_view str) noexcept
 	{
 		for (auto c : str)
 		{
@@ -198,7 +199,7 @@ namespace Little32
 		return true;
 	}
 
-	constexpr int IsNumber(std::string_view str) noexcept
+	constexpr int IsNumber(const std::string_view str) noexcept
 	{
 		if (str.empty()) return 0;
 		if (str.size() == 1) return 10 * (str[0] >= '0' && str[0] <= '9');
@@ -210,7 +211,7 @@ namespace Little32
 		return 8 * IsChars(str, "01234567_");
 	}
 
-	constexpr bool IsFloat(std::string_view str)
+	constexpr bool IsFloat(const std::string_view str)
 	{
 		if (str.size() < 3) return false;
 		if (std::count(str.begin(), str.end(), '.') != 1) return false;
@@ -219,7 +220,7 @@ namespace Little32
 		return IsChars(str, "0123456789.");
 	}
 
-	constexpr bool IsLower(const std::string& str) noexcept
+	constexpr bool IsLower(const std::string_view str) noexcept
 	{
 		for (auto c : str)
 		{
@@ -229,7 +230,7 @@ namespace Little32
 		return true;
 	}
 
-	constexpr bool IsUpper(const std::string& str) noexcept
+	constexpr bool IsUpper(const std::string_view str) noexcept
 	{
 		for (auto c : str)
 		{
@@ -239,18 +240,18 @@ namespace Little32
 		return true;
 	}
 
-	constexpr bool IsReg(const std::string& str) noexcept
+	constexpr bool IsReg(const std::string_view str) noexcept
 	{
 		for (int i = 0; i < 16; i++)
 		{
-			if (str == regNames[i]) return true;
+			if (str == reg_names[i]) return true;
 		}
 
 		return false;
 	}
 
 	bool IsCond(const std::string& str) noexcept
-		{ return condNames.contains(str); }
+		{ return cond_names.contains(str); }
 
 	constexpr void RemoveComments(std::string& str) noexcept
 	{
@@ -444,7 +445,7 @@ namespace Little32
 						end -= i;
 						pos += i;
 
-						tokens.push_back({ Little32Assembler::TokenType::END_LINE, file.substr(0,1), "\\n", line, pos });
+						tokens.push_back({ Little32Assembler::TokenType::END_LINE, file.substr(0,1), "\n", line, pos });
 						token_count++;
 
 						file = file.substr(1);
@@ -455,8 +456,8 @@ namespace Little32
 						line.line_no++;
 					}
 
-					file = file.substr(end);
-					pos += end; // Remaining characters in comment + "*/"
+					file = file.substr(end + 2);
+					pos += end + 2; // Remaining characters in comment + "*/"
 				}
 				else
 				{
@@ -474,7 +475,32 @@ namespace Little32
 			l_comment = file.find("//");
 			m_comment = file.find("/*");
 		}
-		
+
+		while ((i = file.find('<')) != string::npos)
+		{
+			token_count += GetTokens(file.substr(0, i), line, tokens, pos) + 1;
+			file = file.substr(i);
+
+			size_t end = 0;
+			std::string_view num;
+
+			if (Contains(file, '>', i) && i < file.find('\r') && i < file.find('\n') && (IsNumeric(num = TrimString(file.substr(1, i - 1)))  || num == "-1"))
+			{
+				tokens.push_back({ Little32Assembler::TokenType::ARG_NUM, num, std::string(num), line, pos });
+
+				end = i;
+			}
+			else
+			{
+				tokens.push_back({ Little32Assembler::TokenType::INVALID, file.substr(0,1), "<", line, pos });
+			}
+
+			token_count++;
+
+			file = file.substr(end + 1);
+			pos += end + 1;
+		}
+
 #define _GetTokens(type,term,l)\
 		while (Contains(file, term, i))\
 		{\
@@ -485,6 +511,8 @@ namespace Little32
 			if (file.empty()) return token_count;\
 		}
 
+		_GetTokens(ROTL, "ROTL", 4);
+		_GetTokens(ROTR, "ROTR", 4);
 		_GetTokens(VARGS,"...",3);
 		_GetTokens(SCOPE_FUNCTION_OPEN,"@{",2);
 		_GetTokens(SCOPE_FUNCTION_CLOSE,"}@",2);
@@ -502,14 +530,22 @@ namespace Little32
 		_GetTokens(MARKER_CONDITION,"?",1);
 		_GetTokens(MARKER_LABEL,":",1);
 		_GetTokens(COMMA,",",1);
-		_GetTokens(LPAREN,"(",1);
-		_GetTokens(RPAREN,")",1);
 		_GetTokens(LBRACKET,"[",1);
 		_GetTokens(RBRACKET,"]",1);
 		_GetTokens(LBRACE,"{",1);
 		_GetTokens(RBRACE,"}",1);
+		_GetTokens(LPAREN,"(",1);
+		_GetTokens(NOT,"~",1);
 		_GetTokens(PLUS,"+",1);
 		_GetTokens(MINUS,"-",1);
+		_GetTokens(MULTIPLY,"*",1);
+		_GetTokens(DIVIDE,"/",1);
+		_GetTokens(MODULO,"%",1);
+		_GetTokens(OR,"|",1);
+		_GetTokens(AND,"&",1);
+		_GetTokens(XOR,"^",1);
+		_GetTokens(RPAREN,")",1);
+		_GetTokens(ASSIGNMENT,"=",1);
 #undef _GetTokens
 
 		while (!file.empty())
@@ -529,7 +565,8 @@ namespace Little32
 				}
 				else if (file[0] == '.')
 				{
-					tokens.push_back({ Little32Assembler::TokenType::MARKER_RELATIVE, file.substr(0,1), ".", line, pos });
+					Little32Assembler::TokenType t = Little32Assembler::TokenType::RELATIVE_MARKER;
+					tokens.push_back({ t, file.substr(0,1), ".", line, pos });
 					token_count++;
 
 					file = file.substr(1);
@@ -575,6 +612,10 @@ namespace Little32
 			else if (IsFloat(t))
 			{
 				tok.type = Little32Assembler::TokenType::FLOAT;
+			}
+			else if (IsReg(t))
+			{
+				tok.type = Little32Assembler::TokenType::REGISTER;
 			}
 			else if (IsChars(t, Little32Assembler::valid_text_chars))
 			{
@@ -629,7 +670,7 @@ namespace Little32
 
 		if (it == l.end() || it->type != Little32Assembler::TokenType::TEXT || !IsCond(it->token)) ThrowException("Expected condition for '?' statement", *it);
 
-		cond = condNames.at(it->token);
+		cond = cond_names.at(it->token);
 		it = l.erase(it); // Erase condition
 		
 		if (it->type != Little32Assembler::TokenType::END_LINE) ThrowException("Line does not end after '?' statement", *it);
@@ -640,22 +681,22 @@ namespace Little32
 	{
 		using namespace std;
 
-		auto it = FindToken(l, TokenType::LSHIFT);
-		it = (it == l.end() || it->type == TokenType::END_LINE) ? FindToken(l, Little32Assembler::TokenType::RSHIFT) : it;
+		auto it = FindToken(l, TokenType::ROTL);
+		it = (it == l.end() || it->type == TokenType::END_LINE) ? FindToken(l, Little32Assembler::TokenType::ROTR) : it;
 
 		if (it == l.end() || it->type == TokenType::END_LINE) return false;
 
-		bool rshift = it->type == TokenType::RSHIFT;
+		const bool rshift = it->type == TokenType::ROTR;
 		it = l.erase(it);
 
-		if (it == l.end() || it->type != TokenType::INTEGER) ThrowException("Expected number after shift", *it);
+		if (it == l.end() || it->type != TokenType::INTEGER) ThrowException("Expected number after rotation shift", *it);
 
 		shift = (byte)stoul(it->token);
-		if (shift >= 32) ThrowException("Shift is too large", *it);
+		if (shift >= 32) ThrowException("Rotation shift is too large", *it);
 
 		it = l.erase(it);
 
-		if (it != l.end() && it->type != TokenType::END_LINE && it->type != TokenType::MARKER_CONDITION) ThrowException("Shift must be at end of instruction", *it);
+		if (it != l.end() && it->type != TokenType::END_LINE && it->type != TokenType::MARKER_CONDITION) ThrowException("Rotation shift must be at end of instruction", *it);
 
 		if (rshift && shift) shift = 32 - shift;
 
@@ -764,7 +805,7 @@ namespace Little32
 
 			if (token.type == TokenType::PLUS || token.type == TokenType::MINUS) // Bracket starts with a sign - Interpreted as single value relative to PC
 			{
-				l.insert(it, { TokenType::TEXT, token.raw_token, "PC", token.line, token.index });
+				l.insert(it, { TokenType::REGISTER, token.raw_token, "PC", token.line, token.index });
 			}
 			else {
 				Token first_token = token;
@@ -781,14 +822,14 @@ namespace Little32
 
 				if (token.type == TokenType::RBRACKET) // Occurs when no signs were encountered - Interpreted as single value relative to PC
 				{
-					if (IsReg(first_token.token)) // User entered a register; consider contents as relative to it
+					if (first_token.type == TokenType::REGISTER) // User entered a register; consider contents as relative to it
 					{
 						l.insert(it, { TokenType::COMMA, token.raw_token, ",", token.line, token.index });
 						l.insert(it, { TokenType::INTEGER, token.raw_token, "0", token.line, token.index });
 					}
 					else  // User entered a value; consider contents as relative to PC
 					{
-						l.insert(start, { TokenType::TEXT, token.raw_token, "PC", token.line, token.index });
+						l.insert(start, { TokenType::REGISTER, token.raw_token, "PC", token.line, token.index });
 						l.insert(start, { TokenType::COMMA, token.raw_token, ",", token.line, token.index });
 					}
 					it = l.erase(it); // Erase ']'
@@ -851,8 +892,14 @@ namespace Little32
 			}
 
 			const TokenList var = scope->at(var_name.token);
+			TokenList var_copy;
 
-			it = l.insert(it, var.begin(), var.end());
+			for (auto& tok : var)
+			{
+				var_copy.push_back({ tok.type, var_name.raw_token, tok.token, var_name.line, var_name.index });
+			}
+
+			it = l.insert(it, var_copy.begin(), var_copy.end());
 		}
 		return vars_replaced;
 	}
@@ -867,7 +914,7 @@ namespace Little32
 		{
 			for (auto it = a.begin(); it != a.end(); it++)
 			{
-				if (it->type != TokenType::MARKER_RELATIVE) continue;
+				if (it->type != TokenType::RELATIVE_MARKER) continue;
 
 				it = a.erase(it);
 				if (it->type != TokenType::INTEGER) ThrowException("Expected number after '.'", *it);
@@ -912,7 +959,7 @@ namespace Little32
 				word reg1 = 0;
 				for (; reg1 < 16; reg1++)
 				{
-					if (regNames[reg1] == token.token) break;
+					if (reg_names[reg1] == token.token) break;
 				}
 				if (reg1 == 16) ThrowException("Expected register in register list",token);
 
@@ -930,7 +977,7 @@ namespace Little32
 					word reg2 = 0;
 					for (; reg2 < 16; reg2++)
 					{
-						if (regNames[reg2] == token.token) break;
+						if (reg_names[reg2] == token.token) break;
 					}
 					if (reg2 == 16) ThrowException("Expected register in register list",token);
 					if (reg1 > reg2) ThrowException("Expected register range to be from min to max",token);
@@ -1011,27 +1058,24 @@ namespace Little32
 	void Little32Assembler::FlushScopes() noexcept
 	{
 		variable_scopes = { {} };
-		func_scopes = { const_replace };
 		label_scopes = { constant_addresses };
+		func_scopes = { const_replace };
+		cond_scopes = { {false, 0} };
+		file_stack = {};
+
+		cond_scope_openings = {};
+		variable_scope_openings = {};
+		func_scope_openings = {};
+		label_scope_openings = {};
+
+		pending_labels = { {} };
+		pending_memory_labels = { {} };
+		pending_expressions = { };
 	}
 
 	inline std::list<Little32Assembler::AssemblyLine> Little32Assembler::ParseTokens(const std::filesystem::path working_dir, TokenList& tokens, bool print_intermediate)
 	{
 		using namespace std;
-
-		struct MemoryLabel
-		{
-			word* address;
-			Token token;
-		};
-
-		TokenList cond_scope_openings = {};
-		TokenList variable_scope_openings = {};
-		TokenList func_scope_openings = {};
-		TokenList label_scope_openings = {};
-
-		list<list<Token*>> pending_labels = { {} };
-		list<list<MemoryLabel>> pending_memory_labels = { {} };
 
 		list<AssemblyLine> assembly_lines = {};
 
@@ -1076,9 +1120,36 @@ namespace Little32
 					auto lmit = pending_memory_labels.back().begin();
 					while (lmit != pending_memory_labels.back().end())
 					{
-						if (lmit->token.token == token.token) // Resolve this label
+						if (lmit->token->token == token.token) // Resolve this label
 						{
-							*(lmit->address) = label_scopes.back()[token.token];
+							lmit->token->token = to_string(label_scopes.back()[token.token]);
+							--lmit->expression->num_labels;
+
+							// All the labels in the expression are resolved; proceed to assign memory
+							if (lmit->expression->num_labels == 0)
+							{
+								TokenList answer = SolveExpression(lmit->expression->expression, lmit->expression->address);
+
+								long long value = std::stoll(answer.back().token);
+
+								if (answer.front().type == TokenType::MINUS) value = -value;
+
+								if (lmit->expression->is_bool)
+								{
+									if (value < -255 || value > 255) ThrowException("Constant is too large for byte (" + std::to_string(value) + ")", answer.back());
+
+									PutByte(lmit->expression->memory, lmit->expression->address, static_cast<byte>(value));
+								}
+								else
+								{
+									if (value < -4294967295 || value > 4294967295) ThrowException("Constant is too large for word (" + std::to_string(value) + ")", answer.back());
+
+									lmit->expression->memory[lmit->expression->address >> 2] = static_cast<word>(value);
+								}
+
+								pending_expressions.erase(lmit->expression);
+							}
+
 							lmit = pending_memory_labels.back().erase(lmit);
 						}
 						else // Needs another label
@@ -1086,6 +1157,7 @@ namespace Little32
 							lmit++;
 						}
 					}
+					break;
 				}
 				else if (IsUpper(token.token) &&
 					(
@@ -1122,62 +1194,19 @@ namespace Little32
 				)
 				{ // This is an instruction
 					ParseInstruction(tokens, assembly_lines, pending_labels);
+					break;
 				}
-				else
-				{
-					if (*current_address & 3) ThrowException("Label word not aligned", token);
-
-					if (cur_start == nullptr)
-					{
-						cur_start = &data_start;
-						cur_end = &data_end;
-					}
-
-					if (*cur_start == NO_ADDRESS)
-					{
-						*cur_start = *current_address + memory_start;
-						*cur_end = *cur_start;
-					}
-
-					tokens.pop_front();
-					auto it = label_scopes.rbegin();
-
-					for (; it != label_scopes.rend(); it++)
-					{
-						if (!it->contains(token.token)) continue;
-
-						memory[*current_address >> 2] = it->at(token.token);
-						break;
-					}
-
-					if (it == label_scopes.rend())
-					{
-						pending_memory_labels.back().push_back(
-							{
-								memory + (*current_address >> 2),
-								token
-							}
-						);
-					}
-
-					(*current_address) += 4;
-
-					if (*current_address + memory_start > *cur_end)
-					{
-						*cur_end = *current_address + memory_start;
-					}
-				}
+				// Otherwise, fall through as a label used for a constant
 			}
-				break;
 
+			case TokenType::LPAREN:
+			case TokenType::RELATIVE_MARKER:
+			case TokenType::NOT:
 			case TokenType::MINUS:
 			case TokenType::PLUS:
 			case TokenType::INTEGER: // This is a constant value
 			{
 				tokens.pop_front();
-
-				const bool is_negative = token.type == TokenType::MINUS;
-				const bool is_sign = is_negative || token.type == TokenType::PLUS;
 
 				if (cur_start == nullptr)
 				{
@@ -1194,70 +1223,160 @@ namespace Little32
 				if (byte_mode)
 				{
 					if (*current_address >= memory_range) ThrowException("Constant exceeds memory", token);
-
-					if (is_sign)
-					{
-						if (!TryConsumeFront(tokens, token)) ThrowException("Expected a constant after sign", token);
-					}
-
-					if (token.type != TokenType::INTEGER) ThrowException("Expected a constant", token);
-
-					word val = stoul(token.token);
-
-					if (val > 255) ThrowException("Value is too large", token);
-
-					if (is_negative) val = 1 + ~val;
-
-					PutByte(memory, *current_address, val);
-					(*current_address)++;
 				}
 				else
 				{
 					if (*current_address & 3) ThrowException("Word not aligned", token);
 					if ((*current_address >> 2) >= (memory_range >> 2)) ThrowException("Constant exceeds memory", token);
+				}
 
-					if (is_sign)
+				TokenList expression = { token };
+
+				Token next_token;
+
+				size_t num_labels = token.type == TokenType::TEXT ? 1 : 0;
+
+				while (TryGetFront(tokens, next_token) && next_token.type == TokenType::MARKER_VARIABLE)
+				{
+					tokens.pop_front();
+
+					if(!TryConsumeFront(tokens, next_token)) ThrowException("Expected variable", next_token);
+
+					auto scope = variable_scopes.rbegin(); // Start with the innermost scope
+
+					while (!scope->contains(next_token.token))
 					{
-						if (!TryConsumeFront(tokens, token)) ThrowException("Expected a constant after sign", token);
+						if (++scope == variable_scopes.rend()) ThrowException("Variable is undefined", next_token);
 					}
 
-					if (token.type == TokenType::INTEGER)
+					const TokenList var = scope->at(next_token.token);
+					TokenList var_copy;
+
+					for (auto& tok : var)
 					{
-						word val = stoul(token.token);
-
-						if (is_negative) val = 1 + ~val;
-
-						memory[*current_address >> 2] = val;
+						var_copy.push_back({ tok.type, next_token.raw_token, tok.token, next_token.line, next_token.index });
 					}
-					else if (token.type == TokenType::TEXT)
-					{
-						auto it = label_scopes.rbegin();
 
-						for (; it != label_scopes.rend(); it++)
+					tokens.insert(tokens.begin(), var_copy.begin(), var_copy.end());
+				}
+
+				if (TryGetFront(tokens, next_token) && ((token.type != TokenType::INTEGER && token.type != TokenType::TEXT) || (next_token.type >= TokenType::LPAREN && next_token.type <= TokenType::RPAREN)))
+				{
+					do
+					{
+						if (next_token.type == TokenType::MARKER_VARIABLE)
 						{
-							if (!it->contains(token.token)) continue;
+							tokens.pop_front();
 
-							memory[*current_address >> 2] = it->at(token.token);
+							if (!TryConsumeFront(tokens, next_token)) ThrowException("Expected variable", next_token);
+
+							auto scope = variable_scopes.rbegin(); // Start with the innermost scope
+
+							while (!scope->contains(next_token.token))
+							{
+								if (++scope == variable_scopes.rend()) ThrowException("Variable is undefined", next_token);
+							}
+
+							const TokenList var = scope->at(next_token.token);
+							TokenList var_copy;
+
+							for (auto& tok : var)
+							{
+								var_copy.push_back({ tok.type, next_token.raw_token, tok.token, next_token.line, next_token.index });
+							}
+
+							tokens.insert(tokens.begin(), var_copy.begin(), var_copy.end());
+
+							continue;
+						}
+
+						if (token.type == TokenType::INTEGER || token.type == TokenType::TEXT || token.type == TokenType::RPAREN)
+						{
+							// Values can only be followed by operators
+							if (next_token.type < TokenType::MINUS || next_token.type > TokenType::RPAREN)
+							{
+								break;
+							}
+						}
+						else
+						{
+							// Operators can be followed by a value, unary operator, or parentheses
+							if (next_token.type != TokenType::INTEGER && next_token.type != TokenType::TEXT
+								&& (next_token.type < TokenType::LPAREN || next_token.type > TokenType::PLUS))
+							{
+								ThrowException("Expected value after operator", next_token);
+							}
+						}
+
+						tokens.pop_front();
+						expression.push_back(next_token);
+
+						if (token.type == TokenType::TEXT) ++num_labels;
+
+						token = next_token;
+					}
+					while (TryGetFront(tokens, next_token));
+				}
+
+				if (num_labels > 0)
+				{
+					for (auto& t : expression)
+					{
+						for (auto it = label_scopes.rbegin(); it != label_scopes.rend(); it++)
+						{
+							if (!it->contains(t.token)) continue;
+
+							t.token = std::to_string((*it)[t.token]);
+							t.type = TokenType::INTEGER;
+							--num_labels;
 							break;
 						}
+					}
+				}
 
-						if (it == label_scopes.rend())
+				if (num_labels > 0)
+				{
+					pending_expressions.push_back
+					(
 						{
-							pending_memory_labels.back().push_back(
-								{
-									memory + (*current_address >> 2),
-									token
-								}
-							);
+							memory,
+							*current_address,
+							byte_mode,
+							expression,
+							num_labels
 						}
+					);
+
+					for (auto it = pending_expressions.back().expression.begin(); it != pending_expressions.back().expression.end(); it++)
+					{
+						if (it->type != TokenType::TEXT) continue;
+
+						pending_memory_labels.back().push_back(MemoryLabel(--pending_expressions.end(), &*it));
+					}
+				}
+				else
+				{
+					TokenList answer = SolveExpression(expression, *current_address + memory_start);
+
+					long long value = std::stoll(answer.back().token);
+
+					if (answer.front().type == TokenType::MINUS) value = -value;
+
+					if (byte_mode)
+					{
+						if (value < -255 || value > 255) ThrowException("Constant is too large for byte (" + std::to_string(value) + ")", answer.back());
+
+						PutByte(memory, *current_address, static_cast<byte>(value));
 					}
 					else
 					{
-						ThrowException("Expected a constant", token);
-					}
+						if (value < -4294967295 || value > 4294967295) ThrowException("Constant is too large for word (" + std::to_string(value) + ")", answer.back());
 
-					(*current_address) += 4;
+						memory[*current_address >> 2] = static_cast<word>(value);
+					}
 				}
+
+				(*current_address) += byte_mode ? 1 : 4;
 
 				if (*current_address + memory_start > *cur_end)
 				{
@@ -1365,7 +1484,7 @@ namespace Little32
 
 				tokens.pop_front();
 				cond_scopes.back().has_cond = true;
-				cond_scopes.back().cond = condNames.at(token.token);
+				cond_scopes.back().cond = cond_names.at(token.token);
 			}
 				break;
 
@@ -1435,30 +1554,6 @@ namespace Little32
 				ThrowException("Unexpected token", token);
 			}
 		}
-		 
-		if (!label_scope_openings.empty())
-		{
-			FlushScopes();
-			ThrowException("Unmatched opening scope", label_scope_openings.back());
-		}
-		if (!cond_scope_openings.empty())
-		{
-			FlushScopes();
-			ThrowException("Unmatched opening scope", cond_scope_openings.back());
-		}
-		if (!func_scope_openings.empty())
-		{
-			FlushScopes();
-			ThrowException("Unmatched opening scope", func_scope_openings.back());
-		}
-		if (!pending_labels.front().empty())
-		{
-			ThrowException("Could not resolve label", *pending_labels.front().front());
-		}
-		if (!pending_memory_labels.front().empty())
-		{
-			ThrowException("Could not resolve label", pending_memory_labels.front().front().token);
-		}
 
 		return assembly_lines;
 	}
@@ -1477,23 +1572,17 @@ namespace Little32
 		new_op.op = token.token;
 		if (!IsUpper(new_op.op)) ThrowException("Function name must be uppercase", token);
 
-		// Look for number of arguments with \(\d*\)
-		if (TryGetFront(tokens, token) && token.type == TokenType::LPAREN)
+		if (TryGetFront(tokens, token) && token.type == TokenType::ARG_NUM)
 		{
 			tokens.pop_front();
 
-			if (!TryConsumeFront(tokens, token) || token.type == TokenType::RPAREN) ThrowException("Expected required args", token);
-			if (token.type != TokenType::INTEGER) ThrowException("Required args is not numeric", token);
-
 			new_op.requiredArgs = stoi(token.token);
-
-			if (!TryConsumeFront(tokens, token) || token.type != TokenType::RPAREN) ThrowException("Brackets not closed", token);
 		}
 
 		if (new_op.op.front() == 'N') ThrowException("Function name cannot start with N", token);
 		if (new_op.op.back() == 'S') ThrowException("Function name cannot end with S", token);
 
-		if (!TryConsumeFront(tokens, token) || token.type == TokenType::TEXT) ThrowException("Expected instruction to assign function", token);
+		if (!TryConsumeFront(tokens, token) || token.type != TokenType::TEXT) ThrowException("Expected instruction to assign function", token);
 		if (!IsUpper(token.token)) ThrowException("Instruction name must be uppercase", token);
 		new_op.newop = token.token;
 
@@ -1556,30 +1645,54 @@ namespace Little32
 
 	inline void Little32Assembler::ParseVariable(TokenList& tokens)
 	{
-		Token token;
+		Token variable;
 		//if (!TryGetFront(tokens, token) || token.type != TokenType::MARKER_VARIABLE) return;
 
 		tokens.pop_front(); // Remove marker
 
-		if (!TryConsumeFront(tokens, token)) ThrowException("Variable name not provided", token);
-		if (token.type != TokenType::TEXT) ThrowException("Invalid characters in variable name", token);
+		if (!TryConsumeFront(tokens, variable)) ThrowException("Variable name not provided", variable);
+		if (variable.type != TokenType::TEXT) ThrowException("Invalid characters in variable name", variable);
 
-		std::string var_name = token.token;
+		Token token;
 
-		if (!variable_scopes.back().contains(var_name))
+		if (TryGetFront(tokens, token) && token.type == TokenType::ASSIGNMENT)
 		{
-			total_variables_defined++;
+			tokens.pop_front(); // Remove assignment
+
+			if (!variable_scopes.back().contains(variable.token))
+			{
+				total_variables_defined++;
+			}
+			else
+			{
+				variable_scopes.back()[variable.token] = {};
+			}
+
+			if (!TryConsumeFront(tokens, token)) ThrowException("Value to assign variable not provided", variable);
+
+			do {
+				variable_scopes.back()[variable.token].push_back(token);
+			} while (TryConsumeFront(tokens, token));
 		}
 		else
 		{
-			variable_scopes.back()[var_name] = {};
-		}
+			auto scope = variable_scopes.rbegin(); // Start with the innermost scope
 
-		if (!TryConsumeFront(tokens, token)) ThrowException("Value to assign variable not provided", token);
-		
-		do {
-			variable_scopes.back()[var_name].push_back(token);
-		} while (TryConsumeFront(tokens, token));
+			while (!scope->contains(variable.token))
+			{
+				if (++scope == variable_scopes.rend()) ThrowException("Variable is undefined", variable);
+			}
+
+			const TokenList var = scope->at(variable.token);
+			TokenList var_copy;
+
+			for (auto& tok : var)
+			{
+				var_copy.push_back({ tok.type, variable.raw_token, tok.token, variable.line, variable.index });
+			}
+
+			tokens.insert(tokens.begin(), var_copy.begin(), var_copy.end());
+		}
 	}
 
 	inline void Little32Assembler::ParseInstruction(TokenList& tokens, std::list<AssemblyLine>& assembly_lines, std::list<std::list<Token*>>& pending_labels)
@@ -1663,7 +1776,7 @@ namespace Little32
 				for (auto& op_it : *scope_it)
 				{
 					if (op_it.op != instruction.code.token) continue;
-					if (op_it.requiredArgs == NULL_ADDRESS)
+					if (op_it.requiredArgs == -1)
 					{
 						if (op == nullptr) op = &op_it;
 						continue;
@@ -1693,7 +1806,7 @@ namespace Little32
 
 			if (op->has_shift)
 			{
-				if (instruction.has_shift) ThrowException("Function overwrites shift", token);
+				if (instruction.has_shift) ThrowException("Function overwrites rotation shift", token);
 				instruction.shift = op->new_shift;
 				instruction.has_shift = true;
 			}
@@ -1799,22 +1912,25 @@ namespace Little32
 		{
 			if (a.empty()) ThrowException("Argument cannot be empty", token);
 
-			if (a.front().type == TokenType::LSHIFT || a.front().type == TokenType::RSHIFT) ThrowException("Expected '" + a.front().token + "' to follow a value", a.front());
-			if (a.back().type == TokenType::LSHIFT || a.back().type == TokenType::RSHIFT || a.back().type == TokenType::MINUS || a.back().type == TokenType::MARKER_RELATIVE) ThrowException("Expected '" + a.front().token + "' to follow a value", a.back());
+			if (a.front().type >= TokenType::MULTIPLY && a.front().type <= TokenType::RPAREN)
+				ThrowException("Expected '" + a.front().token + "' to follow a value", a.front());
+
+			if (a.back().type >= TokenType::LPAREN && a.back().type <= TokenType::RSHIFT)
+				ThrowException("Expected '" + a.back().token + "' to precede a value", a.front());
+
+			if (a.size() == 1 && a.front().type == TokenType::REGISTER) continue;
+			if (a.size() == 2 && a.front().type == TokenType::MINUS && a.back().type == TokenType::REGISTER) continue;
 
 			for (auto& t : a)
 			{
-				if (
-					t.type == TokenType::LSHIFT ||
-					t.type == TokenType::RSHIFT ||
-					t.type == TokenType::MINUS ||
-					t.type == TokenType::MARKER_RELATIVE ||
-					t.type == TokenType::INTEGER ||
-					(t.type == TokenType::TEXT && IsReg(t.token))
-					)
+				if (t.type == TokenType::REGISTER)
 				{
-					continue;
+					ThrowException("Cannot use register in mixed expression", t);
 				}
+
+				if ((t.type >= TokenType::LPAREN && t.type <= TokenType::RPAREN) || t.type == TokenType::INTEGER)
+					continue;
+
 				if (t.type != TokenType::TEXT) ThrowException("Unexpected token '" + t.token + "' in argument", t);
 
 				pending_labels.back().push_back(&t);
@@ -2145,6 +2261,334 @@ namespace Little32
 		else ThrowException("Preprocessor directive not recognised", token);
 	}
 
+	Little32Assembler::TokenList Little32Assembler::SolveExpression(const TokenList& tokens, const word address)
+	{
+		assert(!tokens.empty());
+
+		// Integer or register
+		if (tokens.size() == 1)
+		{
+			if (tokens.front().type == TokenType::REGISTER ||
+				tokens.front().type == TokenType::INTEGER) return tokens;
+			else ThrowException("Unexpected token in argument", tokens.front());
+		}
+
+		// ~int or -int or -reg
+		if (tokens.size() == 2)
+		{
+			switch (tokens.back().type)
+			{
+			case TokenType::REGISTER:
+				if (tokens.front().type != TokenType::MINUS) ThrowException("Unexpected token before register", tokens.front());
+				return tokens;
+
+			case TokenType::INTEGER:
+				if (tokens.front().type == TokenType::NOT) break;
+				else if (tokens.front().type != TokenType::MINUS) ThrowException("Unexpected token before integer", tokens.front());
+				return tokens;
+
+			default:
+				ThrowException("Unexpected token in argument", tokens.back());
+			}
+		}
+
+		size_t paren_depth = 0;
+		TokenList expression; // This expression without any parentheses
+
+		TokenList paren_contents;
+
+		// Resolve parentheses sub-expressions
+		for (auto& tok : tokens)
+		{
+			switch(tok.type)
+			{
+			case TokenType::LPAREN:
+				if (paren_depth == 0) paren_contents.clear();
+
+				paren_depth++;
+				break;
+
+			case TokenType::RPAREN:
+				if (paren_depth == 0) ThrowException("Too many closing parentheses", tok);
+
+				paren_depth--;
+
+				if (paren_depth != 0) break;
+				else if (paren_contents.empty()) ThrowException("Empty parentheses in expression", tok);
+
+				expression.splice(expression.end(), SolveExpression(paren_contents, *current_address + memory_start));
+				break;
+
+			case TokenType::NOT:
+			case TokenType::MINUS:
+			case TokenType::PLUS:
+			case TokenType::MULTIPLY:
+			case TokenType::DIVIDE:
+			case TokenType::MODULO:
+			case TokenType::OR:
+			case TokenType::AND:
+			case TokenType::XOR:
+			case TokenType::LSHIFT:
+			case TokenType::RSHIFT:
+			case TokenType::INTEGER:
+				if (paren_depth == 0)
+				{
+					expression.push_back(tok);
+				}
+				else
+				{
+					paren_contents.push_back(tok);
+				}
+				break;
+
+			case TokenType::REGISTER:
+				ThrowException("Registers are not accepted in integer expressions", tok);
+
+			default:
+				ThrowException("Unknown token in expression", tok);
+			}
+		}
+
+		if (expression.back().type != TokenType::INTEGER) ThrowException("Expected integer at end of expression", expression.back());
+		
+		bool was_op = false;
+		TokenList::iterator last_num = --expression.end();
+		int32_t last_val;
+		bool changed_val = false;
+		TokenList::iterator last_op;
+
+		// Resolve unary operators from back to front
+		for (TokenList::reverse_iterator it = ++expression.rbegin(); it != expression.rend(); ++it)
+		{
+			if (it->type == TokenType::INTEGER)
+			{
+				if (changed_val)
+				{
+					last_num->token = std::to_string(last_val);
+					changed_val = false;
+				}
+				if(!was_op) ThrowException("Expected operator/s between integers", expression.back());
+				last_num = --(it.base());
+				was_op = false;
+				continue;
+			}
+			else if (!was_op)
+			{
+				last_op = --(it.base());
+				was_op = true;
+
+				continue;
+			}
+
+			auto last_token = *last_op;
+
+			*last_op = *it;
+			expression.erase(--(it.base()));
+			--it;
+
+			if (last_token.type == TokenType::PLUS) continue;
+
+			if (!changed_val)
+			{
+				last_val = static_cast<int32_t>(std::stol(last_num->token));
+				changed_val = true;
+			}
+
+			switch (last_token.type)
+			{
+			case TokenType::MINUS:
+				last_val = -last_val;
+				break;
+			case TokenType::NOT:
+				last_val = ~last_val;
+				break;
+			case TokenType::RELATIVE_MARKER:
+				last_val = static_cast<int32_t>(static_cast<word>(last_val) - address);
+				break;
+			default:
+				ThrowException("Unknown unary operator", last_token);
+			}
+		}
+
+		// If an operator is at the very front it should be applied
+		if (was_op)
+		{
+			auto last_token = *last_op;
+
+			expression.erase(expression.begin());
+
+			if (last_token.type != TokenType::PLUS)
+			{
+				if (!changed_val)
+				{
+					last_val = static_cast<int32_t>(std::stol(last_num->token));
+					changed_val = true;
+				}
+
+				switch (last_token.type)
+				{
+				case TokenType::MINUS:
+					last_val = -last_val;
+					break;
+				case TokenType::NOT:
+					last_val = ~last_val;
+					break;
+				case TokenType::RELATIVE_MARKER:
+					last_val = static_cast<int32_t>(static_cast<word>(last_val) - address);
+					break;
+				default:
+					ThrowException("Unknown unary operator", last_token);
+				}
+
+				last_num->token = std::to_string(last_val);
+			}
+			else if (changed_val)
+			{
+				last_num->token = std::to_string(last_val);
+			}
+		}
+
+		std::vector<int32_t> values;
+		std::vector<TokenType> operators;
+
+		values.push_back(static_cast<int32_t>(std::stol(expression.front().token)));
+
+		for (auto it = ++expression.begin(); it != expression.end();)
+		{
+			operators.push_back(it->type);
+			++it;
+			values.push_back(static_cast<int32_t>(std::stol(it->token)));
+			++it;
+		}
+
+		struct Operation
+		{
+			TokenType type;
+			int32_t(*op)(int32_t, int32_t);
+		};
+
+		const Operation ops1[] =
+		{
+			{
+				TokenType::MULTIPLY,
+				[](int32_t a, int32_t b) -> int32_t { return a * b; }
+			},
+			{
+				TokenType::DIVIDE,
+				[](int32_t a, int32_t b) -> int32_t { return a / b; }
+			},
+			{
+				TokenType::MODULO,
+				[](int32_t a, int32_t b) -> int32_t { return a % b; }
+			}
+		};
+		const Operation ops2[] =
+		{
+			{
+				TokenType::PLUS,
+				[](int32_t a, int32_t b) -> int32_t { return a + b; }
+			},
+			{
+				TokenType::MINUS,
+				[](int32_t a, int32_t b) -> int32_t { return a - b; }
+			}
+		};
+		const Operation ops3[] =
+		{
+			{
+				TokenType::LSHIFT,
+				[](int32_t a, int32_t b) -> int32_t { return a << b; }
+			},
+			{
+				TokenType::RSHIFT,
+				[](int32_t a, int32_t b) -> int32_t { return a >> b; }
+			}
+		};
+		const Operation ops4[] =
+		{
+			{
+				TokenType::AND,
+				[](int32_t a, int32_t b) -> int32_t { return a & b; }
+			}
+		};
+		const Operation ops5[] =
+		{
+			{
+				TokenType::XOR,
+				[](int32_t a, int32_t b) -> int32_t { return a ^ b; }
+			}
+		};
+		const Operation ops6[] =
+		{
+			{
+				TokenType::OR,
+				[](int32_t a, int32_t b) -> int32_t { return a | b; }
+			}
+		};
+
+		struct OpLevel
+		{
+			const Operation* op;
+			const size_t op_count;
+		};
+
+		const OpLevel ops[] =
+		{
+			{ ops1, sizeof(ops1) / sizeof(Operation) },
+			{ ops2, sizeof(ops2) / sizeof(Operation) },
+			{ ops3, sizeof(ops3) / sizeof(Operation) },
+			{ ops4, sizeof(ops4) / sizeof(Operation) },
+			{ ops5, sizeof(ops5) / sizeof(Operation) },
+			{ ops6, sizeof(ops6) / sizeof(Operation) }
+		};
+
+		for (auto& op : ops)
+		{
+			for (size_t i = 0; i < operators.size();)
+			{
+				size_t j = op.op_count;
+
+				while (j--)
+				{
+					if (operators[i] == op.op[j].type) goto op_found;
+				}
+
+				++i;
+				continue;
+
+			op_found:
+				values[i + 1] = op.op[j].op(values[i], values[i + 1]);
+				values.erase(values.begin() + i);
+				operators.erase(operators.begin() + i);
+			}
+		}
+
+		assert(operators.empty());
+		assert(values.size() == 1);
+
+		TokenList output;
+
+		if (values[0] < 0)
+		{
+			output.push_back({ TokenType::MINUS, {}, "-" });
+			values[0] = -values[0];
+		}
+
+		output.push_back(
+		{
+			TokenType::INTEGER,
+			{
+				tokens.front().raw_token.data(),
+				(tokens.back().raw_token.data() - tokens.front().raw_token.data()) + tokens.back().raw_token.size()
+			},
+			std::to_string(values[0]),
+			tokens.front().line,
+			tokens.front().index
+		});
+
+		return output;
+	}
+
 	void Little32Assembler::Assemble(const std::filesystem::path file_path, std::istream& code, bool print_intermediate)
 	{
 		using namespace std;
@@ -2158,6 +2602,22 @@ namespace Little32
 	void Little32Assembler::Assemble(const std::filesystem::path file_path, std::string_view file_contents, bool print_intermediate)
 	{
 		using namespace std;
+
+		const auto norm_path = file_path.lexically_normal();
+
+		if (file_stack.empty())
+		{
+			FlushScopes();
+		}
+		else
+		{
+			for (auto file : file_stack)
+			{
+				if (norm_path == file) throw std::runtime_error("Infinite assembly loop detected (File: '" + norm_path.string() + "')");
+			}
+		}
+
+		file_stack.push_back(norm_path);
 
 		// Strip byte order mark, if it exists, as unicode is ignored anyway
 		if (file_contents.size() >= 2)
@@ -2236,16 +2696,44 @@ namespace Little32
 
 		TokenList file_tokens = {};
 		size_t pos = 0;
-		RawLine line = {
-			0,
+		RawLine line =
+		{
+			1,
 			file_contents.substr(0, file_contents.find_first_of('\n'))
 		};
-		size_t line_no = 0;
+		size_t line_no = 1;
 		GetTokens(file_contents, line, file_tokens, pos);
 		file_tokens.push_back({ TokenType::END_FILE, file_contents.substr(file_contents.size(),0), "", line, pos });
 
 		ConvertNumbers(file_tokens);
 		list<AssemblyLine> assembly_lines = ParseTokens(file_path.parent_path(), file_tokens, print_intermediate);
+
+		if (file_stack.size() == 1)
+		{
+			if (!label_scope_openings.empty())
+			{
+				FlushScopes();
+				ThrowException("Unmatched opening scope", label_scope_openings.back());
+			}
+			if (!cond_scope_openings.empty())
+			{
+				FlushScopes();
+				ThrowException("Unmatched opening scope", cond_scope_openings.back());
+			}
+			if (!func_scope_openings.empty())
+			{
+				FlushScopes();
+				ThrowException("Unmatched opening scope", func_scope_openings.back());
+			}
+			if (!pending_labels.front().empty())
+			{
+				ThrowException("Could not resolve label", *pending_labels.front().front());
+			}
+			if (!pending_memory_labels.front().empty())
+			{
+				ThrowException("Could not resolve label", *pending_memory_labels.front().front().token);
+			}
+		}
 
 		if (print_intermediate)
 		{
@@ -2261,7 +2749,7 @@ namespace Little32
 					}
 					if (&a != &(l.args.back())) printf(", ");
 				}
-				if (l.has_cond) printf(" ?%s", condNamesRegular[l.cond]);
+				if (l.has_cond) printf(" ?%s", cond_names_regular[l.cond]);
 				printf("\n");
 			}
 			printf("\n");
@@ -2273,10 +2761,12 @@ namespace Little32
 
 			Instruction def = instructions.at(l.code.token);
 
-			if (!def.allow_shift && l.has_shift) ThrowException("Cannot set shift for " + l.code.token,l.code);
+			if (!def.allow_shift && l.has_shift) ThrowException("Cannot set rotation shift for " + l.code.token,l.code);
 			if (!def.allow_N && l.N) ThrowException("Cannot set N flag for " + l.code.token, l.code);
 			if (!def.allow_S && l.S) ThrowException("Cannot set S flag for " + l.code.token, l.code);
 			if (l.args.size() != pack_args.at(def.packing)) ThrowException("Expected " + to_string(pack_args.at(def.packing)) + " argument/s for " + l.code.token, l.code);
+
+			for (auto& a : l.args) a = SolveExpression(a, l.addr);
 
 			*(l.mem) = (l.cond << 28) | (l.N << 27) | def.code | (l.S << 21);
 
@@ -2285,7 +2775,7 @@ namespace Little32
 			switch (def.packing)
 			{
 			case PackType::None:
-				if (l.has_shift) ThrowException("Cannot use shift for " + l.code.token, l.code);
+				if (l.has_shift) ThrowException("Cannot use rotation shift for " + l.code.token, l.code);
 				break;
 
 			case PackType::Reg3:
@@ -2338,14 +2828,14 @@ namespace Little32
 						shift = i;
 					}
 
-					if (min_val > 0xFF) ThrowException("Immediate value is too large", arg->front());
+					if (min_val > 0xFF) ThrowException("Immediate value (" + std::to_string(val) + ") is too large", arg->front());
 					*(l.mem) |= 1 << 20; // set 'i'
 					*(l.mem) |= min_val << 4;
 					*(l.mem) |= shift;
 				}
 				else
 				{
-					if (l.shift & 1) ThrowException("Register shifts must be even", arg->front());
+					if (l.shift & 1) ThrowException("Register rotation shifts must be even", arg->front());
 					*(l.mem) |= ToReg(arg->front()) << 8;
 					*(l.mem) |= l.shift >> 1;
 				}
@@ -2378,14 +2868,14 @@ namespace Little32
 						shift = i;
 					}
 
-					if (min_val > 0xFFF) ThrowException("Immediate value is too large", arg->front());
+					if (min_val > 0xFFF) ThrowException("Immediate value (" + std::to_string(val) + ") is too large", arg->front());
 					*(l.mem) |= 1 << 20; // set 'i'
 					*(l.mem) |= min_val << 4;
 					*(l.mem) |= shift;
 				}
 				else
 				{
-					if (l.shift & 1) ThrowException("Register shifts must be even", arg->front());
+					if (l.shift & 1) ThrowException("Register rotation shifts must be even", arg->front());
 					*(l.mem) |= ToReg(arg->front()) << 12;
 					*(l.mem) |= l.shift >> 1;
 				}
@@ -2401,7 +2891,7 @@ namespace Little32
 				break;
 
 			case PackType::RegList:
-				if (l.has_shift) ThrowException("Cannot use shift for " + l.code.token, l.code);
+				if (l.has_shift) ThrowException("Cannot use rotation shift for " + l.code.token, l.code);
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
 				*(l.mem) |= ToReg(arg->front()) << 16;
 				arg++;
@@ -2424,5 +2914,7 @@ namespace Little32
 				break;
 			}
 		}
+
+		file_stack.pop_back();
 	}
 }

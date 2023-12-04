@@ -1,12 +1,12 @@
-﻿$char_mem R4
-$x R5
-$y R6
-$dir R7
-$rand R8
-$delay R9
+﻿$char_mem = R4
+$x        = R5
+$y        = R6
+$dir      = R7
+$rand     = R8
+$delay    = R9
 
-$frame_delay 50
-$clock_count 19
+$frame_delay = 50
+$clock_count = 19
 
 MOV $char_mem, CHAR_MEM
 MOV $rand, seed
@@ -49,12 +49,12 @@ frame_int:
 	XOR R1, R0, $dir
 	CMP R1, 1
 	MOV R0, $dir ?EQ        // if (dir ^ new_dir == 1) new_dir = dir;
-	ORR $dir, R0, $dir << 2 // dir = (dir << 2) | new_dir;
+	ORR $dir, R0, $dir ROTL 2 // dir = (dir << 2) | new_dir;
 
 	MOV R1, pipe_graphics
 	RRB R1, [R1+$dir]
 
-	ORR R2, $x, $y << 4
+	ORR R2, $x, $y ROTL 4
 	RWB R1, [$char_mem+R2]  // char_mem[(y << 4) | x] = pipe_graphics[dir];
 
 	TST R0, 1
@@ -72,9 +72,9 @@ frame_int:
 
 random_xs32:
 ${:{
-	$x R0
-	$state R1 // Address of seed
-	$tmp R2
+	$x     = R0
+	$state = R1 // Address of seed
+	$tmp   = R2
 
 	RRW $x, [$state]
 
@@ -96,9 +96,9 @@ ${:{
 // Multiply A in R1 and B in R2 into R0
 multiply:
 ${:{
-	$ret R0
-	$a R1
-	$b R2
+	$ret = R0
+	$a   = R1
+	$b   = R2
 
 	MOV $ret, 0         // word ret = 0;
 multiply_loop:          // while(1) {

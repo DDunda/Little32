@@ -1,9 +1,9 @@
-$colr_mem R4
-$rand R8
-$delay R9
+$colr_mem = R4
+$rand     = R8
+$delay    = R9
 
-$frame_delay 10
-$clock_count 903
+$frame_delay = 10
+$clock_count = 903
 
 MOV $colr_mem, COLOUR_MEM
 MOV $rand, seed
@@ -36,9 +36,9 @@ colour_loop:
 
 random_xs32:
 ${:{
-	$x R0
-	$state R1 // Address of seed
-	$tmp R2
+	$x     = R0
+	$state = R1 // Address of seed
+	$tmp   = R2
 
 	RRW $x, [$state]
 

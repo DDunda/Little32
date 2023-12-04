@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <istream>
 #include <list>
+#include <stack>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -21,11 +22,30 @@ namespace Little32
 		{
 			TEXT,
 
-			MINUS,
-			PLUS,
+			LPAREN,   // ( x
+			RELATIVE_MARKER, // . x
+			NOT,      // ~ x
+			MINUS,    // x - x or - x
+			PLUS,     // x + x or + x
+			MULTIPLY, // x * x
+			DIVIDE,   // x / x
+			MODULO,   // x % x
+			OR,       // x | x
+			AND,      // x & x
+			XOR,      // x ^ x
+			LSHIFT,   // x << x
+			RSHIFT,   // x >> x
+			RPAREN,   // x )
+
+			ROTL,   // x ROTL x
+			ROTR,   // x ROTR x
+
 			INTEGER,
+			REGISTER,
 
 			STRING,
+
+			FLOAT,
 
 			MARKER_PREPROCESSOR,
 			MARKER_FUNCTION,
@@ -40,15 +60,11 @@ namespace Little32
 			SCOPE_LABEL_OPEN,
 			SCOPE_LABEL_CLOSE,
 
-			FLOAT,
+			ASSIGNMENT,
 
 			COMMA,
 			VARGS,
-
-			LSHIFT,
-			RSHIFT,
-			LPAREN,
-			RPAREN,
+			ARG_NUM,
 			LBRACKET,
 			RBRACKET,
 			LBRACE,
@@ -56,7 +72,6 @@ namespace Little32
 
 			MARKER_CONDITION,
 			MARKER_LABEL,
-			MARKER_RELATIVE,
 
 			INVALID,
 			END_FILE, // Renamed from EOF because its defined in std
@@ -263,16 +278,41 @@ namespace Little32
 			bool newS = false;
 		};
 
-		struct cond_scope
+		struct CondScope
 		{
 			bool has_cond = false;
 			word cond = 0;
 		};
 
-		std::list<std::unordered_map<std::string, TokenList>> variable_scopes;
-		std::list<std::unordered_map<std::string, word>> label_scopes;
-		std::list<std::list<OpReplace>> func_scopes;
-		std::list<cond_scope> cond_scopes;
+		std::list<std::unordered_map<std::string, TokenList>> variable_scopes = {}; // Currently active variable scopes (a variable is not visible outside its scope)
+		std::list<std::unordered_map<std::string, word>> label_scopes = {}; // Currently active label scopes (a label is not visible outside its scope)
+		std::list<std::list<OpReplace>> func_scopes = {}; // Currently active function scopes (a function is not visible outside its scope)
+		std::list<CondScope> cond_scopes = { {false, 0} }; // Currently active condition scopes (sets the condition for everything inside)
+		std::list<std::filesystem::path> file_stack = {}; // Files currently open for assembly. Used to prevent infinite recursion
+
+		TokenList cond_scope_openings = {};
+		TokenList variable_scope_openings = {};
+		TokenList func_scope_openings = {};
+		TokenList label_scope_openings = {};
+
+		struct MemoryExpression
+		{
+			word* memory;
+			word address;
+			bool is_bool;
+			TokenList expression;
+			size_t num_labels;
+		};
+
+		struct MemoryLabel
+		{
+			std::list<MemoryExpression>::iterator expression;
+			Token* token;
+		};
+
+		std::list<std::list<Token*>> pending_labels = { {} };
+		std::list<std::list<MemoryLabel>> pending_memory_labels = { {} };
+		std::list<MemoryExpression> pending_expressions = { };
 
 		word* ram = nullptr;
 		word ram_start = 0;
@@ -291,21 +331,24 @@ namespace Little32
 
 		std::unordered_map<std::string, word> constant_addresses = {};
 
-		const std::list<OpReplace> const_replace = {
+		const std::list<OpReplace> const_replace =
+		{
 			{"HALT","B",   0,{{TokenType::INTEGER,        {},"0"  }                                                                                                                                                                                                                  }            },
 			{"STR", "RWW",-1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  }            },
 			{"LDR", "RRW",-1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  }            },
 			{"STRB","RWB",-1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  }            },
 			{"LDRB","RRB",-1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  }            },
-			{"PUSH","SWR",-1,{{TokenType::TEXT,           {},"SP" },{TokenType::COMMA,  {},","},{TokenType::VARGS,{},"..."}                                                                                                                                                          }            },
-			{"POP", "SRR",-1,{{TokenType::TEXT,           {},"SP" },{TokenType::COMMA,  {},","},{TokenType::VARGS,{},"..."}                                                                                                                                                          }            },
+			{"PUSH","SWR",-1,{{TokenType::REGISTER,       {},"SP" },{TokenType::COMMA,  {},","},{TokenType::VARGS,{},"..."}                                                                                                                                                          }            },
+			{"POP", "SRR",-1,{{TokenType::REGISTER,       {},"SP" },{TokenType::COMMA,  {},","},{TokenType::VARGS,{},"..."}                                                                                                                                                          }            },
 			{"OR",  "ORR",-1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  }            },
+			{"LSL", "LSL", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
+			{"LSR", "LSR", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
 			{"ADD", "ADD", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
 			{"SUB", "SUB", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
-			{"INC", "ADD", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
-			{"DEC", "SUB", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
-			{"INC", "ADD", 1,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
-			{"DEC", "SUB", 1,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"}}            },
+			{"INC", "ADD", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"},{TokenType::COMMA,{},","},{TokenType::INTEGER,{},"1"}                                    }            },
+			{"DEC", "SUB", 2,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"1"},{TokenType::COMMA,{},","},{TokenType::INTEGER,{},"1"}                                    }            },
+			{"INC", "ADD", 1,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::INTEGER,{},"1"}                                    }            },
+			{"DEC", "SUB", 1,{{TokenType::MARKER_FUNCTION,{},"@"  },{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","  },{TokenType::MARKER_FUNCTION,{},"@"},{TokenType::INTEGER,{},"0"},{TokenType::COMMA,{},","},{TokenType::INTEGER,{},"1"}                                    }            },
 			{"BAL", "B",  -1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  },true,0b0000},
 			{"BGT", "B",  -1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  },true,0b0001},
 			{"BGE", "B",  -1,{{TokenType::VARGS,          {},"..."}                                                                                                                                                                                                                  },true,0b0010},
@@ -339,6 +382,7 @@ namespace Little32
 		inline void ParseVariable(TokenList& tokens);
 		inline void ParseInstruction(TokenList& tokens, std::list<AssemblyLine>& assembly_lines, std::list<std::list<Token*>>& pending_labels);
 		inline void ParsePreprocessor(const std::filesystem::path working_dir, TokenList& tokens, bool& terminate_mode, bool& byte_mode, bool print_intermediate);
+		TokenList SolveExpression(const TokenList& tokens, const word address);
 		size_t ConvertNumbers(TokenList& tokens) const;
 		size_t SplitSquareBrackets(TokenList& l) const;
 		size_t ResolveVariables(TokenList& l) const;

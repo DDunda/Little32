@@ -1,16 +1,16 @@
-﻿$clock_count 2611 // Enough to call frame_int a single time
-$frame_delay 50 // 20 FPS
+﻿$clock_count = 2611 // Enough to call frame_int a single time
+$frame_delay = 50 // 20 FPS
 
 ${
-$x R0
-$i R1
-$char_mem R2
-$colour_mem R3
-$gradient R4
-$colours R5
+$x = R0
+$i = R1
+$char_mem = R2
+$colour_mem = R3
+$gradient = R4
+$colours = R5
 
-$tmp R6
-$tmp2 R7
+$tmp = R6
+$tmp2 = R7
 
 #ENTRY
 MOV $x, 7                      // word  x = 7;
