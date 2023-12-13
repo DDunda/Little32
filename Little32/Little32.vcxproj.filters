@@ -49,6 +49,9 @@
     <ClCompile Include="src\Source.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="src\L32_ConfigParser.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
@@ -134,6 +137,9 @@
     <ClInclude Include="include\Little32.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\L32_ConfigParser.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\char set.png">
@@ -200,6 +206,9 @@
     <None Include="scripts\expression.asm">
       <Filter>Assembly</Filter>
     </None>
-    <None Include="scripts\overflow.asm" />
+    <None Include="computer.cfg" />
+    <None Include="scripts\overflow.asm">
+      <Filter>Assembly</Filter>
+    </None>
   </ItemGroup>
 </Project>

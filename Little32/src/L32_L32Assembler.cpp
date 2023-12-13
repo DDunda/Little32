@@ -28,18 +28,6 @@ namespace Little32
 
 	void Little32Assembler::ThrowException(const std::string_view msg, const Token& token) const { throw FormatException(token, msg); }
 
-	constexpr bool Contains(std::string_view str, const std::string& token, size_t& i) noexcept
-		{ return (i = str.find(token)) != str.npos; }
-
-	constexpr bool Contains(std::string_view str, char c, size_t& i) noexcept
-		{ return (i = str.find(c)) != str.npos; }
-
-	constexpr bool Contains(std::string_view str, const std::string& token) noexcept
-		{ return str.find(token) != str.npos; }
-
-	constexpr bool Contains(std::string_view str, char c) noexcept
-		{ return str.find(c) != str.npos; }
-
 	bool TryGet(const Little32Assembler::TokenList& l, const Little32Assembler::TokenList::iterator& it, Little32Assembler::Token& out) noexcept
 	{
 		if (it == l.end()) return false;

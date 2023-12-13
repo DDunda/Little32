@@ -169,6 +169,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="src\L32_ColourCharDisplay.cpp" />
     <ClCompile Include="src\L32_Computer.cpp" />
     <ClCompile Include="src\L32_ComputerInfo.cpp" />
+    <ClCompile Include="src\L32_ConfigParser.cpp" />
     <ClCompile Include="src\L32_DebugCore.cpp" />
     <ClCompile Include="src\L32_KeyboardDevice.cpp" />
     <ClCompile Include="src\L32_L32Assembler.cpp" />
@@ -201,6 +202,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="include\L32_ROM.h" />
     <ClInclude Include="include\L32_Sprite.h" />
     <ClInclude Include="include\Little32.h" />
+    <ClInclude Include="include\L32_ConfigParser.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="scripts\ascii.asm">
@@ -290,6 +292,9 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     </Text>
   </ItemGroup>
   <ItemGroup>
+    <None Include="computer.cfg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="scripts\expression.asm">
       <FileType>Script</FileType>
       <DeploymentContent>true</DeploymentContent>

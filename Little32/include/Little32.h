@@ -2,8 +2,8 @@
 #define Little32_h_
 #pragma once
 
-#include <L32_Types.h>
-#include <L32_String.h>
+#include "L32_Types.h"
+#include "L32_String.h"
 
 // Abstract interfaces
 #include "L32_IDevice.h"
@@ -12,9 +12,10 @@
 #include "L32_ICore.h"
 
 // Helpers
-#include <L32_GUIButton.h>
-#include <L32_IO.h>
-#include <L32_Sprite.h>
+#include "L32_GUIButton.h"
+#include "L32_IO.h"
+#include "L32_Sprite.h"
+#include "L32_ConfigParser.h"
 
 // System
 #include "L32_Computer.h"

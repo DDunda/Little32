@@ -3,6 +3,7 @@
 
 #include "Little32.h"
 
+#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -13,16 +14,6 @@ using namespace Little32;
 constexpr Colour neutral_colour(255, 106,   0, 255);
 constexpr Colour hover_colour  (242,  96,   0, 255);
 constexpr Colour click_colour  (216,  86,   0, 255);
-
-constexpr Point scale { 4,4 };
-constexpr Point text_size { 16,16 };
-constexpr Point char_size { 8,8 };
-
-constexpr Rect button_area
-{
-	{ 0, text_size.y * char_size.y * scale.y },
-	{ text_size.x * char_size.x * scale.x, 80 }
-};
 
 constexpr word default_frame_delay = 16;
 constexpr word default_clock_count = 1000;
@@ -36,10 +27,42 @@ void Program(int argc, char* argv[])
 	word clocks = 0;
 	size_t selected_palette = 0;
 
+	word start_address = 0;
+	word RAM_words = 16384;
+	word ROM_words = 16384;
+	std::string palettes_url = "assets/palette.png";
+	std::string character_set_url = "assets/char set.png";
+	word character_span = 16; // Number of characters between each consecutive row on the character sex
+
+	Point char_size { 8, 8 };
+	Point display_size { 16, 16 };
+	Point display_position{ 0, 0 };
+	Point display_scale { 4, 4 };
+
+	Point viewport_size { 512, 512 };
+
+	Rect button_area
+	{
+		{ 0, viewport_size.h },
+		{ viewport_size.w, 80 }
+	};
+
+	std::ifstream file_stream;
+	file_stream.open(std::filesystem::path("./computer.cfg"));
+
+	if (!file_stream.is_open())
+	{
+		std::cout << "Failed to open config file. Using default settings." << std::endl;
+	}
+	else
+	{
+		ConfigParser::ParseFile(file_stream);
+	}
+
 	Window w;
 	Renderer r;
 
-	Point window_size = text_size * char_size * scale;
+	Point window_size = display_size * char_size * display_scale;
 	window_size.h += 80;
 
 	CreateWindowAndRenderer(window_size, w, r);
@@ -47,7 +70,7 @@ void Program(int argc, char* argv[])
 	const Uint32 wID = w.GetID();
 
 	std::vector<std::array<Colour, 16>> palettes = {};
-	LoadPalettes(palettes, "assets/palette.png");
+	LoadPalettes(palettes, palettes_url);
 
 	GUIButtonGroup buttons
 	{
@@ -110,7 +133,7 @@ void Program(int argc, char* argv[])
 		}
 	};
 
-	Texture char_set = IMG::LoadTexture(r, "assets/char set.png");
+	Texture char_set = IMG::LoadTexture(r, character_set_url.c_str());
 
 	constexpr float multiple = 0.7f;
 
@@ -187,11 +210,14 @@ void Program(int argc, char* argv[])
 
 	Computer computer;
 	Little32Core core(computer);
-	ComputerInfo info(computer);
 
-	word address = 256;
+	word address = start_address;
 
-	RAM ram(address, 4096);
+	RAM ram(address, RAM_words);
+
+	address += ram.GetRange();
+
+	ROM rom(address, ROM_words);
 
 	address += ram.GetRange();
 
@@ -202,9 +228,9 @@ void Program(int argc, char* argv[])
 		char_set,
 		palettes[selected_palette].data(),
 		char_size,
-		text_size.w,       // Characters per row of source texture
-		text_size,
-		scale,
+		character_span,       // Characters per row of source texture
+		display_size,
+		display_scale,
 		address,
 		' ',
 		0x0F  // White on black
@@ -220,7 +246,6 @@ void Program(int argc, char* argv[])
 
 	address += keyboard.GetRange();
 
-	computer.AddMapping(info);
 	computer.AddMappedDevice(ram);
 	computer.AddMappedDevice(cram);
 	computer.AddMappedDevice(keyboard);

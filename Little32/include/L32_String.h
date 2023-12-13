@@ -112,9 +112,18 @@ namespace Little32
 		return str.find_first_not_of(c, off) == std::string::npos;
 	}
 
-	constexpr bool IsChars(std::string_view str, const char* const chars, size_t off = 0)
+	constexpr bool IsChars(std::string_view str, const char* const chars, size_t off = 0) noexcept
 	{
 		return chars != nullptr && str.find_first_not_of(chars, off) == std::string::npos;
+	}
+
+	constexpr bool IsChars(std::string_view str, const char min_char, const char max_char, size_t off = 0)
+	{
+		for (auto c : str.substr(off))
+		{
+			if (c < min_char || c > max_char) return false;
+		}
+		return true;
 	}
 
 	constexpr bool IsDecimal(std::string_view str) noexcept {
@@ -194,6 +203,26 @@ namespace Little32
 		}
 		size_t j = str.find_last_not_of(chars);
 		return str.substr(i, (j + 1) - i);
+	}
+
+	constexpr bool Contains(std::string_view str, const std::string& token, size_t& i) noexcept
+	{
+		return (i = str.find(token)) != str.npos;
+	}
+
+	constexpr bool Contains(std::string_view str, char c, size_t& i) noexcept
+	{
+		return (i = str.find(c)) != str.npos;
+	}
+
+	constexpr bool Contains(std::string_view str, const std::string_view token) noexcept
+	{
+		return str.find(token) != str.npos;
+	}
+
+	constexpr bool Contains(std::string_view str, char c) noexcept
+	{
+		return str.find(c) != str.npos;
 	}
 }
 
