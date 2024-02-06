@@ -1,24 +1,29 @@
-#ifndef L32_String_h_
-#define L32_String_h_
 #pragma once
 
+#ifndef L32_String_h_
+#define L32_String_h_
+
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
+#include "L32_BigInt.h"
 #include "L32_Types.h"
+#include "L32_VarValue.h"
 
 namespace Little32
 {
 	struct Computer;
 
 	// The readable names of registers by index
-	static constexpr const char* const reg_names[16] { "R0","R1","R2","R3","R4","R5","R6","R7","R8","R9","R10","R11","R12","SP","LR","PC" };
+	static constexpr const char* const REGISTER_NAMES[16] { "R0","R1","R2","R3","R4","R5","R6","R7","R8","R9","R10","R11","R12","SP","LR","PC" };
 	// The readable names of conditions by index
-	static constexpr const char* const cond_names_regular[16]{ "AL","GT","GE","HI","HS","EQ","MI","VS","VC","PL","NE","LO","LS","LT","LE","NV" };
+	static constexpr const char* const CONDITION_NAMES[16]{ "AL","GT","GE","HI","HS","EQ","MI","VS","VC","PL","NE","LO","LS","LT","LE","NV" };
 	// The variant names of conditions by index
-	static constexpr const char* const cond_names_variants[16]{ "","","","","CS","ZS","NS","","","NC","ZC","CC","","","","" };
+	static constexpr const char* const CONDITION_NAMES_ALT[16]{ "","","","","CS","ZS","NS","","","NC","ZC","CC","","","","" };
 	// All condition names
-	static const std::unordered_map<std::string, byte> cond_names{
+	static const std::unordered_map<std::string, byte> CONDITION_IDS
+	{
 		{"AL",0b0000},
 		{"GT",0b0001},
 		{"GE",0b0010},
@@ -80,7 +85,7 @@ namespace Little32
 			word start = regs[i];
 			word end = start;
 
-			str += reg_names[start];
+			str += REGISTER_NAMES[start];
 
 			if ((i + 2 < rsize) && regs[i + 2] == end + 2)
 			{
@@ -94,7 +99,7 @@ namespace Little32
 				}
 
 				str += "-";
-				str += reg_names[end];
+				str += REGISTER_NAMES[end];
 			}
 
 			if (++i == rsize) return "{" + str + "}";
@@ -223,6 +228,178 @@ namespace Little32
 	constexpr bool Contains(std::string_view str, char c) noexcept
 	{
 		return str.find(c) != str.npos;
+	}
+
+	constexpr bool _decToI32_validate(std::string_view str)
+	{
+		if (str.empty()) return false;
+		str = str.substr(str.front() == '-' || str.front() == '+');
+		return (str.length() == 1 && str.front() >= '0' && str.front() <= '9') || 
+		       (str.length() >  1 && str.front() != '0' && str.length() <= 10 && IsNumeric(str)); // -2147483648 and 2147483647 have 10 digits
+	}
+
+	constexpr bool _decToI32(std::string_view str, int32_t& out)
+	{
+		out = 0;
+		if (str.front() == '-')
+		{
+			str = str.substr(1);
+			for (char c : str)
+			{
+				out *= 10;
+				out -= (int32_t)c - '0';
+				if (out > 0) return false; // Overflow
+			}
+		}
+		else
+		{
+			for (char c : str)
+			{
+				out *= 10;
+				out += (int32_t)c - '0';
+				if (out < 0) return false; // Overflow
+			}
+		}
+		return true;
+	}
+
+	inline constexpr bool decToI32(std::string_view str, int32_t& out)
+	{
+		return _decToI32_validate(str) && _decToI32(str, out);
+	}
+
+	inline constexpr std::string ToOrdinal(size_t num)
+	{		
+		if ((num % 100) / 10 == 1) // The teens, *1*th: 11th, 12th, 13th... 111th, 112th, 113th... 211th, 212th, 213th...
+			return std::to_string(num) + "th";
+
+		switch (num % 10) // Everything else:
+		{
+		case 1:  return std::to_string(num) + "st"; // *1st
+		case 2:  return std::to_string(num) + "nd"; // *2nd
+		case 3:  return std::to_string(num) + "rd"; // *3rd
+		default: return std::to_string(num) + "th"; // *0th, *4th, *5th, *6th, *7th, *8th, *9th
+		}
+	}
+
+	inline constexpr void MatchType(const VarValue& value, ValueType expected, const std::string& var_name)
+	{
+		if (value.GetType() == expected) return;
+		throw std::runtime_error(
+			"Expected '" +
+				var_name +
+			"' to be '" +
+				std::string(VALUETYPE_NAMES.at(expected)) +
+			"' type, got '" +
+				std::string(VALUETYPE_NAMES.at(value.GetType())) +
+			"' type"
+		);
+	}
+
+	template<const int64_t min, const int64_t max>
+	inline constexpr void MatchIntRange(const VarValue& value, const std::string& var_name)
+	{
+		static_assert(min <= max);
+
+		MatchType(value, INTEGER_VAR, var_name);
+		const BigInt& bint = value.GetIntegerValue();
+
+		if constexpr (min == max) // x == a == b
+		{
+			if constexpr (min == 0) // a == 0
+			{
+				if (bint.bits.empty()) return;
+			}
+			else if constexpr (min < 0) // a < 0
+			{
+				if (bint.negative && bint.bits.size() == 1 && bint.bits[0] == -min) return;
+			}
+			else // a > 0
+			{
+				if (!bint.negative && bint.bits.size() == 1 && bint.bits[0] == max) return;
+			}
+		}
+		else if constexpr (max == 0) // -a <= x <= 0
+		{
+			if (bint.bits.empty()) return; // x == 0
+			if (bint.negative && bint.bits.size() == 1 && bint.bits[0] <= -min) return; // +a >= -x > 0
+		}
+		else if constexpr (min == 0) // 0 <= x <= +b
+		{
+			if (bint.bits.empty()) return; // x == 0
+			if (!bint.negative && bint.bits.size() == 1 && bint.bits[0] <= max) return; // 0 < x <= +b
+		}
+		else if constexpr (max < 0) // -a <= x <= -b
+		{
+			if (bint.negative && bint.bits.size() == 1 && bint.bits[0] >= -min && bint.bits[0] <= -max) return;
+		}
+		else if constexpr (min > 0) // +a <= x <= +b
+		{
+			if (!bint.negative && bint.bits.size() == 1 && bint.bits[0] >= min && bint.bits[0] <= max) return;
+		}
+		else // -a <= x <= +b
+		{
+			if (bint.bits.empty()) return; // x == 0
+			if (bint.negative) // -x <= +a
+			{
+				if (bint.bits.size() == 1 && bint.bits[0] <= -min) return;
+			}
+			else // x <= +b
+			{
+				if (bint.bits.size() == 1 && bint.bits[0] <= max) return;
+			}
+		}
+
+		throw std::runtime_error(
+			"Expected '" +
+			var_name +
+			"' to be between " +
+				std::to_string(min) +
+			" and '" +
+				std::to_string(max) +
+			", got " +
+				bint.ToStringCheap()
+		);
+	}
+
+	template<const uint64_t min, const uint64_t max>
+	inline constexpr void MatchUIntRange(const VarValue& value, const std::string& var_name)
+	{
+		static_assert(min <= max);
+
+		MatchType(value, INTEGER_VAR, var_name);
+		const BigInt& bint = value.GetIntegerValue();
+
+		if constexpr (min == 0)
+		{
+			if (bint.bits.empty()) return;
+			if constexpr (max != 0)
+			{
+				if (bint.bits.size() == 1 && bint.bits[0] <= max) return;
+			}
+		}
+		else if (!bint.negative && bint.bits.size() == 1)
+		{
+			if constexpr (min == max)
+			{
+				if (bint.bits[0] == min) return;
+			}
+			else
+			{
+				if (bint.bits[0] >= min && bint.bits[0] <= max) return;
+			}
+		}
+
+		throw std::runtime_error(
+			"Expected '" +
+				var_name +
+			"' to be between " +
+				std::to_string(min) +
+			" and '" +
+				std::to_string(max) +
+			", got " +
+				bint.ToStringCheap()
+		);
 	}
 }
 

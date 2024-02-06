@@ -11,7 +11,7 @@ namespace Little32
 	{
 		inline word GetAddress() const { return 0; }
 		inline word GetRange() const { return 0; }
-		constexpr const Device_ID GetID() const { return Device_ID::Null; }
+		constexpr const Device_ID GetID() const { return NULL_DEVICE; }
 	};
 }
 

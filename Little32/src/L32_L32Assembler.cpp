@@ -1,5 +1,6 @@
 #include "L32_L32Assembler.h"
 
+#include "L32_Computer.h"
 #include "L32_IO.h"
 #include "L32_RAM.h"
 #include "L32_ROM.h"
@@ -170,7 +171,7 @@ namespace Little32
 	{
 		for (int i = 0; i < 16; i++)
 		{
-			if (t.token == reg_names[i]) return i;
+			if (t.token == REGISTER_NAMES[i]) return i;
 		}
 
 		ThrowException("'" + std::string(t.token) + "' is not a register", t);
@@ -232,28 +233,20 @@ namespace Little32
 	{
 		for (int i = 0; i < 16; i++)
 		{
-			if (str == reg_names[i]) return true;
+			if (str == REGISTER_NAMES[i]) return true;
 		}
 
 		return false;
 	}
 
 	bool IsCond(const std::string& str) noexcept
-		{ return cond_names.contains(str); }
+		{ return CONDITION_IDS.contains(str); }
 
 	constexpr void RemoveComments(std::string& str) noexcept
 	{
 		size_t i = str.find("//", 0, 2);
 		if (i == str.npos) return;
 		str.erase(i);
-	}
-
-	constexpr void PutByte(word* memory, word address, byte value)
-	{
-		word x = (address % sizeof(word)) * 8;
-
-		value ^= memory[address / sizeof(word)] >> x;
-		memory[address / sizeof(word)] ^= value << x;
 	}
 
 	size_t GetTokens(std::string_view file, Little32Assembler::RawLine& line, Little32Assembler::TokenList& tokens, size_t& pos)
@@ -658,7 +651,7 @@ namespace Little32
 
 		if (it == l.end() || it->type != Little32Assembler::TokenType::TEXT || !IsCond(it->token)) ThrowException("Expected condition for '?' statement", *it);
 
-		cond = cond_names.at(it->token);
+		cond = CONDITION_IDS.at(it->token);
 		it = l.erase(it); // Erase condition
 		
 		if (it->type != Little32Assembler::TokenType::END_LINE) ThrowException("Line does not end after '?' statement", *it);
@@ -947,7 +940,7 @@ namespace Little32
 				word reg1 = 0;
 				for (; reg1 < 16; reg1++)
 				{
-					if (reg_names[reg1] == token.token) break;
+					if (REGISTER_NAMES[reg1] == token.token) break;
 				}
 				if (reg1 == 16) ThrowException("Expected register in register list",token);
 
@@ -965,7 +958,7 @@ namespace Little32
 					word reg2 = 0;
 					for (; reg2 < 16; reg2++)
 					{
-						if (reg_names[reg2] == token.token) break;
+						if (REGISTER_NAMES[reg2] == token.token) break;
 					}
 					if (reg2 == 16) ThrowException("Expected register in register list",token);
 					if (reg1 > reg2) ThrowException("Expected register range to be from min to max",token);
@@ -1026,7 +1019,6 @@ namespace Little32
 
 	void Little32Assembler::SetRAM(const RAM& ram)
 	{
-		this->ram = ram.memory.get();
 		ram_start = ram.GetAddress();
 		ram_range = ram.GetRange();
 		ram_current_address = 0;
@@ -1034,10 +1026,9 @@ namespace Little32
 
 	void Little32Assembler::SetROM(const ROM& rom)
 	{
-		this->rom = rom.memory.get();
-		ram_start = rom.GetAddress();
-		ram_range = rom.GetRange();
-		ram_current_address = 0;
+		rom_start = rom.GetAddress();
+		rom_range = rom.GetRange();
+		rom_current_address = 0;
 	}
 
 	void Little32Assembler::ClearLabels() noexcept
@@ -1059,6 +1050,22 @@ namespace Little32
 		pending_labels = { {} };
 		pending_memory_labels = { {} };
 		pending_expressions = { };
+	}
+
+	void Little32Assembler::ResetMemory() noexcept
+	{
+		entry_point   = Little32Assembler::NULL_ADDRESS;
+		program_start = Little32Assembler::NULL_ADDRESS;
+		program_end   = Little32Assembler::NULL_ADDRESS;
+		data_start    = Little32Assembler::NULL_ADDRESS;
+		data_end      = Little32Assembler::NULL_ADDRESS;
+
+		ram_current_address = 0;
+		rom_current_address = 0;
+
+		memory_start    = nullptr;
+		memory_range    = nullptr;
+		current_address = nullptr;
 	}
 
 	inline std::list<Little32Assembler::AssemblyLine> Little32Assembler::ParseTokens(const std::filesystem::path working_dir, TokenList& tokens, bool print_intermediate)
@@ -1086,7 +1093,7 @@ namespace Little32
 
 					tokens.pop_front(); // Erase name
 					tokens.pop_front(); // Erase ':'
-					label_scopes.back()[token.token] = *current_address + memory_start;
+					label_scopes.back()[token.token] = *current_address + *memory_start;
 
 					string num = to_string(label_scopes.back()[token.token]);
 
@@ -1126,13 +1133,13 @@ namespace Little32
 								{
 									if (value < -255 || value > 255) ThrowException("Constant is too large for byte (" + std::to_string(value) + ")", answer.back());
 
-									PutByte(lmit->expression->memory, lmit->expression->address, static_cast<byte>(value));
+									computer->WriteByteForced(lmit->expression->address, static_cast<byte>(value));
 								}
 								else
 								{
 									if (value < -4294967295 || value > 4294967295) ThrowException("Constant is too large for word (" + std::to_string(value) + ")", answer.back());
 
-									lmit->expression->memory[lmit->expression->address >> 2] = static_cast<word>(value);
+									computer->WriteForced(lmit->expression->address, static_cast<word>(value));
 								}
 
 								pending_expressions.erase(lmit->expression);
@@ -1204,18 +1211,17 @@ namespace Little32
 
 				if (*cur_start == NULL_ADDRESS)
 				{
-					*cur_start = *current_address + memory_start;
-					*cur_end = *cur_start;
+					*cur_end = *cur_start = *current_address + *memory_start;
 				}
 
 				if (byte_mode)
 				{
-					if (*current_address >= memory_range) ThrowException("Constant exceeds memory", token);
+					if (*current_address > *memory_range) ThrowException("Constant exceeds memory", token);
 				}
 				else
 				{
 					if (*current_address & 3) ThrowException("Word not aligned", token);
-					if ((*current_address >> 2) >= (memory_range >> 2)) ThrowException("Constant exceeds memory", token);
+					if (*current_address + 4 > *memory_range) ThrowException("Constant exceeds memory", token);
 				}
 
 				TokenList expression = { token };
@@ -1327,8 +1333,7 @@ namespace Little32
 					pending_expressions.push_back
 					(
 						{
-							memory,
-							*current_address,
+							*current_address + *memory_start,
 							byte_mode,
 							expression,
 							num_labels
@@ -1344,7 +1349,7 @@ namespace Little32
 				}
 				else
 				{
-					TokenList answer = SolveExpression(expression, *current_address + memory_start);
+					TokenList answer = SolveExpression(expression, *current_address + *memory_start);
 
 					long long value = std::stoll(answer.back().token);
 
@@ -1354,21 +1359,21 @@ namespace Little32
 					{
 						if (value < -255 || value > 255) ThrowException("Constant is too large for byte (" + std::to_string(value) + ")", answer.back());
 
-						PutByte(memory, *current_address, static_cast<byte>(value));
+						computer->WriteByteForced(*current_address + *memory_start, static_cast<byte>(value));
 					}
 					else
 					{
 						if (value < -4294967295 || value > 4294967295) ThrowException("Constant is too large for word (" + std::to_string(value) + ")", answer.back());
 
-						memory[*current_address >> 2] = static_cast<word>(value);
+						computer->WriteForced(*current_address + *memory_start, static_cast<word>(value));
 					}
 				}
 
 				(*current_address) += byte_mode ? 1 : 4;
 
-				if (*current_address + memory_start > *cur_end)
+				if (*current_address + *memory_start > *cur_end)
 				{
-					*cur_end = *current_address + memory_start;
+					*cur_end = *current_address + *memory_start;
 				}
 			}
 				break;
@@ -1385,27 +1390,27 @@ namespace Little32
 
 				if (*cur_start == NULL_ADDRESS)
 				{
-					*cur_start = *current_address + memory_start;
+					*cur_start = *current_address + *memory_start;
 					*cur_end = *cur_start;
 				}
 
-				if (*current_address + token.token.size() + terminate_mode >= memory_range) ThrowException("String exceeds memory", token);
+				if (*current_address + token.token.size() + terminate_mode > *memory_range) ThrowException("String exceeds memory", token);
 
 				for (char c : token.token)
 				{
-					PutByte(memory, *current_address, c);
+					computer->WriteByteForced(*current_address + *memory_start, c);
 					(*current_address)++;
 				}
 
 				if (terminate_mode)
 				{
-					PutByte(memory, *current_address, 0);
+					computer->WriteByteForced(*current_address + *memory_start, 0);
 					(*current_address)++;
 				}
 
-				if (*current_address + memory_start > *cur_end)
+				if (*current_address + *memory_start > *cur_end)
 				{
-					*cur_end = *current_address + memory_start;
+					*cur_end = *current_address + *memory_start;
 				}
 			}
 				break;
@@ -1472,7 +1477,7 @@ namespace Little32
 
 				tokens.pop_front();
 				cond_scopes.back().has_cond = true;
-				cond_scopes.back().cond = cond_names.at(token.token);
+				cond_scopes.back().cond = CONDITION_IDS.at(token.token);
 			}
 				break;
 
@@ -1688,11 +1693,13 @@ namespace Little32
 		Token token;
 		//if (!TryGetFront(tokens, token) || token.type != TokenType::TEXT) return;
 
-		if (*current_address & 3) ThrowException("Instruction not aligned", token);
+		if (((*current_address + *memory_start) % sizeof(word)) != 0) ThrowException("Instruction not aligned", token);
+
+		if (*current_address + sizeof(word) > *memory_range) ThrowException("Instruction exceeds memory", token);
 
 		if (program_start == NULL_ADDRESS)
 		{
-			program_start = *current_address + memory_start;
+			program_start = *current_address + *memory_start;
 			program_end = program_start;
 		}
 
@@ -1701,8 +1708,7 @@ namespace Little32
 
 		assembly_lines.push_back({
 			token.line,
-			memory_start + *current_address,
-			memory + (*current_address >> 2),
+			*current_address + *memory_start,
 			token
 		});
 		AssemblyLine& instruction = assembly_lines.back();
@@ -1935,11 +1941,11 @@ namespace Little32
 			}
 		}
 
-		(*current_address) += 4;
+		(*current_address) += sizeof(word);
 
-		if (*current_address + memory_start > program_end)
+		if (*current_address + *memory_start > program_end)
 		{
-			program_end = *current_address + memory_start;
+			program_end = *current_address + *memory_start;
 		}
 	}
 
@@ -1957,7 +1963,9 @@ namespace Little32
 			if (!TryConsumeFront(tokens, token) || token.type != TokenType::INTEGER) ThrowException("Expected alignment width", token);
 
 			const word width = stoul(token.token);
-			const word err = (*current_address + memory_start) % width;
+			if (width == 0) ThrowException("Alignment width was zero", token);
+
+			const word err = (*current_address + *memory_start) % width;
 			if (err == 0) return;
 			(*current_address) += width - err;
 		}
@@ -1989,7 +1997,7 @@ namespace Little32
 
 			word size = stoul(token.token);
 			if (size == 0) ThrowException("Expected nonzero memory block", token);
-			if (*current_address + size >= memory_range) ThrowException("Block exceeds memory", token);
+			if (*current_address + size > *memory_range) ThrowException("Block exceeds memory", token);
 
 			if (cur_start == nullptr)
 			{
@@ -1999,20 +2007,20 @@ namespace Little32
 
 			if (*cur_start == NULL_ADDRESS)
 			{
-				*cur_start = *current_address + memory_start;
+				*cur_start = *current_address + *memory_start;
 				*cur_end = *cur_start;
 			}
 
 			for (word i = 0; i < size; i++)
 			{
-				PutByte(memory, *current_address + i, 0);
+				computer->WriteByteForced(*current_address + *memory_start + i, 0);
 			}
 
 			(*current_address) += size;
 
-			if (*current_address + memory_start > *cur_end)
+			if (*current_address + *memory_start > *cur_end)
 			{
-				*cur_end = *current_address + memory_start;
+				*cur_end = *current_address + *memory_start;
 			}
 		}
 		else if (token.token == "BYTE")
@@ -2021,11 +2029,14 @@ namespace Little32
 		}
 		else if (token.token == "DATA")
 		{
-			data_start = *current_address + memory_start;
-
-			if (data_end == NULL_ADDRESS || *current_address + memory_start > data_end)
+			if (data_start == NULL_ADDRESS || *current_address + *memory_start < data_start)
 			{
-				data_end = *current_address + memory_start;
+				data_start = *current_address + *memory_start;
+			}
+
+			if (data_end == NULL_ADDRESS || *current_address + *memory_start > data_end)
+			{
+				data_end = *current_address + *memory_start;
 			}
 
 			cur_start = &data_start;
@@ -2034,9 +2045,9 @@ namespace Little32
 		else if (token.token == "ENTRY")
 		{
 			if (entry_point != Little32Assembler::NULL_ADDRESS) ThrowException("Multiple entry points defined", token);
-			if ((*current_address + memory_start) % 4) ThrowException("Entry point is not word-aligned", token);
+			if ((*current_address + *memory_start) % sizeof(word)) ThrowException("Entry point is not word-aligned", token);
 
-			entry_point = *current_address + memory_start;
+			entry_point = *current_address + *memory_start;
 		}
 		else if (token.token == "FILE")
 		{
@@ -2048,10 +2059,10 @@ namespace Little32
 
 			if (*cur_start == NULL_ADDRESS)
 			{
-				*cur_end = *cur_start = *current_address + memory_start;
+				*cur_end = *cur_start = *current_address + *memory_start;
 			}
 
-			if (*current_address & 3) ThrowException("File not word aligned", token);
+			if ((*current_address % sizeof(word)) != 0) ThrowException("File not word aligned", token);
 			if (!TryConsumeFront(tokens, token) || token.type != TokenType::STRING) ThrowException("Expected file name", token);
 
 			auto file_path = (working_dir / token.token).lexically_normal();
@@ -2064,21 +2075,23 @@ namespace Little32
 			std::string file_contents;
 			StreamToString(file, file_contents);
 
-			if (*current_address + 5 + file_contents.length() > memory_range) ThrowException("File is too long for memory", token);
+			if (*current_address + 5 + file_contents.length() > *memory_range) ThrowException("File is too long for memory", token);
 
-			memory[*current_address >> 2] = file_contents.length();
-			*current_address += 4;
+			computer->WriteForced(*current_address + *memory_start, file_contents.length());
+			*current_address += sizeof(word);
 
 			for (const char c : file_contents)
 			{
-				PutByte(memory, (*current_address)++, c);
+				computer->WriteByteForced(*current_address + *memory_start, c);
+				++*current_address;
 			}
 
-			PutByte(memory, (*current_address)++, 0);
+			computer->WriteByteForced(*current_address + *memory_start, 0);
+			++*current_address;
 
-			if (*current_address + memory_start > *cur_end)
+			if (*current_address + *memory_start > *cur_end)
 			{
-				*cur_end = *current_address + memory_start;
+				*cur_end = *current_address + *memory_start;
 			}
 		}
 		else if (token.token == "LINES")
@@ -2091,13 +2104,13 @@ namespace Little32
 
 			if (*cur_start == NULL_ADDRESS)
 			{
-				*cur_end = *cur_start = *current_address + memory_start;
+				*cur_end = *cur_start = *current_address + *memory_start;
 			}
 
-			if (*current_address & 3) ThrowException("File not word aligned", token);
+			if ((*current_address % sizeof(word)) != 0) ThrowException("File not word aligned", token);
 			if (!TryConsumeFront(tokens, token) || token.type != TokenType::STRING) ThrowException("Expected file name", token);
 
-			auto file_path = (working_dir / token.token).lexically_normal();
+			auto file_path = std::filesystem::weakly_canonical(working_dir / token.token);
 
 			std::ifstream file;
 			file.open(file_path);
@@ -2107,48 +2120,58 @@ namespace Little32
 			std::vector<std::string> lines;
 			std::string line;
 
-			size_t total_size = 0;
+			size_t total_size = sizeof(word);
 
 			while (std::getline(file, line))
 			{
 				lines.push_back(line);
-				total_size += 4; // Pointer
+				total_size += sizeof(word); // Size
+				total_size += sizeof(word); // Pointer
 				total_size += line.length() + 1; // Length of line and null terminator
 			}
 
-			if (*current_address + 4 + total_size > memory_range) ThrowException("Lines are too long for memory", token);
+			if (*current_address + total_size > *memory_range) ThrowException("Lines are too long for memory", token);
 
-			memory[*current_address >> 2] = lines.size();
-			*current_address += 4;
-
-			word line_ptr = *current_address + 4 * lines.size();
+			computer->WriteForced(*current_address + *memory_start, lines.size());
+			*current_address += sizeof(word); // For number of lines
 
 			for (auto& l : lines)
 			{
-				memory[*current_address >> 2] = memory_start + line_ptr;
-				*current_address += 4;
+				computer->WriteForced(*current_address + *memory_start, l.size());
+				*current_address += sizeof(word);
+			}
+
+			word line_ptr = *current_address + sizeof(word) * lines.size() + *memory_start;
+
+			for (auto& l : lines)
+			{
+				computer->WriteForced(*current_address + *memory_start, line_ptr);
+				*current_address += sizeof(word);
 
 				for (const char c : l)
 				{
-					PutByte(memory, line_ptr++, c);
+					computer->WriteByteForced(line_ptr++, c);
 				}
-				PutByte(memory, line_ptr++, 0);
+				computer->WriteByteForced(line_ptr++, 0);
 			}
 
-			*current_address = line_ptr;
+			*current_address = line_ptr - *memory_start;
 
-			if (*current_address + memory_start > *cur_end)
+			if (*current_address + *memory_start > *cur_end)
 			{
-				*cur_end = *current_address + memory_start;
+				*cur_end = *current_address + *memory_start;
 			}
 		}
 		else if (token.token == "PROGRAM")
 		{
-			program_start = *current_address + memory_start;
-
-			if (program_end == NULL_ADDRESS || *current_address + memory_start > program_end)
+			if (program_start == NULL_ADDRESS || *current_address + *memory_start < program_start)
 			{
-				program_end = *current_address + memory_start;
+				program_start = *current_address + *memory_start;
+			}
+
+			if (program_end == NULL_ADDRESS || *current_address + *memory_start > program_end)
+			{
+				program_end = *current_address + *memory_start;
 			}
 
 			cur_start = &program_start;
@@ -2156,18 +2179,21 @@ namespace Little32
 		}
 		else if (token.token == "RAM")
 		{
-			if (memory == ram) return;
-			if (ram == nullptr)
+			bool forced = false;
+			if (TryGetFront(tokens, token) && token.token == "FORCE")
 			{
-				if (!TryGetFront(tokens, token)) return;
-				if (token.token != "FORCE") return;
 				tokens.pop_front();
-				ThrowException("RAM is not available on this system", token);
+				forced = true;
 			}
 
-			memory = ram;
-			memory_start = ram_start;
-			memory_range = ram_range;
+			if (ram_start == NULL_ADDRESS)
+			{
+				if (forced) ThrowException("RAM is not available on this system", token);
+				else return;
+			}
+
+			memory_start = &ram_start;
+			memory_range = &ram_range;
 			current_address = &ram_current_address;
 		}
 		else if (token.token == "RANDOM")
@@ -2176,7 +2202,7 @@ namespace Little32
 
 			word size = stoul(token.token);
 			if (size == 0) ThrowException("Expected nonzero random size", token);
-			if (*current_address + size >= memory_range) ThrowException("Random data exceeds memory", token);
+			if (*current_address + size > *memory_range) ThrowException("Random data exceeds memory", token);
 
 			if (cur_start == nullptr)
 			{
@@ -2186,13 +2212,14 @@ namespace Little32
 
 			if (*cur_start == NULL_ADDRESS)
 			{
-				*cur_end = *cur_start = *current_address + memory_start;
+				*cur_end = *cur_start = *current_address + *memory_start;
 			}
 
 			word bytes = sizeof(word);
 			word val = rand();
-			PutByte(memory, (*current_address)++, val);
-			size--;
+			computer->WriteByteForced(*current_address + *memory_start, val);
+			++*current_address;
+			--size;
 
 			while (size > 0)
 			{
@@ -2205,29 +2232,33 @@ namespace Little32
 					val = rand();
 				}
 
-				PutByte(memory, (*current_address)++, val);
-				size--;
+				computer->WriteByteForced(*current_address + *memory_start, val);
+				++*current_address;
+				--size;
 			}
 
-			if (*current_address + memory_start > *cur_end)
+			if (*current_address + *memory_start > *cur_end)
 			{
-				*cur_end = *current_address + memory_start;
+				*cur_end = *current_address + *memory_start;
 			}
 		}
 		else if (token.token == "ROM")
 		{
-			if (memory == rom) return;
-			if (rom == nullptr)
+			bool forced = false;
+			if (TryGetFront(tokens, token) && token.token == "FORCE")
 			{
-				if (!TryGetFront(tokens, token)) return;
-				if (token.token != "FORCE") return;
 				tokens.pop_front();
-				ThrowException("ROM is not available on this system", token);
+				forced = true;
 			}
 
-			memory = rom;
-			memory_start = rom_start;
-			memory_range = rom_range;
+			if (rom_start == NULL_ADDRESS)
+			{
+				if (forced) ThrowException("ROM is not available on this system", token);
+				else return;
+			}
+
+			memory_start = &rom_start;
+			memory_range = &rom_range;
 			current_address = &rom_current_address;
 		}
 		else if (token.token == "SEED")
@@ -2304,7 +2335,7 @@ namespace Little32
 				if (paren_depth != 0) break;
 				else if (paren_contents.empty()) ThrowException("Empty parentheses in expression", tok);
 
-				expression.splice(expression.end(), SolveExpression(paren_contents, *current_address + memory_start));
+				expression.splice(expression.end(), SolveExpression(paren_contents, *current_address + *memory_start));
 				break;
 
 			case TokenType::NOT:
@@ -2591,6 +2622,8 @@ namespace Little32
 	{
 		using namespace std;
 
+		if (computer == nullptr) throw std::exception("Assembler has no computer to write to");
+
 		const auto norm_path = file_path.lexically_normal();
 
 		if (file_stack.empty())
@@ -2662,18 +2695,16 @@ namespace Little32
 			{PackType::Reg3,         3},
 		};
 
-		if (rom != nullptr) // Prefer ROM - lends memory safety to code
+		if (rom_start != NULL_ADDRESS) // Prefer ROM - lends memory safety to code
 		{
-			memory = rom;
-			memory_start = rom_start;
-			memory_range = rom_range;
+			memory_start = &rom_start;
+			memory_range = &rom_range;
 			current_address = &rom_current_address;
 		}
-		else if (ram != nullptr)
+		else if (ram_start != NULL_ADDRESS)
 		{
-			memory = ram;
-			memory_start = ram_start;
-			memory_range = ram_range;
+			memory_start = &ram_start;
+			memory_range = &ram_range;
 			current_address = &ram_current_address;
 		}
 		else throw exception("Assembler has no memory to write to");
@@ -2737,7 +2768,7 @@ namespace Little32
 					}
 					if (&a != &(l.args.back())) printf(", ");
 				}
-				if (l.has_cond) printf(" ?%s", cond_names_regular[l.cond]);
+				if (l.has_cond) printf(" ?%s", CONDITION_NAMES[l.cond]);
 				printf("\n");
 			}
 			printf("\n");
@@ -2756,7 +2787,7 @@ namespace Little32
 
 			for (auto& a : l.args) a = SolveExpression(a, l.addr);
 
-			*(l.mem) = (l.cond << 28) | (l.N << 27) | def.code | (l.S << 21);
+			word instruction = (l.cond << 28) | (l.N << 27) | def.code | (l.S << 21);
 
 			auto arg = l.args.begin();
 
@@ -2768,37 +2799,37 @@ namespace Little32
 
 			case PackType::Reg3:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				instruction |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 12;
+				instruction |= ToReg(arg->front()) << 12;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 8;
+				instruction |= ToReg(arg->front()) << 8;
 				break;
 
 			case PackType::Flex3i:
 				if (next(arg)->front().type == TokenType::MINUS)
 				{
 					next(arg)->pop_front();
-					*(l.mem) ^= (1 << 22) | (1 << 27); // Switch to negative alternate, and set N flag
+					instruction ^= (1 << 22) | (1 << 27); // Switch to negative alternate, and set N flag
 				}
 
 				if (l.args.back().front().type == TokenType::MINUS)
 				{
 					l.args.back().pop_front();
-					*(l.mem) ^= (1 << 22);
+					instruction ^= (1 << 22);
 				}
 				[[fallthrough]];
 			case PackType::Flex3:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				instruction |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 12;
+				instruction |= ToReg(arg->front()) << 12;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in third argument", *std::next(arg->begin()));
@@ -2817,15 +2848,15 @@ namespace Little32
 					}
 
 					if (min_val > 0xFF) ThrowException("Immediate value (" + std::to_string(val) + ") is too large", arg->front());
-					*(l.mem) |= 1 << 20; // set 'i'
-					*(l.mem) |= min_val << 4;
-					*(l.mem) |= shift;
+					instruction |= 1 << 20; // set 'i'
+					instruction |= min_val << 4;
+					instruction |= shift;
 				}
 				else
 				{
 					if (l.shift & 1) ThrowException("Register rotation shifts must be even", arg->front());
-					*(l.mem) |= ToReg(arg->front()) << 8;
-					*(l.mem) |= l.shift >> 1;
+					instruction |= ToReg(arg->front()) << 8;
+					instruction |= l.shift >> 1;
 				}
 				break;
 
@@ -2833,12 +2864,12 @@ namespace Little32
 				if (l.args.back().front().type == TokenType::MINUS)
 				{
 					l.args.back().pop_front();
-					*(l.mem) ^= (1 << 22);
+					instruction ^= (1 << 22);
 				}
 				[[fallthrough]];
 			case PackType::Flex2:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				instruction |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
@@ -2857,38 +2888,38 @@ namespace Little32
 					}
 
 					if (min_val > 0xFFF) ThrowException("Immediate value (" + std::to_string(val) + ") is too large", arg->front());
-					*(l.mem) |= 1 << 20; // set 'i'
-					*(l.mem) |= min_val << 4;
-					*(l.mem) |= shift;
+					instruction |= 1 << 20; // set 'i'
+					instruction |= min_val << 4;
+					instruction |= shift;
 				}
 				else
 				{
 					if (l.shift & 1) ThrowException("Register rotation shifts must be even", arg->front());
-					*(l.mem) |= ToReg(arg->front()) << 12;
-					*(l.mem) |= l.shift >> 1;
+					instruction |= ToReg(arg->front()) << 12;
+					instruction |= l.shift >> 1;
 				}
 				break;
 
 			case PackType::Reg2:
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				instruction |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 12;
+				instruction |= ToReg(arg->front()) << 12;
 				break;
 
 			case PackType::RegList:
 				if (l.has_shift) ThrowException("Cannot use rotation shift for " + l.code.token, l.code);
 				if (arg->size() != 1) ThrowException("Unexpected token/s in first argument", *std::next(arg->begin()));
-				*(l.mem) |= ToReg(arg->front()) << 16;
+				instruction |= ToReg(arg->front()) << 16;
 				arg++;
 
 				if (arg->size() != 1) ThrowException("Unexpected token/s in second argument", *std::next(arg->begin()));
 			{
 				word list = stoul(arg->front().token);
 				if (list > 0xFFFF) ThrowException("'" + arg->front().token + "' is not a register set", arg->front());
-				*(l.mem) |= list;
+				instruction |= list;
 			}
 				break;
 
@@ -2897,10 +2928,12 @@ namespace Little32
 				bool is_negative;
 				word off = GetBranchOffset(*arg, l.shift, is_negative);
 				if (off && is_negative) off |= 1 << 27; // Avoid setting -0 because that is reserved for RFE/RET
-				*(l.mem) |= off;
+				instruction |= off;
 			}
 				break;
 			}
+
+			computer->WriteForced(l.addr, instruction);
 		}
 
 		file_stack.pop_back();

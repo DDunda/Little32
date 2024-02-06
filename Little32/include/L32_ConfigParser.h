@@ -1,10 +1,12 @@
+#pragma once
+
 #ifndef L32_ConfigFile_h_
 #define L32_ConfigFile_h_
-#pragma once
 
 #include "L32_IO.h"
 #include "L32_String.h"
 
+#include <pixels.hpp>
 #include <rect.hpp>
 
 #include <cassert>
@@ -13,125 +15,21 @@
 #include <list>
 #include <map>
 #include <string>
+#include <set>
 
 namespace Little32
 {
-	class VarValue;
+	struct ConfigObject;
 
-	typedef std::map<std::string, VarValue> ConfigObject;
-
-	struct VarReference
+	struct VarValue;
+	struct VarReference;
+	
+	struct ConfigParser
 	{
-		bool is_root_reference = false; // '//'
-		size_t backreference_count = 0; // '..'
-
-		std::list<std::string> names = {};
-	};
-
-	class ConfigParser;
-
-	class VarValue
-	{	friend ConfigParser;
 	public:
-		enum class ValueType
-		{
-			NONE,
-			OBJECT,
-			STRING,
-			INTEGER,
-			BOOLEAN,
-			VECTOR,
-			COLOUR, // #V or #VV or #RGB or #RGBA or #RRGGBB or #RRGGBBAA 
-			LIST,
-			UNRESOLVED_REFERENCE
-		};
+		inline static uint8_t tab_width = 4;
 
-	private:
-		VarValue* parent = nullptr;
-		ValueType type = ValueType::NONE;
-
-		union
-		{
-			char data[16];
-			ConfigObject* object_value;
-			std::string* string_value;
-			int32_t integer_value;
-			bool boolean_value;
-			SDL::Point vector_value;
-			SDL::Colour colour_value;
-			std::list<VarValue>* list_values;
-			VarReference* reference_value;
-		};
-
-		inline void FreeType() noexcept;
-
-	public:
-		size_t original_line_start;
-		size_t original_line_end;
-
-		size_t file_pos_start;
-		size_t file_pos_end;
-
-		VarValue();
-
-		VarValue(const VarValue& other);
-
-		~VarValue();
-
-		inline constexpr ValueType GetType() const;
-
-		inline constexpr ConfigObject& GetObjectValue() const noexcept;
-
-		inline VarValue* GetTypeFromObject(const std::string& name, VarValue::ValueType type);
-
-		inline VarValue* GetFromObject(const std::string& name);
-
-		inline std::string& GetStringValue() const noexcept;
-
-		inline constexpr int32_t GetIntegerValue() const noexcept;
-
-		inline constexpr bool GetBooleanValue() const noexcept;
-
-		inline constexpr SDL::Point GetVectorValue() const noexcept;
-
-		inline constexpr SDL::Colour GetColourValue() const noexcept;
-
-		inline std::list<VarValue>& GetListValues() const noexcept;
-
-		void AddCloneToThisList(const VarValue& to_copy);
-
-		void AddCloneToThisObject(const std::string& str, const VarValue& to_copy);
-
-		inline constexpr VarValue* GetParent() const;
-
-		/*bool TryResolveReference(ConfigObject& root)
-		{
-			assert(type == ValueType::UNRESOLVED_REFERENCE);
-
-			VarValue* value = GetFromReference(root);
-
-			if (value == nullptr) return false;
-
-			value->CopyTo(*this);
-
-			return true;
-		}
-
-		void ResolveReference(ConfigObject& root)
-		{
-			assert(type == ValueType::UNRESOLVED_REFERENCE);
-
-			VarValue* value = GetFromReference(root, parent, *reference_value);
-
-			assert(value != nullptr);
-
-			value->CopyTo(*this);
-		}*/
-	};
-
-	class ConfigParser
-	{
-		enum class TokenType
+		enum TokenType
 		{
 			VARNAME, // [a-zA-Z_][a-zA-Z_\d]*
 
@@ -166,6 +64,29 @@ namespace Little32
 			INVALID
 		};
 
+		inline static const std::map<TokenType, const char*> type_names
+		{
+			{ VARNAME, "variable name" },
+			{ ASSIGN, "assignment tag" },
+			{ INTEGER, "integer value" },
+			{ FLOAT, "float value" },
+			{ STRING, "string value" },
+			{ COLOUR, "colour value" },
+			{ LREF, "opening reference tag" },
+			{ RREF, "closing reference tag" },
+			{ DOUBLE_SLASH, "root reference tag" },
+			{ DOUBLE_DOT, "upwards reference tag" },
+			{ SLASH, "divider reference tag" },
+			{ LPAREN, "opening vector tag" },
+			{ RPAREN, "closing vector tag" },
+			{ COMMA, "comma" },
+			{ LBRACKET, "opening object tag" },
+			{ RBRACKET, "closing object tag" },
+			{ LBRACE, "opening list tag" },
+			{ RBRACE, "closing list tag" },
+			{ INVALID, "unknown token" }
+		};
+
 		struct RawLine
 		{
 			size_t line_no;
@@ -174,29 +95,138 @@ namespace Little32
 
 		struct Token
 		{
-			TokenType type = TokenType::INVALID;
+			TokenType type = INVALID;
 			std::string_view raw_token = {};
 			std::string token = "";
 
-			RawLine* line = nullptr;
+			size_t file_index = 0;
+			const RawLine* line = nullptr;
 			size_t index = 0;
 		};
 
 		typedef std::list<Token> TokenList;
 
-		inline static constexpr bool IsInteger(const std::string_view in_str);
+		class FormatException : public std::exception
+		{
+		public:
+			size_t line_no;
+			std::string line;
+			std::string message;
+			std::string inner_message;
+			FormatException(const Token& token, const std::string_view message, uint8_t tab_width) :
+				line_no(token.line->line_no),
+				line(token.line->line),
+				inner_message(message),
+				exception("Improper format")
+			{
+				std::string tmp_message = std::string("Improper format: ") + std::string(message) + ": (line " + (token.line->line_no == 0 ? "??" : std::to_string(token.line->line_no)) + ")\n\n";
+				size_t depth = token.index;
+				size_t width = token.raw_token.size();
 
-		inline static constexpr bool IsFloat(const std::string_view in_str);
+				size_t end = std::min(depth, token.line->line.size());
 
-		inline static constexpr bool IsVarName(const std::string_view in_str);
+				size_t i = 0;
 
-		static size_t GetTokens(std::string_view file, RawLine* line, size_t& pos, std::list<RawLine>& lines, TokenList& tokens);
+				for (; i < end; ++i)
+				{
+					switch (token.line->line[i])
+					{
+					case '\t':
+						depth += tab_width - 1;
+						break; 
+
+					case '\n':
+					case '\v':
+					case '\f':
+					case '\r':
+					case '\\':
+						depth++;
+						break;
+					}
+				}
+
+				end = std::min(token.index + width, token.line->line.size());
+
+				for (; i < end; ++i)
+				{
+					switch (token.line->line[i])
+					{
+					case '\t':
+						width += tab_width - 1;
+						break;
+
+					case '\n':
+					case '\v':
+					case '\f':
+					case '\r':
+					case '\\':
+						width++;
+					}
+				}
+
+				std::string tab = "";
+				for (i = tab_width; i > 0; --i)
+					tab += ' ';
+
+				for (const char& c : std::string(token.line->line))
+				{
+					switch (c)
+					{
+					case '\t':
+						tmp_message += tab;
+						break;
+
+					case '\n':
+						tmp_message += "\n";
+						break;
+
+					case '\v':
+						tmp_message += "\v";
+						break;
+
+					case '\f':
+						tmp_message += "\f";
+						break;
+
+					case '\r':
+						tmp_message += "\r";
+						break;
+
+					case '\\':
+						tmp_message += "\\\\";
+						break;
+
+					default:
+						tmp_message += c;
+					}
+				}
+
+				tmp_message += '\n';
+				for (i = depth; i > 0; --i)
+					tmp_message += ' ';
+
+				if (width == 0) tmp_message += '^';
+				else
+				{
+					for (i = width; i > 0; --i)
+						tmp_message += '^';
+				}
+
+				this->message = tmp_message;
+				//	std::string(token.line->line) + "\n" +
+				//	std::string(token.index, ' ') + std::string(token.raw_token.size() > 0 ? token.raw_token.size() : 1, '^');
+			}
+		};
+
+	private:
+		static VarValue* GetValue(TokenList& tokens, ConfigObject& root, VarValue* parent);
 
 	public:
+		static size_t GetTokens(std::string_view file, std::list<RawLine>::const_iterator& line, size_t& file_pos, size_t& pos, TokenList& tokens);
 		
-		static void ParseFile(std::string_view file_contents);
+		static ConfigObject* ParseFile(std::string_view file_contents);
 
-		static void ParseFile(std::istream& file_stream);
+		static ConfigObject* ParseFile(std::istream& file_stream);
 	};
 };
 

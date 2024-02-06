@@ -7,6 +7,8 @@
 
 namespace Little32
 {
+	struct Computer;
+
 	struct IMemoryMapped
 	{
 		/// <summary>Attempts to write a word to this device</summary>
@@ -14,10 +16,21 @@ namespace Little32
 		/// <param name="value">The word to write</param>
 		virtual void Write(word address, word value) {}
 
+
+		/// <summary>Forces a word to be written to this device. To be used to program the device.</summary>
+		/// <param name="address">The address relative to <c>address_start</c></param>
+		/// <param name="value">The word to write</param>
+		virtual void WriteForced(word address, word value) = 0;
+
 		/// <summary>Attempts to write a byte to this device</summary>
 		/// <param name="address">The address relative to <c>address_start</c></param>
 		/// <param name="value">The byte to write</param>
 		virtual void WriteByte(word address, byte value) {}
+
+		/// <summary>Forces a byte to be written to this device. To be used to program the device.</summary>
+		/// <param name="address">The address relative to <c>address_start</c></param>
+		/// <param name="value">The byte to write</param>
+		virtual void WriteByteForced(word address, byte value) = 0;
 
 		/// <summary>Attempts to read a word from this device</summary>
 		/// <param name="address">The address relative to <c>address_start</c></param>
@@ -35,6 +48,8 @@ namespace Little32
 
 		/// <summary> Returns an type identifier for this device </summary>
 		virtual constexpr const Device_ID GetID() const = 0;
+
+		virtual ~IMemoryMapped() {}
 	};
 }
 

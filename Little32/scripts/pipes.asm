@@ -5,9 +5,9 @@ $dir      = R7
 $rand     = R8
 $delay    = R9
 
-$frame_delay = 50
-$clock_count = 19
-
+#ROM
+#PROGRAM
+#ENTRY
 MOV $char_mem, CHAR_MEM
 MOV $rand, seed
 MOV $delay, 0
@@ -118,10 +118,6 @@ multiply_loop:          // while(1) {
 
 
 #DATA
-#WORD
-seed:
-	#RANDOM 4
-	
 #ASCII
 pipe_graphics:
 	//    \ To 
@@ -134,3 +130,8 @@ pipe_graphics:
 		  "\xCDCDC9C8"
 		  "\xC8BCBABA"
 		  "\xC9BBBABA"
+
+#RAM FORCE
+#ALIGN 4
+seed:
+	#RANDOM 4

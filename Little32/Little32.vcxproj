@@ -165,12 +165,16 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="$(SDLpp)\src\input.cpp" />
     <ClCompile Include="$(SDLpp)\src\mouse.cpp" />
     <ClCompile Include="$(SDLpp)\src\rect.cpp" />
+    <ClCompile Include="src\L32_BigInt.cpp" />
+    <ClCompile Include="src\L32_VarValue.cpp" />
+    <ClCompile Include="src\L32_ConfigObject.cpp" />
     <ClCompile Include="src\L32_CharDisplay.cpp" />
     <ClCompile Include="src\L32_ColourCharDisplay.cpp" />
     <ClCompile Include="src\L32_Computer.cpp" />
     <ClCompile Include="src\L32_ComputerInfo.cpp" />
     <ClCompile Include="src\L32_ConfigParser.cpp" />
     <ClCompile Include="src\L32_DebugCore.cpp" />
+    <ClCompile Include="src\L32_IDeviceSettings.cpp" />
     <ClCompile Include="src\L32_KeyboardDevice.cpp" />
     <ClCompile Include="src\L32_L32Assembler.cpp" />
     <ClCompile Include="src\L32_L32Core.cpp" />
@@ -178,9 +182,14 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClCompile Include="src\L32_IO.cpp" />
     <ClCompile Include="src\L32_RAM.cpp" />
     <ClCompile Include="src\L32_ROM.cpp" />
+    <ClCompile Include="src\L32_VarReference.cpp" />
     <ClCompile Include="src\Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\L32_BigInt.h" />
+    <ClInclude Include="include\L32_ConfigObject.h" />
+    <ClInclude Include="include\L32_EmptyDeviceFactory.h" />
+    <ClInclude Include="include\L32_IDeviceSettings.h" />
     <ClInclude Include="include\L32_CharDisplay.h" />
     <ClInclude Include="include\L32_ColourCharDisplay.h" />
     <ClInclude Include="include\L32_Computer.h" />
@@ -189,6 +198,7 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="include\L32_DebugCore.h" />
     <ClInclude Include="include\L32_IDevice.h" />
     <ClInclude Include="include\L32_GUIButton.h" />
+    <ClInclude Include="include\L32_ImageLoader.h" />
     <ClInclude Include="include\L32_KeyboardDevice.h" />
     <ClInclude Include="include\L32_L32Assembler.h" />
     <ClInclude Include="include\L32_L32Core.h" />
@@ -201,8 +211,11 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <ClInclude Include="include\L32_RAM.h" />
     <ClInclude Include="include\L32_ROM.h" />
     <ClInclude Include="include\L32_Sprite.h" />
+    <ClInclude Include="include\L32_VarReference.h" />
     <ClInclude Include="include\Little32.h" />
     <ClInclude Include="include\L32_ConfigParser.h" />
+    <ClInclude Include="include\L32_IDeviceFactory.h" />
+    <ClInclude Include="include\L32_VarValue.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="scripts\ascii.asm">
@@ -295,13 +308,32 @@ copy "$(SDL_ttf)\lib\$(PlatformShortName)\*.dll" "$(OutDir)";</Command>
     <None Include="computer.cfg">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="scripts\blue_wave.cfg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="scripts\bounce.cfg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="scripts\expression.asm">
       <FileType>Script</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="scripts\gravity.cfg">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="scripts\overflow.asm">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Script</FileType>
+    </None>
+    <CopyFileToFolders Include="scripts\random.cfg">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </CopyFileToFolders>
+    <None Include="scripts\pipes.cfg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="scripts\program.cfg">
+      <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

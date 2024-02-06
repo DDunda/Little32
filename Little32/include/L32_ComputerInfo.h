@@ -1,6 +1,7 @@
+#pragma once
+
 #ifndef L32_ComputerInfo_h_
 #define L32_ComputerInfo_h_
-#pragma once
 
 #include "L32_IMemoryMapped.h"
 
@@ -24,7 +25,7 @@ namespace Little32
 
 		inline word GetAddress() const { return 0; }
 		word GetRange() const;
-		constexpr const Device_ID GetID() const { return Device_ID::ComputerInfo; }
+		constexpr const Device_ID GetID() const { return COMPUTERINFO_DEVICE; }
 	};
 }
 

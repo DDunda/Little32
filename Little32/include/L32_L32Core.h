@@ -1,6 +1,7 @@
+#pragma once
+
 #ifndef L32_L32Core_h_
 #define L32_L32Core_h_
-#pragma once
 
 #include "L32_ICore.h"
 

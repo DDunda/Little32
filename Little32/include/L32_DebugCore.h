@@ -1,6 +1,7 @@
+#pragma once
+
 #ifndef L32_DebugCore_h_
 #define L32_DebugCore_h_
-#pragma once
 
 #include "L32_ICore.h"
 

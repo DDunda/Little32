@@ -1,7 +1,4 @@
-﻿$clock_count = 26 // Enough to call frame_int a single time
-$frame_delay = 16 // ~60 FPS
-
-${
+﻿${
 $x     = R0
 $y     = R1
 $vx    = R2
@@ -15,7 +12,9 @@ $col2  = R9
 $tmp   = R10
 $tmp2  = R11
 
+#ROM
 #ENTRY
+#PROGRAM
 MOV $x, 16
 MOV $y, 70
 MOV $vx, 7
@@ -28,7 +27,7 @@ MOV $empty, 0xfa        // char empty = '·';
 MOV $col1, 0x0F
 MOV $col2, 0x07
 
-MOV R11, RENDER_INT
+RRW R11, [.render_int_addr]
 MOV $tmp, frame_int
 RWW $tmp, [R11]         // set_frame_callback(frame_int);
 
@@ -83,4 +82,8 @@ frame_int:              // void frame_int() {
    RFE                  //     return;
                         // }
 }:
+
+#DATA
+render_int_addr:
+	RENDER_INT
 }$

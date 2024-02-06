@@ -2,6 +2,7 @@
 
 #include "L32_Computer.h"
 #include "L32_ICore.h"
+#include "L32_IDeviceSettings.h"
 #include "L32_IMappedDevice.h"
 
 #include <events.hpp>
@@ -13,6 +14,21 @@ namespace Little32
 	{
 		SDL::Input::RegisterEventType(SDL::Event::Type::KEYUP, *this);
 		SDL::Input::RegisterEventType(SDL::Event::Type::KEYDOWN, *this);
+	}
+
+	void KeyboardDeviceFactory::CreateFromSettings(Computer& computer, word& start_address, const IDeviceSettings& settings, std::unordered_map<std::string, word>& labels, std::filesystem::path path) const
+	{
+		KeyboardDevice* device = new KeyboardDevice(computer, start_address);
+		start_address += device->GetRange();
+		computer.AddMappedDevice(*device);
+	}
+
+	void KeyboardDeviceFactory::VerifySettings(const IDeviceSettings& settings, std::filesystem::path path) const
+	{
+		if (!settings.named_labels.empty())
+		{
+			throw std::runtime_error("Unknown named label: '" + settings.named_labels.begin()->first + "'");
+		}
 	}
 
 	void KeyboardDevice::PushKeyDown(word key)
@@ -85,6 +101,16 @@ namespace Little32
 			value ^= keyup_interrupt >> x;
 			keyup_interrupt ^= value << x;
 		}
+	}
+
+	void KeyboardDevice::WriteForced(word address, word value)
+	{
+		Write(address, value);
+	}
+
+	void KeyboardDevice::WriteByteForced(word address, byte value)
+	{
+		WriteByte(address, value);
 	}
 
 	word KeyboardDevice::Read(word address)

@@ -1,4 +1,5 @@
-#LINES "test_contents.txt"
+#ASSEMBLE "ascii.asm"
 
 #ALIGN 4
-#ASSEMBLE "ascii.asm"
+#DATA
+#LINES "test_contents.txt"

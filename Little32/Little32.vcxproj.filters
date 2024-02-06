@@ -52,6 +52,21 @@
     <ClCompile Include="src\L32_ConfigParser.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="src\L32_BigInt.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\L32_ConfigObject.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\L32_IDeviceSettings.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\L32_VarReference.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\L32_VarValue.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SDL++">
@@ -140,6 +155,30 @@
     <ClInclude Include="include\L32_ConfigParser.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\L32_IDeviceFactory.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\L32_BigInt.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\L32_ConfigObject.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\L32_EmptyDeviceFactory.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\L32_IDeviceSettings.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\L32_ImageLoader.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\L32_VarReference.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\L32_VarValue.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\char set.png">
@@ -206,9 +245,29 @@
     <None Include="scripts\expression.asm">
       <Filter>Assembly</Filter>
     </None>
-    <None Include="computer.cfg" />
     <None Include="scripts\overflow.asm">
       <Filter>Assembly</Filter>
     </None>
+    <None Include="scripts\gravity.cfg">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="computer.cfg" />
+    <None Include="scripts\program.cfg">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="scripts\pipes.cfg">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="scripts\bounce.cfg">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="scripts\blue_wave.cfg">
+      <Filter>Assembly</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="scripts\random.cfg">
+      <Filter>Assembly</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

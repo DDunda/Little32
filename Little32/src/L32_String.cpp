@@ -39,10 +39,10 @@ namespace Little32
 			if (v == 0 && !print_null) continue;
 			if (addr - laddr > 12) printf("...                         .   ,   .   ,   .   ,   .   ,\n");
 			else {
-				if (addr - laddr > 4) printf("0x%08X: 0x%08X 0b%s % 10u %+ 11i \n", laddr + 4 + offset, 0, ToBinary(0).c_str(), 0, 0);
-				if (addr - laddr > 8) printf("0x%08X: 0x%08X 0b%s % 10u %+ 11i \n", laddr + 8 + offset, 0, ToBinary(0).c_str(), 0, 0);
+				if (addr - laddr > 4) printf("0x%08X: 0x%08X 0b%s % 10u %+ 11i \"%c%c%c%c\" \n", laddr + 4 + offset, 0, ToBinary(0).c_str(), 0, 0, 0, 0, 0, 0);
+				if (addr - laddr > 8) printf("0x%08X: 0x%08X 0b%s % 10u %+ 11i \"%c%c%c%c\" \n", laddr + 8 + offset, 0, ToBinary(0).c_str(), 0, 0, 0, 0, 0, 0);
 			}
-			printf("0x%08X: 0x%08X 0b%s % 10u %+ 11i \n", addr + offset, v, ToBinary(v).c_str(), v, v);
+			printf("0x%08X: 0x%08X 0b%s % 10u %+ 11i \"%c%c%c%c\" \n", addr + offset, v, ToBinary(v).c_str(), v, v, v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255);
 			laddr = addr;
 		}
 	}

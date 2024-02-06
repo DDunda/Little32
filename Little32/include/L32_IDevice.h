@@ -1,9 +1,12 @@
+#pragma once
+
 #ifndef L32_IDevice_h_
 #define L32_IDevice_h_
-#pragma once
 
 namespace Little32
 {
+	struct Computer;
+
 	struct IDevice
 	{
 		/// <summary> Clocks the device</summary>
@@ -11,6 +14,8 @@ namespace Little32
 
 		/// <summary> Reset the state of the device</summary>
 		virtual void Reset() {};
+
+		virtual ~IDevice() {}
 	};
 }
 

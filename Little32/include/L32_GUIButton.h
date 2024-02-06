@@ -1,6 +1,7 @@
+#pragma once
+
 #ifndef L32_GUIButton_h_
 #define L32_GUIButton_h_
-#pragma once
 
 #include <input.hpp>
 #include <render.hpp>

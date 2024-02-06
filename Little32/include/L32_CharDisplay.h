@@ -1,6 +1,7 @@
+#pragma once
+
 #ifndef L32_CharDisplay_h_
 #define L32_CharDisplay_h_
-#pragma once
 
 #include <rect.hpp>
 
@@ -58,7 +59,7 @@ namespace Little32
 		inline word GetAddress() const { return address_start; }
 		inline word GetRange() const { return address_size + sizeof(word); }
 
-		constexpr const Device_ID GetID() const { return Device_ID::CharDisplay; }
+		constexpr const Device_ID GetID() const { return CHARDISPLAY_DEVICE; }
 
 		void Render(bool do_interrupt = true);
 

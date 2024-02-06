@@ -1,6 +1,7 @@
+#pragma once
+
 #ifndef L32_L32Assembler_h_
 #define L32_L32Assembler_h_
-#pragma once
 
 #include <filesystem>
 #include <istream>
@@ -184,7 +185,6 @@ namespace Little32
 		struct AssemblyLine {
 			const RawLine rline;
 			word addr;
-			word* mem;
 			Token code;
 			std::list<TokenList> args;
 
@@ -216,21 +216,24 @@ namespace Little32
 		static constexpr const char valid_text_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 		void SetRAM(const RAM& ram);
-		constexpr void SetRAM(word* memory, word start_address, word range)
+		constexpr void SetRAM(word start_address, word range)
 		{
-			ram = memory;
 			ram_start = start_address;
 			ram_range = range;
 			ram_current_address = 0;
 		}
 
 		void SetROM(const ROM& rom);
-		constexpr void SetROM(word* memory, word start_address, word range)
+		constexpr void SetROM(word start_address, word range)
 		{
-			rom = memory;
 			rom_start = start_address;
 			rom_range = range;
 			rom_current_address = 0;
+		}
+
+		constexpr void SetComputer(Computer& computer)
+		{
+			this->computer = &computer;
 		}
 
 		void AddLabel(const std::string& label, word address);
@@ -239,17 +242,16 @@ namespace Little32
 		bool GetLabel(const std::string& label, std::string& label_out) const;
 		bool GetVariable(const std::string& variable, TokenList& var_out) const;
 
-		constexpr void ClearRAM() noexcept {
-			ram = nullptr;
-			ram_start = 0;
+		constexpr void ClearRAM() noexcept
+		{
+			ram_start = NULL_ADDRESS;
 			ram_range = 0;
 			ram_current_address = 0;
 		}
 
 		constexpr void ClearROM() noexcept
 		{
-			rom = nullptr;
-			rom_start = 0;
+			rom_start = NULL_ADDRESS;
 			rom_range = 0;
 			rom_current_address = 0;
 		}
@@ -257,6 +259,8 @@ namespace Little32
 		void ClearLabels() noexcept;
 
 		void FlushScopes() noexcept;
+
+		void ResetMemory() noexcept;
 		
 		void Assemble(const std::filesystem::path file_path, std::string_view file_contents, bool print_intermediate = false);
 		void Assemble(const std::filesystem::path file_path, std::istream& code, bool print_intermediate = false);
@@ -284,6 +288,8 @@ namespace Little32
 			word cond = 0;
 		};
 
+		Computer* computer;
+
 		std::list<std::unordered_map<std::string, TokenList>> variable_scopes = {}; // Currently active variable scopes (a variable is not visible outside its scope)
 		std::list<std::unordered_map<std::string, word>> label_scopes = {}; // Currently active label scopes (a label is not visible outside its scope)
 		std::list<std::list<OpReplace>> func_scopes = {}; // Currently active function scopes (a function is not visible outside its scope)
@@ -297,7 +303,6 @@ namespace Little32
 
 		struct MemoryExpression
 		{
-			word* memory;
 			word address;
 			bool is_bool;
 			TokenList expression;
@@ -314,20 +319,17 @@ namespace Little32
 		std::list<std::list<MemoryLabel>> pending_memory_labels = { {} };
 		std::list<MemoryExpression> pending_expressions = { };
 
-		word* ram = nullptr;
-		word ram_start = 0;
+		word ram_start = NULL_ADDRESS;
 		word ram_range = 0;
 		word ram_current_address = 0;
 
-		word* rom = nullptr;
-		word rom_start = 0;
+		word rom_start = NULL_ADDRESS;
 		word rom_range = 0;
 		word rom_current_address = 0;
 
-		word* memory = nullptr;
-		word memory_start = 0;
-		word memory_range = 0;
-		word* current_address = 0;
+		word* memory_start = nullptr;
+		word* memory_range = nullptr;
+		word* current_address = nullptr;
 
 		std::unordered_map<std::string, word> constant_addresses = {};
 

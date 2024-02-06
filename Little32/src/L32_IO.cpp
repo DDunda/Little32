@@ -11,18 +11,6 @@ namespace Little32
 		{L"All Documents (*.*)",           L"*.*"  }
 	};
 
-	constexpr std::array<SDL::Colour, 16> fallback_palettes[]
-	{
-		{{
-			{  0,  0,  0}, {127,  0,  0}, {127, 51,  0}, {127,106,  0}, {  0,127,  0}, {  0,  0,127}, { 87,  0,127}, {127,127,127},
-			{ 64, 64, 64}, {255,  0,  0}, {255,106,  0}, {255,216,  0}, {  0,255,  0}, {  0,  0,255}, {178,  0,255}, {255,255,255}
-		}},
-		{{
-			{  0,  0,  0}, { 17, 17, 17}, { 34, 34, 34}, { 51, 51, 51}, { 68, 68, 68}, { 85, 85, 85}, {102,102,102}, {119,119,119},
-			{136,136,136}, {153,153,153}, {170,170,170}, {187,187,187}, {204,204,204}, {221,221,221}, {238,238,238}, {255,255,255}
-		}}
-	};
-
 	long PickFile(std::wstring& out_str)
 	{
 		// CoCreate the File Open Dialog object.
@@ -101,11 +89,9 @@ namespace Little32
 		out_str.append(buf, 0, stream.gcount());
 	}
 
-	void LoadPalettes(std::vector<std::array<SDL::Colour, 16>>& palettes, const std::string& file_name)
+	void LoadPalettes(std::vector<std::array<SDL::Colour, 16>>& palettes, SDL::Surface& palette_image)
 	{
 		using namespace SDL;
-
-		Surface palette_image = IMG::Load(file_name.c_str());
 
 		palettes.clear();
 

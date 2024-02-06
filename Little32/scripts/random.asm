@@ -2,9 +2,8 @@ $colr_mem = R4
 $rand     = R8
 $delay    = R9
 
-$frame_delay = 10
-$clock_count = 903
-
+#ROM FORCE
+#ENTRY
 MOV $colr_mem, COLOUR_MEM
 MOV $rand, seed
 MOV $delay, 0
@@ -56,7 +55,7 @@ ${:{
 	RET
 }:}$
 
+#RAM FORCE
 #DATA
-#WORD
 seed:
 	#RANDOM 4

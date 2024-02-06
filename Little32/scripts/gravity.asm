@@ -7,9 +7,6 @@ $px       = R9
 $py       = R10
 $g        = R11
 
-$frame_delay = 10
-$clock_count = 1600
-
 MOV $char_mem, CHAR_MEM
 
 MOV $x, _x

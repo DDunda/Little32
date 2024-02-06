@@ -1,4 +1,4 @@
-$clock_count = 27 // Enough to call on_down a single time
+$clocks_per_frame = 27 // Enough to call on_down a single time
 $frame_delay = 125 // 8 FPS
 
 ${:{

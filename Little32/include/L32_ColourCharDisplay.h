@@ -1,22 +1,21 @@
+#pragma once
+
 #ifndef L32_ColourCharDisplay_h_
 #define L32_ColourCharDisplay_h_
-#pragma once
 
 #include <pixels.hpp>
 #include <rect.hpp>
+#include <render.hpp>
 
+#include <filesystem>
+#include <unordered_map>
+
+#include "L32_Computer.h"
 #include "L32_IMappedDevice.h"
-
-namespace SDL
-{
-	struct Renderer;
-	struct Texture;
-}
+#include "L32_IDeviceFactory.h"
 
 namespace Little32
 {
-	struct Computer;
-
 	class ColourCharDisplay : public IMappedDevice
 	{
 	private:
@@ -47,28 +46,39 @@ namespace Little32
 		std::shared_ptr<byte[]> default_colour_memory = nullptr;
 		std::shared_ptr<byte[]> colour_memory;
 
-		SDL::Colour colours[16];
+		inline static SDL::Colour colours[16] = {};
 
 		word interrupt_address = 0;
 
+		std::shared_ptr<Computer::Interval> refresh_interval = nullptr;
+
 		Computer& computer;
-		SDL::Renderer& r;
-		SDL::Texture& txt;
+		SDL::Renderer r;
+		SDL::Texture txt;
 		/// <summary> The pixel size of a character from the source texture </summary>
-		const SDL::Point char_size;
+		const SDL::Point texture_char_size;
+		const SDL::Point texture_position;
+		/// <summary> Coordinates for the top-left of the display </summary>
+		const SDL::Point position;
 		/// <summary> The number of characters per row from the source texture </summary>
-		const word span;
+		const word texture_columns;
 		/// <summary> The pixel size of a character rendered to the screen (calculated as charSize*scale) </summary>
 		const SDL::Point dst_char_size;
+		const SDL::Point dst_corner;
 		/// <summary> The of the display in characters </summary>
 		const SDL::Point text_size;
 
-		ColourCharDisplay(Computer& computer, SDL::Renderer& r, SDL::Texture& txt, const SDL::Colour colours[16], const SDL::Point& char_size, word span, SDL::Point text_size, SDL::Point scale, word address, std::shared_ptr<byte[]>& text_memory, std::shared_ptr<byte[]>& colour_memory);
-		ColourCharDisplay(Computer& computer, SDL::Renderer& r, SDL::Texture& txt, const SDL::Colour colours[16], const SDL::Point& char_size, word span, SDL::Point text_size, SDL::Point scale, word address, byte default_char, byte default_colour);
-		ColourCharDisplay(Computer& computer, SDL::Renderer& r, SDL::Texture& txt, const SDL::Colour colours[16], const SDL::Point& char_size, word span, SDL::Point text_size, SDL::Point scale, word address);
+		ColourCharDisplay(Computer& computer, SDL::Renderer r, SDL::Texture txt, SDL::Point texture_position, SDL::Point texture_char_size, word texture_columns, SDL::Point text_size, SDL::Point pixel_position, SDL::Point pixel_scale, word address, std::shared_ptr<byte[]>& text_memory, std::shared_ptr<byte[]>& colour_memory);
+		ColourCharDisplay(Computer& computer, SDL::Renderer r, SDL::Texture txt, SDL::Point texture_position, SDL::Point texture_char_size, word texture_columns, SDL::Point text_size, SDL::Point pixel_position, SDL::Point pixel_scale, word address, byte default_char, byte default_colour);
+		ColourCharDisplay(Computer& computer, SDL::Renderer r, SDL::Texture txt, SDL::Point texture_position, SDL::Point texture_char_size, word texture_columns, SDL::Point text_size, SDL::Point pixel_position, SDL::Point pixel_scale, word address);
+
+		~ColourCharDisplay();
 
 		void Write(word address, word value);
 		void WriteByte(word address, byte value);
+
+		void WriteForced(word address, word value);
+		void WriteByteForced(word address, byte value);
 
 		word Read(word address);
 		byte ReadByte(word address);
@@ -76,11 +86,17 @@ namespace Little32
 		inline word GetAddress() const { return address_start; }
 		inline word GetRange() const { return address_size; }
 
-		constexpr const Device_ID GetID() const { return Device_ID::ColourCharDisplay; }
+		constexpr const Device_ID GetID() const { return COLOURCHARDISPLAY_DEVICE; }
 
 		void Render(bool do_interrupt = true);
 
 		void Reset();
+	};
+
+	struct ColourCharDisplayFactory : IDeviceFactory
+	{
+		void CreateFromSettings(Computer& computer, word& start_address, const IDeviceSettings& settings, std::unordered_map<std::string, word>& labels, std::filesystem::path cur_path) const;
+		void VerifySettings(const IDeviceSettings& settings, std::filesystem::path path) const;
 	};
 }
 

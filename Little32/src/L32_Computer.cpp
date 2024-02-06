@@ -11,27 +11,41 @@ namespace Little32
 	{
 		for (; clocks > 0; clocks--)
 		{
-			for (int i = 0; i < devices.size(); i++)
+			CheckIntervals();
+
+			for (size_t i = 0; i < devices.size(); i++)
 			{
 				devices[i]->Clock();
 			}
+			for (size_t i = 0; i < mapped_devices.size(); i++)
+			{
+				mapped_devices[i]->Clock();
+			}
 			core->Clock();
+			cur_cycle++;
 		}
 	}
 
 	void Computer::Clock()
 	{
-		for (int i = 0; i < devices.size(); i++)
+		CheckIntervals();
+
+		for (size_t i = 0; i < devices.size(); i++)
 		{
 			devices[i]->Clock();
 		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			mapped_devices[i]->Clock();
+		}
 		core->Clock();
+		cur_cycle++;
 	}
 
 	word Computer::Read(word addr)
 	{
 		word value = 0;
-		for (int i = 0; i < mappings.size(); i++)
+		for (size_t i = 0; i < mappings.size(); i++)
 		{
 			const word start = mappings[i]->GetAddress();
 
@@ -39,13 +53,21 @@ namespace Little32
 
 			value |= mappings[i]->Read(addr - start);
 		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			const word start = mapped_devices[i]->GetAddress();
+
+			if (addr < start || addr >= start + mapped_devices[i]->GetRange()) continue;
+
+			value |= mapped_devices[i]->Read(addr - start);
+		}
 		return value;
 	}
 
 	byte Computer::ReadByte(word addr)
 	{
 		byte value = 0;
-		for (int i = 0; i < mappings.size(); i++)
+		for (size_t i = 0; i < mappings.size(); i++)
 		{
 			const word start = mappings[i]->GetAddress();
 
@@ -53,12 +75,20 @@ namespace Little32
 
 			value |= mappings[i]->ReadByte(addr - start);
 		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			const word start = mapped_devices[i]->GetAddress();
+
+			if (addr < start || addr >= start + mapped_devices[i]->GetRange()) continue;
+
+			value |= mapped_devices[i]->ReadByte(addr - start);
+		}
 		return value;
 	}
 
 	void Computer::Write(word addr, word value)
 	{
-		for (int i = 0; i < mappings.size(); i++)
+		for (size_t i = 0; i < mappings.size(); i++)
 		{
 			const word start = mappings[i]->GetAddress();
 
@@ -66,17 +96,73 @@ namespace Little32
 
 			mappings[i]->Write(addr - start, value);
 		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			const word start = mapped_devices[i]->GetAddress();
+
+			if (addr < start || addr >= start + mapped_devices[i]->GetRange()) continue;
+
+			mapped_devices[i]->Write(addr - start, value);
+		}
 	}
 
 	void Computer::WriteByte(word addr, byte value)
 	{
-		for (int i = 0; i < mappings.size(); i++)
+		for (size_t i = 0; i < mappings.size(); i++)
 		{
 			const word start = mappings[i]->GetAddress();
 
 			if (addr < start || addr >= start + mappings[i]->GetRange()) continue;
 
 			mappings[i]->WriteByte(addr - start, value);
+		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			const word start = mapped_devices[i]->GetAddress();
+
+			if (addr < start || addr >= start + mapped_devices[i]->GetRange()) continue;
+
+			mapped_devices[i]->WriteByte(addr - start, value);
+		}
+	}
+
+	void Computer::WriteForced(word addr, word value)
+	{
+		for (size_t i = 0; i < mappings.size(); i++)
+		{
+			const word start = mappings[i]->GetAddress();
+
+			if (addr < start || addr >= start + mappings[i]->GetRange()) continue;
+
+			mappings[i]->WriteForced(addr - start, value);
+		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			const word start = mapped_devices[i]->GetAddress();
+
+			if (addr < start || addr >= start + mapped_devices[i]->GetRange()) continue;
+
+			mapped_devices[i]->WriteForced(addr - start, value);
+		}
+	}
+
+	void Computer::WriteByteForced(word addr, byte value)
+	{
+		for (size_t i = 0; i < mappings.size(); i++)
+		{
+			const word start = mappings[i]->GetAddress();
+
+			if (addr < start || addr >= start + mappings[i]->GetRange()) continue;
+
+			mappings[i]->WriteByteForced(addr - start, value);
+		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			const word start = mapped_devices[i]->GetAddress();
+
+			if (addr < start || addr >= start + mapped_devices[i]->GetRange()) continue;
+
+			mapped_devices[i]->WriteByteForced(addr - start, value);
 		}
 	}
 
@@ -88,9 +174,13 @@ namespace Little32
 
 	void Computer::HardReset()
 	{
-		for (int i = 0; i < devices.size(); i++)
+		for (size_t i = 0; i < devices.size(); i++)
 		{
 			devices[i]->Reset();
+		}
+		for (size_t i = 0; i < mapped_devices.size(); i++)
+		{
+			mapped_devices[i]->Reset();
 		}
 		core->Reset();
 		SoftReset();
@@ -108,7 +198,6 @@ namespace Little32
 
 	void Computer::AddMappedDevice(IMappedDevice& dev)
 	{
-		devices.push_back(&dev);
-		mappings.push_back(&dev);
+		mapped_devices.push_back(&dev);
 	}
 }
