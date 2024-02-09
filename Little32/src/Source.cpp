@@ -1228,6 +1228,10 @@ int main(int argc, char* argv[])
 {
 	SDL::Init();
 
+#ifdef WINAPI
+	SetConsoleOutputCP(CP_UTF8); // To print in UTF-8
+#endif
+
 	{
 		Little32::Program prog;
 
