@@ -14,11 +14,10 @@ namespace Little32
 {
 	void ColourCharDisplay::_WriteTextWordUnsafe(word address, word value)
 	{
-		for (word i = 0; address < pixel_area && i < sizeof(word); i++)
-		{
-			text_memory[address++] = value;
-			value >>= 8;
-		}
+		text_memory[address + 0] = value >> 0;
+		text_memory[address + 1] = value >> 8;
+		text_memory[address + 2] = value >> 16;
+		text_memory[address + 3] = value >> 24;
 	}
 
 	void ColourCharDisplay::_WriteTextByteUnsafe(word address, byte value)
@@ -28,11 +27,10 @@ namespace Little32
 
 	void ColourCharDisplay::_WriteColourWordUnsafe(word address, word value)
 	{
-		for (word i = 0; address < pixel_area && i < sizeof(word); i++)
-		{
-			colour_memory[address++] = value;
-			value >>= 8;
-		}
+		colour_memory[address + 0] = value >> 0;
+		colour_memory[address + 1] = value >> 8;
+		colour_memory[address + 2] = value >> 16;
+		colour_memory[address + 3] = value >> 24;
 	}
 
 	void ColourCharDisplay::_WriteColourByteUnsafe(word address, byte value)
@@ -42,13 +40,11 @@ namespace Little32
 
 	word ColourCharDisplay::_ReadTextWordUnsafe(word address)
 	{
-		word value = text_memory[address++];
-		for (word i = 1; i < sizeof(word); i++, address++)
-		{
-			value <<= 8;
-			if (address < pixel_area) value |= text_memory[address];
-		}
-		return value;
+		return
+			(static_cast<word>(text_memory[address + 0]) <<  0) |
+			(static_cast<word>(text_memory[address + 1]) <<  8) | 
+			(static_cast<word>(text_memory[address + 2]) << 16) | 
+			(static_cast<word>(text_memory[address + 3]) << 24);
 	}
 
 	byte ColourCharDisplay::_ReadTextByteUnsafe(word address)
@@ -58,13 +54,11 @@ namespace Little32
 
 	word ColourCharDisplay::_ReadColourWordUnsafe(word address)
 	{
-		word value = colour_memory[address++];
-		for (word i = 1; i < sizeof(word); i++, address++)
-		{
-			value <<= 8;
-			if (address < pixel_area) value |= colour_memory[address];
-		}
-		return value;
+		return
+			(static_cast<word>(colour_memory[address + 0]) << 0) |
+			(static_cast<word>(colour_memory[address + 1]) << 8) |
+			(static_cast<word>(colour_memory[address + 2]) << 16) |
+			(static_cast<word>(colour_memory[address + 3]) << 24);
 	}
 
 	byte ColourCharDisplay::_ReadColourByteUnsafe(word address)
