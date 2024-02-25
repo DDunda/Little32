@@ -264,6 +264,9 @@
     <None Include="scripts\blue_wave.cfg">
       <Filter>Assembly</Filter>
     </None>
+    <None Include="scripts\keyboard.cfg">
+      <Filter>Assembly</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="scripts\random.cfg">
